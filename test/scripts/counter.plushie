@@ -1,0 +1,14 @@
+app: Counter
+viewport: 800x600
+theme: dark
+backend: mock
+-----
+# Test the counter example
+click "#increment"
+click "#increment"
+assert_text "#count" "Count: 2"
+
+click "#decrement"
+assert_text "#count" "Count: 1"
+
+tree_hash "counter-at-1"

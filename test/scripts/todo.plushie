@@ -1,0 +1,17 @@
+app: Todo
+viewport: 800x600
+theme: dark
+backend: mock
+-----
+# Test the todo example
+type "#new_todo" "Buy milk"
+type enter
+
+# Verify the todo was added
+assert_text "#title" "My Todos"
+
+# Add another todo
+type "#new_todo" "Walk the dog"
+type enter
+
+tree_hash "todo-two-items"

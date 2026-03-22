@@ -114,14 +114,23 @@ module Plushie
         (data.nil? || data.empty?) ? nil : data
       end
 
-      # Find a widget by selector. Raises if not found.
+      # Find a widget by selector. Raises with a helpful error if not found,
+      # including the current tree IDs and similar ID suggestions.
+      #
       # @param selector [String]
       # @return [Hash]
+      # @raise [Plushie::Error] if widget not found
       def find!(selector)
         result = find(selector)
         unless result
-          tree_ids = Tree.ids(@tree).join(", ")
-          raise Plushie::Error, "Widget not found: #{selector}\n\nCurrent tree IDs: #{tree_ids}"
+          all_ids = Tree.ids(@tree)
+          target = selector.start_with?("#") ? selector[1..] : selector
+          suggestions = find_similar_ids(target, all_ids)
+
+          msg = +"Widget not found: #{selector}\n"
+          msg << "\n  Did you mean: #{suggestions.map { "##{_1}" }.join(", ")}\n" if suggestions.any?
+          msg << "\n  Current tree IDs: #{all_ids.join(", ")}"
+          raise Plushie::Error, msg
         end
         result
       end
@@ -408,6 +417,53 @@ module Plushie
             e
           end
         end
+      end
+
+      # Find IDs similar to the target using substring matching and
+      # Levenshtein-like distance. Returns up to 3 suggestions.
+      #
+      # @param target [String] the ID we searched for
+      # @param all_ids [Array<String>] all IDs in the tree
+      # @return [Array<String>] similar IDs, closest first
+      def find_similar_ids(target, all_ids, max: 3)
+        return [] if target.nil? || target.empty?
+
+        scored = all_ids.filter_map do |id|
+          local = id.split("/").last
+          # Exact substring match scores highest
+          if local.include?(target) || target.include?(local)
+            [id, 0]
+          else
+            dist = levenshtein(target.downcase, local.downcase)
+            (dist <= [target.length / 2, 3].max) ? [id, dist] : nil
+          end
+        end
+
+        scored.sort_by(&:last).first(max).map(&:first)
+      end
+
+      # Simple Levenshtein distance for "did you mean" suggestions.
+      # @param a [String]
+      # @param b [String]
+      # @return [Integer]
+      def levenshtein(a, b)
+        return b.length if a.empty?
+        return a.length if b.empty?
+
+        matrix = Array.new(a.length + 1) { |i| Array.new(b.length + 1) { |j| (i.zero? ? j : (j.zero? ? i : 0)) } }
+
+        (1..a.length).each do |i|
+          (1..b.length).each do |j|
+            cost = (a[i - 1] == b[j - 1]) ? 0 : 1
+            matrix[i][j] = [
+              matrix[i - 1][j] + 1,     # deletion
+              matrix[i][j - 1] + 1,     # insertion
+              matrix[i - 1][j - 1] + cost # substitution
+            ].min
+          end
+        end
+
+        matrix[a.length][b.length]
       end
     end
   end
