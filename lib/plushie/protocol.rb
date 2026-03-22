@@ -9,10 +9,13 @@ module Plushie
   # - :json    -- newline-delimited JSON (debugging/observability)
   # - :msgpack -- MessagePack with 4-byte length prefix (default, production)
   #
+  # @see ~/projects/plushie/docs/protocol.md
   module Protocol
     PROTOCOL_VERSION = 1
 
     autoload :Encode, "plushie/protocol/encode"
     autoload :Decode, "plushie/protocol/decode"
+    autoload :Keys, "plushie/protocol/keys"
+    autoload :Parsers, "plushie/protocol/parsers"
   end
 end

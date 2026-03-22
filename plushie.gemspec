@@ -33,4 +33,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "msgpack", "~> 1.7"
   spec.add_dependency "logger"
+  spec.add_dependency "base64"
 end
