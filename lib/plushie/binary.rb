@@ -65,6 +65,58 @@ module Plushie
       end
     end
 
+    # Download the precompiled binary for the current platform.
+    #
+    # @param version [String] binary version (default: BINARY_VERSION)
+    # @return [String] path to the downloaded binary
+    def download!(version: BINARY_VERSION)
+      require "net/http"
+      require "uri"
+      require "fileutils"
+
+      url = release_url(version)
+      dir = File.join("_build", "plushie", "bin")
+      FileUtils.mkdir_p(dir)
+      dest = File.join(dir, binary_name)
+
+      $stderr.puts "Downloading plushie #{version} for #{os_name}-#{arch_name}..."
+      uri = URI.parse(url)
+
+      Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
+        response = http.get(uri.path)
+
+        case response
+        when Net::HTTPSuccess
+          File.binwrite(dest, response.body)
+          File.chmod(0o755, dest) unless Gem.win_platform?
+          $stderr.puts "Saved to #{dest} (#{response.body.bytesize} bytes)"
+        when Net::HTTPRedirection
+          # Follow one redirect
+          redirect_uri = URI.parse(response["location"])
+          redirect_response = Net::HTTP.get_response(redirect_uri)
+          File.binwrite(dest, redirect_response.body)
+          File.chmod(0o755, dest) unless Gem.win_platform?
+          $stderr.puts "Saved to #{dest} (#{redirect_response.body.bytesize} bytes)"
+        else
+          raise Error, "download failed: #{response.code} #{response.message}"
+        end
+      end
+
+      dest
+    end
+
+    # @return [String] GitHub release download URL
+    def release_url(version)
+      "https://github.com/plushie-ui/plushie/releases/download/v#{version}/#{binary_name}"
+    end
+
+    # @return [String] platform-specific binary filename
+    def binary_name
+      name = "plushie-#{os_name}-#{arch_name}"
+      name += ".exe" if Gem.win_platform?
+      name
+    end
+
     def which(cmd)
       ENV["PATH"]&.split(File::PATH_SEPARATOR)&.each do |dir|
         path = File.join(dir, cmd)
