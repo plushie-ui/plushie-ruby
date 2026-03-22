@@ -1,111 +1,149 @@
 # frozen_string_literal: true
 
+require "logger"
+
 module Plushie
-  # Bridge to the plushie renderer process.
+  # Renderer lifecycle manager.
   #
-  # Manages the subprocess, reads events from stdout, writes commands
-  # to stdin. Runs in a dedicated thread and pushes decoded events
-  # onto the runtime's event queue.
+  # Wraps a Connection with restart logic and state preservation.
+  # When the renderer crashes, the Bridge reconnects with exponential
+  # backoff and re-sends settings + the last snapshot.
+  #
+  # The Bridge pushes decoded events to the Runtime's event queue.
+  # On disconnect, it pushes [:renderer_exited, reason].
   class Bridge
+    # Exponential backoff parameters
+    BACKOFF_BASE_MS = 100
+    BACKOFF_MAX_MS = 1600
+    MAX_RETRIES = 5
+
+    # @return [:msgpack, :json] wire format
     attr_reader :format
 
-    def initialize(event_queue:, format: :msgpack, renderer_path: nil, transport: :spawn, log_level: :error)
+    # @return [Hash, nil] hello response from the current connection
+    attr_reader :hello
+
+    # @param event_queue [Thread::Queue] queue for decoded events
+    # @param format [:msgpack, :json] wire format
+    # @param binary [String, nil] renderer binary path
+    # @param transport [:spawn, :stdio] transport mode
+    # @param log_level [Symbol] renderer log level
+    def initialize(event_queue:, format: :msgpack, binary: nil,
+      transport: :spawn, log_level: :error)
       @event_queue = event_queue
       @format = format
-      @renderer_path = renderer_path
+      @binary = binary
       @transport = transport
       @log_level = log_level
-      @write_mutex = Mutex.new
-      @process = nil
-      @stdin = nil
-      @stdout = nil
-      @reader_thread = nil
+      @connection = nil
+      @retry_count = 0
+      @settings = {}
+      @last_snapshot = nil
+      @logger = Logger.new($stderr, level: :warn, progname: "plushie")
     end
 
-    def start
-      case @transport
-      when :spawn
-        spawn_renderer
-      when :stdio
-        @stdin = $stdout
-        @stdout = $stdin
-      end
-
-      start_reader_thread
+    # Start the connection and perform handshake.
+    #
+    # @param settings [Hash] application settings to send
+    def start(settings: {})
+      @settings = settings
+      connect!
     end
 
+    # Send pre-encoded wire bytes to the renderer. Thread-safe.
+    #
+    # @param data [String] encoded message bytes
+    def send_encoded(data)
+      @connection&.send_encoded(data)
+    end
+
+    # Store the last snapshot for re-sending after restart.
+    #
+    # @param snapshot_data [String] encoded snapshot message
+    def remember_snapshot(snapshot_data)
+      @last_snapshot = snapshot_data
+    end
+
+    # Stop the connection and clean up.
     def stop
-      @reader_thread&.kill
-      @stdin&.close rescue nil
-      @process&.close rescue nil
-    end
-
-    def send_message(data)
-      @write_mutex.synchronize do
-        case @format
-        when :msgpack
-          @stdin.write([data.bytesize].pack("N"))
-          @stdin.write(data)
-        when :json
-          @stdin.write(data)
-        end
-        @stdin.flush
-      end
-    rescue IOError, Errno::EPIPE => e
-      @event_queue.push([:renderer_exited, e])
+      @connection&.close
+      @connection = nil
     end
 
     private
 
-    def spawn_renderer
-      path = @renderer_path || Binary.path!
-      args = [path, "--format", @format.to_s, "--log-level", @log_level.to_s]
-      @stdin, @stdout, @process = Open3.popen2(*args)
-      @stdin.binmode
-      @stdout.binmode
+    def connect!
+      queue = Thread::Queue.new
+
+      @connection = case @transport
+      when :spawn
+        Connection.spawn(
+          format: @format, binary: @binary,
+          mode: nil, log_level: @log_level,
+          settings: @settings, queue: queue
+        )
+      when :stdio
+        Connection.attach(
+          stdin: $stdout, stdout: $stdin,
+          format: @format, settings: @settings, queue: queue
+        )
+      else
+        raise ArgumentError, "unsupported transport: #{@transport.inspect}"
+      end
+
+      @hello = @connection.hello
+      @retry_count = 0
+
+      # Forward messages from connection queue to event queue
+      start_forwarder(queue)
+    rescue => e
+      handle_connect_failure(e)
     end
 
-    def start_reader_thread
-      @reader_thread = Thread.new do
-        read_loop
+    def start_forwarder(conn_queue)
+      Thread.new do
+        while (msg = conn_queue.pop)
+          case msg
+          in {type: :connection_closed} | {type: :connection_error}
+            @event_queue.push([:renderer_exited, msg])
+            attempt_restart
+            break
+          else
+            @event_queue.push([:renderer_event, msg])
+          end
+        end
       rescue => e
         @event_queue.push([:renderer_exited, e])
-      end
-      @reader_thread.name = "plushie-bridge"
+      end.tap { |t| t.name = "plushie-bridge-forwarder" }
     end
 
-    def read_loop
-      case @format
-      when :msgpack
-        read_msgpack_loop
-      when :json
-        read_json_loop
+    def attempt_restart
+      return if @retry_count >= MAX_RETRIES
+
+      @retry_count += 1
+      delay_ms = [BACKOFF_BASE_MS * (2**(@retry_count - 1)), BACKOFF_MAX_MS].min
+      @logger.warn("plushie: renderer exited, retry #{@retry_count}/#{MAX_RETRIES} in #{delay_ms}ms")
+
+      sleep(delay_ms / 1000.0)
+      @connection&.close
+
+      connect!
+      resend_state
+    rescue => e
+      @logger.error("plushie: restart failed: #{e.class}: #{e.message}")
+      @event_queue.push([:renderer_exited, e]) if @retry_count >= MAX_RETRIES
+    end
+
+    def resend_state
+      # Re-send the last snapshot so the renderer has the current tree
+      if @last_snapshot
+        @connection.send_encoded(@last_snapshot)
       end
     end
 
-    def read_msgpack_loop
-      while (header = @stdout.read(4))
-        length = header.unpack1("N")
-        data = @stdout.read(length)
-        break if data.nil? || data.bytesize != length
-
-        event = Protocol::Decode.decode_message(data, :msgpack)
-        @event_queue.push([:renderer_event, event]) if event
-      end
-      @event_queue.push([:renderer_exited, :eof])
-    end
-
-    def read_json_loop
-      @stdout.each_line do |line|
-        line = line.chomp
-        next if line.empty?
-
-        event = Protocol::Decode.decode_message(line, :json)
-        @event_queue.push([:renderer_event, event]) if event
-      end
-      @event_queue.push([:renderer_exited, :eof])
+    def handle_connect_failure(error)
+      @logger.error("plushie: connection failed: #{error.class}: #{error.message}")
+      @event_queue.push([:renderer_exited, error])
     end
   end
 end
-
-require "open3"
