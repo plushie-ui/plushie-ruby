@@ -66,6 +66,7 @@ module Plushie
     end
 
     # Download the precompiled binary for the current platform.
+    # Verifies the SHA-256 checksum against a .sha256 sidecar file.
     #
     # @param version [String] binary version (default: BINARY_VERSION)
     # @return [String] path to the downloaded binary
@@ -73,34 +74,32 @@ module Plushie
       require "net/http"
       require "uri"
       require "fileutils"
+      require "digest"
 
       url = release_url(version)
+      checksum_url = "#{url}.sha256"
       dir = File.join("_build", "plushie", "bin")
       FileUtils.mkdir_p(dir)
       dest = File.join(dir, binary_name)
 
-      $stderr.puts "Downloading plushie #{version} for #{os_name}-#{arch_name}..."
-      uri = URI.parse(url)
+      warn "Downloading plushie #{version} for #{os_name}-#{arch_name}..."
 
-      Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
-        response = http.get(uri.path)
+      binary_data = fetch_url(url)
+      checksum_data = fetch_url(checksum_url)
 
-        case response
-        when Net::HTTPSuccess
-          File.binwrite(dest, response.body)
-          File.chmod(0o755, dest) unless Gem.win_platform?
-          $stderr.puts "Saved to #{dest} (#{response.body.bytesize} bytes)"
-        when Net::HTTPRedirection
-          # Follow one redirect
-          redirect_uri = URI.parse(response["location"])
-          redirect_response = Net::HTTP.get_response(redirect_uri)
-          File.binwrite(dest, redirect_response.body)
-          File.chmod(0o755, dest) unless Gem.win_platform?
-          $stderr.puts "Saved to #{dest} (#{redirect_response.body.bytesize} bytes)"
-        else
-          raise Error, "download failed: #{response.code} #{response.message}"
-        end
+      # The .sha256 file contains "hexdigest  filename\n" or just "hexdigest\n"
+      expected_sha = checksum_data.strip.split(/\s+/).first
+
+      actual_sha = Digest::SHA256.hexdigest(binary_data)
+
+      unless actual_sha == expected_sha
+        raise Error, "checksum mismatch for #{binary_name}: " \
+          "expected #{expected_sha}, got #{actual_sha}"
       end
+
+      File.binwrite(dest, binary_data)
+      File.chmod(0o755, dest) unless Gem.win_platform?
+      warn "Saved to #{dest} (#{binary_data.bytesize} bytes, SHA-256 verified)"
 
       dest
     end
@@ -124,6 +123,28 @@ module Plushie
       end
       nil
     end
+
+    # Fetch a URL, following one redirect if needed.
+    # @param url [String]
+    # @return [String] response body
+    def fetch_url(url)
+      uri = URI.parse(url)
+
+      Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
+        response = http.get(uri.path)
+
+        case response
+        when Net::HTTPSuccess
+          response.body
+        when Net::HTTPRedirection
+          redirect_uri = URI.parse(response["location"])
+          Net::HTTP.get(redirect_uri)
+        else
+          raise Error, "download failed for #{url}: #{response.code} #{response.message}"
+        end
+      end
+    end
+    private_class_method :fetch_url
   end
 end
 

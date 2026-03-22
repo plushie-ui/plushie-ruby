@@ -1,0 +1,108 @@
+module Plushie
+  class Command
+    class Cmd
+      attr_reader type: Symbol
+      attr_reader payload: Hash[Symbol, untyped]
+
+      def initialize: (type: Symbol, payload: Hash[Symbol, untyped]) -> void
+    end
+
+    # Basic
+    def self.none: () -> Cmd
+    def self.async: (Proc callable, Symbol tag) -> Cmd
+    def self.stream: (Proc callable, Symbol tag) -> Cmd
+    def self.cancel: (Symbol tag) -> Cmd
+    def self.done: (untyped value, Proc mapper_fn) -> Cmd
+    def self.send_after: (Integer delay_ms, untyped event) -> Cmd
+    def self.exit: () -> Cmd
+    def self.batch: (Array[Cmd] commands) -> Cmd
+
+    # Focus
+    def self.focus: (String widget_id) -> Cmd
+    def self.focus_next: () -> Cmd
+    def self.focus_previous: () -> Cmd
+
+    # Text editing
+    def self.select_all: (String widget_id) -> Cmd
+    def self.move_cursor_to_front: (String widget_id) -> Cmd
+    def self.move_cursor_to_end: (String widget_id) -> Cmd
+    def self.move_cursor_to: (String widget_id, Integer position) -> Cmd
+    def self.select_range: (String widget_id, Integer start_pos, Integer end_pos) -> Cmd
+
+    # Scroll
+    def self.scroll_to: (String widget_id, Numeric offset_y) -> Cmd
+    def self.snap_to: (String widget_id, Float x, Float y) -> Cmd
+    def self.snap_to_end: (String widget_id) -> Cmd
+    def self.scroll_by: (String widget_id, Numeric x, Numeric y) -> Cmd
+
+    # Window operations
+    def self.close_window: (String window_id) -> Cmd
+    def self.resize_window: (String window_id, Integer width, Integer height) -> Cmd
+    def self.move_window: (String window_id, Integer x, Integer y) -> Cmd
+    def self.maximize_window: (String window_id, ?bool maximized) -> Cmd
+    def self.minimize_window: (String window_id, ?bool minimized) -> Cmd
+    def self.set_window_mode: (String window_id, Symbol mode) -> Cmd
+    def self.toggle_maximize: (String window_id) -> Cmd
+    def self.toggle_decorations: (String window_id) -> Cmd
+    def self.gain_focus: (String window_id) -> Cmd
+    def self.set_window_level: (String window_id, Symbol level) -> Cmd
+    def self.drag_window: (String window_id) -> Cmd
+    def self.drag_resize_window: (String window_id, Symbol direction) -> Cmd
+    def self.request_user_attention: (String window_id, Symbol urgency) -> Cmd
+    def self.screenshot: (String window_id, Symbol tag) -> Cmd
+    def self.set_resizable: (String window_id, bool resizable) -> Cmd
+    def self.set_min_size: (String window_id, Integer width, Integer height) -> Cmd
+    def self.set_max_size: (String window_id, Integer width, Integer height) -> Cmd
+    def self.enable_mouse_passthrough: (String window_id) -> Cmd
+    def self.disable_mouse_passthrough: (String window_id) -> Cmd
+    def self.show_system_menu: (String window_id) -> Cmd
+    def self.set_icon: (String window_id, String rgba_data, Integer width, Integer height) -> Cmd
+    def self.set_resize_increments: (String window_id, Integer width, Integer height) -> Cmd
+    def self.allow_automatic_tabbing: (bool enabled) -> Cmd
+
+    # Window queries
+    def self.get_window_size: (String window_id, Symbol tag) -> Cmd
+    def self.get_window_position: (String window_id, Symbol tag) -> Cmd
+    def self.is_maximized: (String window_id, Symbol tag) -> Cmd
+    def self.is_minimized: (String window_id, Symbol tag) -> Cmd
+    def self.get_mode: (String window_id, Symbol tag) -> Cmd
+    def self.get_scale_factor: (String window_id, Symbol tag) -> Cmd
+    def self.raw_id: (String window_id, Symbol tag) -> Cmd
+    def self.monitor_size: (String window_id, Symbol tag) -> Cmd
+
+    # System queries
+    def self.get_system_theme: (Symbol tag) -> Cmd
+    def self.get_system_info: (Symbol tag) -> Cmd
+
+    # PaneGrid
+    def self.pane_split: (String grid_id, String pane_id, Symbol axis, String new_pane_id) -> Cmd
+    def self.pane_close: (String grid_id, String pane_id) -> Cmd
+    def self.pane_swap: (String grid_id, String pane_a, String pane_b) -> Cmd
+    def self.pane_maximize: (String grid_id, String pane_id) -> Cmd
+    def self.pane_restore: (String grid_id) -> Cmd
+
+    # Image operations
+    def self.create_image: (String handle, ?String? data, ?width: Integer?, ?height: Integer?, ?pixels: String?) -> Cmd
+    def self.update_image: (String handle, ?String? data, ?width: Integer?, ?height: Integer?, ?pixels: String?) -> Cmd
+    def self.delete_image: (String handle) -> Cmd
+    def self.list_images: (Symbol tag) -> Cmd
+    def self.clear_images: () -> Cmd
+
+    # Widget queries
+    def self.tree_hash: (Symbol tag) -> Cmd
+    def self.find_focused: (Symbol tag) -> Cmd
+
+    # Font
+    def self.load_font: (String data) -> Cmd
+
+    # Accessibility
+    def self.announce: (String text) -> Cmd
+
+    # Extension
+    def self.extension_command: (String node_id, String op, ?Hash[Symbol, untyped] payload) -> Cmd
+    def self.extension_commands: (Array[Hash[Symbol, untyped]] commands) -> Cmd
+
+    # Test
+    def self.advance_frame: (Integer timestamp) -> Cmd
+  end
+end

@@ -1,0 +1,170 @@
+module Plushie
+  module Event
+    # Reconstruct the full scoped path from an event.
+    def self.target: (untyped event) -> String
+
+    class Widget
+      attr_reader type: Symbol
+      attr_reader id: String
+      attr_reader value: untyped
+      attr_reader scope: Array[String]
+      attr_reader data: untyped
+
+      def initialize: (type: Symbol, id: String, ?value: untyped, ?scope: Array[String], ?data: untyped) -> void
+    end
+
+    class Key
+      attr_reader type: Symbol
+      attr_reader key: String
+      attr_reader modified_key: String?
+      attr_reader physical_key: String?
+      attr_reader location: Symbol
+      attr_reader modifiers: Hash[Symbol, bool]
+      attr_reader text: String?
+      attr_reader repeat: bool
+      attr_reader captured: bool
+
+      def initialize: (type: Symbol, key: String, ?modified_key: String?, ?physical_key: String?, ?location: Symbol, ?modifiers: Hash[Symbol, bool], ?text: String?, ?repeat: bool, ?captured: bool) -> void
+    end
+
+    class Mouse
+      attr_reader type: Symbol
+      attr_reader x: Numeric?
+      attr_reader y: Numeric?
+      attr_reader button: Symbol?
+      attr_reader delta_x: Numeric?
+      attr_reader delta_y: Numeric?
+      attr_reader unit: Symbol?
+      attr_reader captured: bool
+
+      def initialize: (type: Symbol, ?x: Numeric?, ?y: Numeric?, ?button: Symbol?, ?delta_x: Numeric?, ?delta_y: Numeric?, ?unit: Symbol?, ?captured: bool) -> void
+    end
+
+    class Touch
+      attr_reader type: Symbol
+      attr_reader finger_id: Integer?
+      attr_reader x: Numeric?
+      attr_reader y: Numeric?
+      attr_reader captured: bool
+
+      def initialize: (type: Symbol, ?finger_id: Integer?, ?x: Numeric?, ?y: Numeric?, ?captured: bool) -> void
+    end
+
+    class Ime
+      attr_reader type: Symbol
+      attr_reader id: String?
+      attr_reader scope: Array[String]
+      attr_reader text: String?
+      attr_reader cursor: Integer?
+      attr_reader captured: bool
+
+      def initialize: (type: Symbol, ?id: String?, ?scope: Array[String], ?text: String?, ?cursor: Integer?, ?captured: bool) -> void
+    end
+
+    class Window
+      attr_reader type: Symbol
+      attr_reader window_id: String?
+      attr_reader x: Numeric?
+      attr_reader y: Numeric?
+      attr_reader width: Numeric?
+      attr_reader height: Numeric?
+      attr_reader scale_factor: Float?
+      attr_reader path: String?
+
+      def initialize: (type: Symbol, ?window_id: String?, ?x: Numeric?, ?y: Numeric?, ?width: Numeric?, ?height: Numeric?, ?scale_factor: Float?, ?path: String?) -> void
+    end
+
+    class Canvas
+      attr_reader type: Symbol
+      attr_reader id: String
+      attr_reader x: Numeric?
+      attr_reader y: Numeric?
+      attr_reader button: Symbol?
+      attr_reader delta_x: Numeric?
+      attr_reader delta_y: Numeric?
+      attr_reader scope: Array[String]
+
+      def initialize: (type: Symbol, id: String, ?x: Numeric?, ?y: Numeric?, ?button: Symbol?, ?delta_x: Numeric?, ?delta_y: Numeric?, ?scope: Array[String]) -> void
+    end
+
+    class MouseArea
+      attr_reader type: Symbol
+      attr_reader id: String
+      attr_reader x: Numeric?
+      attr_reader y: Numeric?
+      attr_reader delta_x: Numeric?
+      attr_reader delta_y: Numeric?
+      attr_reader scope: Array[String]
+
+      def initialize: (type: Symbol, id: String, ?x: Numeric?, ?y: Numeric?, ?delta_x: Numeric?, ?delta_y: Numeric?, ?scope: Array[String]) -> void
+    end
+
+    class Pane
+      attr_reader type: Symbol
+      attr_reader id: String
+      attr_reader pane: String?
+      attr_reader target: String?
+      attr_reader split: Symbol?
+      attr_reader ratio: Float?
+      attr_reader scope: Array[String]
+      attr_reader action: Symbol?
+      attr_reader region: Symbol?
+      attr_reader edge: Symbol?
+
+      def initialize: (type: Symbol, id: String, ?pane: String?, ?target: String?, ?split: Symbol?, ?ratio: Float?, ?scope: Array[String], ?action: Symbol?, ?region: Symbol?, ?edge: Symbol?) -> void
+    end
+
+    class Sensor
+      attr_reader type: Symbol
+      attr_reader id: String
+      attr_reader width: Numeric?
+      attr_reader height: Numeric?
+      attr_reader scope: Array[String]
+
+      def initialize: (type: Symbol, id: String, ?width: Numeric?, ?height: Numeric?, ?scope: Array[String]) -> void
+    end
+
+    class Modifiers
+      attr_reader modifiers: Hash[Symbol, bool]
+      attr_reader captured: bool
+
+      def initialize: (modifiers: Hash[Symbol, bool], ?captured: bool) -> void
+    end
+
+    class Effect
+      attr_reader request_id: String
+      attr_reader result: untyped
+
+      def initialize: (request_id: String, result: untyped) -> void
+    end
+
+    class System
+      attr_reader type: Symbol
+      attr_reader tag: Symbol?
+      attr_reader data: untyped
+
+      def initialize: (type: Symbol, ?tag: Symbol?, ?data: untyped) -> void
+    end
+
+    class Timer
+      attr_reader tag: Symbol
+      attr_reader timestamp: Integer
+
+      def initialize: (tag: Symbol, timestamp: Integer) -> void
+    end
+
+    class Async
+      attr_reader tag: Symbol
+      attr_reader result: untyped
+
+      def initialize: (tag: Symbol, result: untyped) -> void
+    end
+
+    class Stream
+      attr_reader tag: Symbol
+      attr_reader value: untyped
+
+      def initialize: (tag: Symbol, value: untyped) -> void
+    end
+  end
+end

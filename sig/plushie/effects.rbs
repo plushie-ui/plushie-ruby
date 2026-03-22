@@ -1,0 +1,31 @@
+module Plushie
+  module Effects
+    TIMEOUT_FILE: Integer
+    TIMEOUT_CLIPBOARD: Integer
+    TIMEOUT_NOTIFICATION: Integer
+
+    # File dialogs
+    def self.file_open: (**untyped opts) -> Command::Cmd
+    def self.file_open_multiple: (**untyped opts) -> Command::Cmd
+    def self.file_save: (**untyped opts) -> Command::Cmd
+    def self.directory_select: (**untyped opts) -> Command::Cmd
+    def self.directory_select_multiple: (**untyped opts) -> Command::Cmd
+
+    # Clipboard
+    def self.clipboard_read: () -> Command::Cmd
+    def self.clipboard_write: (String text) -> Command::Cmd
+    def self.clipboard_read_html: () -> Command::Cmd
+    def self.clipboard_write_html: (String html, ?alt_text: String?) -> Command::Cmd
+    def self.clipboard_clear: () -> Command::Cmd
+    def self.clipboard_read_primary: () -> Command::Cmd
+    def self.clipboard_write_primary: (String text) -> Command::Cmd
+
+    # Notifications
+    def self.notification: (String title, String body, **untyped opts) -> Command::Cmd
+
+    # Internals
+    def self.request: (Symbol kind, **untyped opts) -> Command::Cmd
+    def self.default_timeout: (String | Symbol kind) -> Integer
+    def self.generate_id: () -> String
+  end
+end

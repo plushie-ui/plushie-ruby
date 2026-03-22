@@ -1,0 +1,11 @@
+module Plushie
+  module Model
+    # Define a new immutable model class with the given fields.
+    def self.define: (*Symbol fields) -> Class
+
+    module Extensions
+      # Return a new instance with the given fields replaced.
+      def with: (**untyped changes) -> self
+    end
+  end
+end

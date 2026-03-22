@@ -1,0 +1,11 @@
+module Plushie
+  module Tree
+    def self.find: (Node | Array[Node] | nil tree, String id) -> Node?
+    def self.exists?: (Node | Array[Node] | nil tree, String id) -> bool
+    def self.ids: (Node | Array[Node] tree) -> Array[String]
+    def self.find_all: (Node | Array[Node] tree) { (Node) -> boolish } -> Array[Node]
+    def self.normalize: (Node | Array[Node] tree) -> Array[Node]
+    def self.diff: (Node? old_tree, Node? new_tree) -> Array[Hash[String, untyped]]
+    def self.node_to_wire: (Node node) -> Hash[String, untyped]
+  end
+end

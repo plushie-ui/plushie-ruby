@@ -1,0 +1,13 @@
+module Plushie
+  VERSION: String
+  BINARY_VERSION: String
+
+  class Error < StandardError
+  end
+
+  # Start a Plushie app and block until it exits.
+  def self.run: (singleton(App) app_class, **untyped opts) -> void
+
+  # Start a Plushie app in the background. Returns a runtime handle.
+  def self.start: (singleton(App) app_class, **untyped opts) -> Runtime
+end

@@ -1,0 +1,29 @@
+module Plushie
+  module App
+    def self.included: (Class base) -> void
+
+    # Required callbacks
+    def init: (Hash[Symbol, untyped] opts) -> untyped
+    def update: (untyped model, untyped event) -> (untyped | [untyped, Command::Cmd])
+    def view: (untyped model) -> Node
+
+    # Optional callbacks with defaults
+    def subscribe: (untyped model) -> Array[Subscription::Sub]
+    def settings: () -> Hash[Symbol, untyped]
+    def window_config: (untyped model) -> Hash[Symbol, untyped]
+    def handle_renderer_exit: (untyped model, untyped reason) -> untyped
+
+    module Aliases
+      Event: singleton(Plushie::Event)
+      Command: singleton(Plushie::Command)
+      Subscription: singleton(Plushie::Subscription)
+    end
+
+    module DefaultCallbacks
+      def subscribe: (untyped model) -> Array[Subscription::Sub]
+      def settings: () -> Hash[Symbol, untyped]
+      def window_config: (untyped model) -> Hash[Symbol, untyped]
+      def handle_renderer_exit: (untyped model, untyped reason) -> untyped
+    end
+  end
+end
