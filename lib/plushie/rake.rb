@@ -45,7 +45,8 @@ namespace :plushie do
     cmd_args = ["cargo", "build", "-p", "plushie"]
     cmd_args << "--release" if release
 
-    puts "Building plushie#{release ? " (release)" : ""}..."
+    label = release ? " (release)" : ""
+    puts "Building plushie#{label}..."
 
     unless system(*cmd_args, chdir: source_dir)
       abort "cargo build failed"
@@ -119,7 +120,7 @@ namespace :plushie do
       puts "Running #{path}..."
 
       unless File.exist?(path)
-        $stderr.puts "  File not found: #{path}"
+        warn "  File not found: #{path}"
         failures += 1
         next
       end
@@ -135,7 +136,7 @@ namespace :plushie do
       valid = true
       lines.each do |line|
         unless line.match?(/\A\s*(app|click|type|assert_text|assert_model|wait)\s/)
-          $stderr.puts "  Unknown directive: #{line}"
+          warn "  Unknown directive: #{line}"
           valid = false
         end
       end
@@ -144,7 +145,7 @@ namespace :plushie do
         puts "  PASS (parsed)"
         passes += 1
       else
-        $stderr.puts "  FAIL (parse errors)"
+        warn "  FAIL (parse errors)"
         failures += 1
       end
     end

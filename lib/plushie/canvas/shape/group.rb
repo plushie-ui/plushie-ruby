@@ -13,6 +13,8 @@ module Plushie
           super
         end
 
+        def [](key) = to_wire[key]
+
         # @return [Hash] wire-ready shape map
         def to_wire
           h = {type: "group", x: x, y: y}
