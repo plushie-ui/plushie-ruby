@@ -106,6 +106,50 @@ module Plushie
       # Reset the session to initial state.
       def reset = session.reset
 
+      # Wait for a tagged async task to complete.
+      # In test mode, async commands run synchronously, so this is
+      # effectively a no-op. Exists for API compatibility.
+      #
+      # @param tag [Symbol] the async command tag
+      # @param timeout [Integer] max wait in milliseconds (unused)
+      # @return [:ok]
+      def await_async(tag, timeout = 5000)
+        :ok
+      end
+
+      # Find a widget by accessibility role.
+      # @param role [Symbol, String] e.g. :button, "textbox"
+      # @return [Hash, nil]
+      def find_by_role(role)
+        session.find({by: "role", value: role.to_s})
+      end
+
+      # Find a widget by accessibility label.
+      # @param label [String]
+      # @return [Hash, nil]
+      def find_by_label(label)
+        session.find({by: "label", value: label})
+      end
+
+      # Find the currently focused widget.
+      # @return [Hash, nil]
+      def find_focused
+        session.find({by: "focused"})
+      end
+
+      # Capture a screenshot and save as PNG to test/screenshots/.
+      # @param name [String] screenshot name
+      # @return [Hash] screenshot response
+      def save_screenshot(name, **opts)
+        result = screenshot(name, **opts)
+        if result && (rgba = result[:rgba] || result["rgba"])
+          dir = "test/screenshots"
+          FileUtils.mkdir_p(dir)
+          File.binwrite(File.join(dir, "#{name}.rgba"), rgba)
+        end
+        result
+      end
+
       # -- Assertions ----------------------------------------------------------
 
       # Assert that a widget contains the expected text.
