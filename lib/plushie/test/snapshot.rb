@@ -15,6 +15,15 @@ module Plushie
     #
     # First run creates the golden file. Set PLUSHIE_UPDATE_SNAPSHOTS=1
     # or PLUSHIE_UPDATE_SCREENSHOTS=1 to update existing golden files.
+    #
+    # @example Assert a tree hash snapshot in a test
+    #   assert_tree_hash("counter_initial")
+    #
+    # @example Assert a screenshot (skipped on mock backend)
+    #   assert_screenshot("counter_after_click")
+    #
+    # @example Assert a full tree snapshot as JSON
+    #   assert_tree_snapshot(session.tree, "test/snapshots/counter.json")
     module Snapshot
       SNAPSHOTS_DIR = "test/snapshots"
       SCREENSHOTS_DIR = "test/screenshots"

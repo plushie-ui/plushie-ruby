@@ -4,10 +4,14 @@ module Plushie
   module Test
     # RSpec integration for Plushie app testing.
     #
-    # Provides before/after hooks that mirror the Minitest Case
-    # setup/teardown, and a class-level plushie_app declaration.
+    # Include this module in an RSpec example group to get the full
+    # Plushie test DSL (click, find!, assert_text, model, etc.) with
+    # automatic session setup and teardown via before/after hooks.
     #
-    # @example
+    # Mirrors the lifecycle provided by {Plushie::Test::Case} for
+    # Minitest, so tests are interchangeable between frameworks.
+    #
+    # @example Basic usage
     #   RSpec.describe Counter do
     #     include Plushie::Test::RSpec
     #     plushie_app Counter
@@ -17,7 +21,25 @@ module Plushie
     #       expect(text(find!("#count"))).to eq("Count: 1")
     #     end
     #   end
+    #
+    # @example Nested groups inherit the app declaration
+    #   RSpec.describe Counter do
+    #     include Plushie::Test::RSpec
+    #     plushie_app Counter
+    #
+    #     context "after three clicks" do
+    #       it "shows 3" do
+    #         3.times { click("#increment") }
+    #         expect(text(find!("#count"))).to eq("Count: 3")
+    #       end
+    #     end
+    #   end
     module RSpec
+      # Hook called when the module is included into an RSpec example group.
+      # Wires up Helpers, ClassMethods, and before/after lifecycle hooks.
+      #
+      # @param base [Class] the including example group class
+      # @return [void]
       def self.included(base)
         base.include Helpers
         base.extend ClassMethods

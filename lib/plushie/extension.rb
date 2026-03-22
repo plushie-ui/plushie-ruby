@@ -4,8 +4,14 @@ module Plushie
   # Module for declaring pure Ruby composite widget extensions.
   #
   # Include in a class to declare a widget with typed props and a render
-  # method that composes existing widgets:
+  # method that composes existing widgets. The Extension module generates:
   #
+  # - +initialize(id, **opts)+ with defaults from prop declarations
+  # - +set_<prop>(value)+ setter methods for each prop (returns a dup)
+  # - +build+ method that calls +render+ and returns a {Plushie::Node}
+  # - +type_names+ and +prop_names+ class methods
+  #
+  # @example Defining a composite gauge widget
   #   class MyGauge
   #     include Plushie::Extension
   #
@@ -15,16 +21,14 @@ module Plushie
   #     prop :color, :color, default: :blue
   #
   #     def render(id, props)
-  #       # Return a Node tree using Widget builders or the UI DSL
+  #       Plushie::Widget::ProgressBar.new(id, {0, props[:max]}, props[:value]).build
   #     end
   #   end
   #
-  # The Extension module generates:
-  # - initialize(id, **opts) with defaults from prop declarations
-  # - setter methods for each prop (returning a dup)
-  # - build method that calls render and returns a Node
-  # - type_names class method
-  # - prop_names class method
+  # @example Using the generated API
+  #   gauge = MyGauge.new("cpu", value: 72, max: 100)
+  #   gauge = gauge.set_value(85)
+  #   node = gauge.build
   #
   module Extension
     KNOWN_PROP_TYPES = %i[
@@ -36,6 +40,13 @@ module Plushie
 
     module ClassMethods
       # Declares the widget type name.
+      #
+      # @param type_name [Symbol] the wire type name for this widget
+      # @param opts [Hash] options
+      # @option opts [Boolean] :container (false) whether this widget accepts children
+      # @return [void]
+      #
+      # @example
       #   widget :gauge
       #   widget :labeled_input, container: true
       def widget(type_name, **opts)
@@ -44,7 +55,17 @@ module Plushie
       end
 
       # Declares a typed prop with optional default.
+      #
+      # @param name [Symbol] prop name (must not conflict with reserved names)
+      # @param type [Symbol] one of {KNOWN_PROP_TYPES}
+      # @param opts [Hash] options
+      # @option opts [Object] :default default value for this prop
+      # @return [void]
+      # @raise [ArgumentError] if type is unsupported or name is reserved
+      #
+      # @example
       #   prop :value, :number, default: 0
+      #   prop :label, :string
       def prop(name, type, **opts)
         name = name.to_sym
         type = type.to_sym
@@ -64,34 +85,55 @@ module Plushie
       end
 
       # Declares a command (for native extensions, informational in Ruby).
+      #
+      # In pure Ruby extensions this is informational only. For native
+      # Rust-backed extensions, declared commands map to wire commands
+      # sent to the renderer.
+      #
+      # @param name [Symbol] command name
+      # @param params [Hash{Symbol => Symbol}] parameter names to types
+      # @return [void]
+      #
+      # @example
       #   command :set_value, value: :number
       def command(name, **params)
         @_extension_commands << {name: name.to_sym, params: params}
       end
 
       # Returns the widget type names this extension handles.
+      #
+      # @return [Array<Symbol>]
       def type_names
         [@_extension_widget]
       end
 
       # Returns all declared prop names (including auto-added :a11y, :event_rate).
+      #
+      # @return [Array<Symbol>]
       def prop_names
         @_extension_props.map { _1[:name] } + %i[a11y event_rate]
       end
 
       # Returns the declared props metadata.
+      #
+      # @return [Array<Hash{Symbol => Object}>] each hash has :name, :type, :default keys
       def extension_props
         @_extension_props
       end
 
       # Whether this is a container widget.
+      #
+      # @return [Boolean]
       def container?
         @_extension_container
       end
 
-      # Hook called when a class that includes Extension is first subclassed
-      # or when the class body finishes. We use it to finalize the class by
-      # generating initialize, setters, and build.
+      # Finalize the extension class by generating initialize, setters, and build.
+      #
+      # Called automatically on first instantiation. Can also be called
+      # explicitly after all widget/prop/command declarations are complete.
+      #
+      # @return [void]
       def finalize!
         return if @_finalized
 

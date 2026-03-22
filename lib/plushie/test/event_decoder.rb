@@ -11,6 +11,13 @@ module Plushie
     # For production decoding, use Plushie::Protocol::Decode.decode_event.
     # This module exists as a lighter-weight alternative that test helpers
     # can use without pulling in the full protocol layer.
+    #
+    # @example Decoding a widget click event
+    #   raw = {"family" => "click", "id" => "form/save", "value" => nil}
+    #   event = Plushie::Test::EventDecoder.decode(raw)
+    #   event.class #=> Plushie::Event::Widget
+    #   event.id    #=> "save"
+    #   event.scope #=> ["form"]
     module EventDecoder
       module_function
 
