@@ -66,23 +66,83 @@ module Plushie
       conn
     end
 
+    # Create a connection backed by an iostream adapter.
+    #
+    # The adapter mediates between the Connection and an external I/O
+    # source (SSH channel, TCP socket, WebSocket, etc.). Instead of
+    # reading/writing pipes, the connection exchanges data with the
+    # adapter via method calls.
+    #
+    # The adapter must respond to:
+    # - +on_bridge(connection)+ -- called during init, adapter stores connection ref
+    # - +send_data(data)+ -- called by Connection to write encoded bytes
+    #
+    # The adapter calls back:
+    # - +connection.receive_data(data)+ -- when data arrives from the transport
+    # - +connection.transport_closed(reason)+ -- when the transport closes
+    #
+    # @param adapter [#on_bridge, #send_data] iostream adapter object
+    # @param format [:msgpack, :json] wire format
+    # @param settings [Hash] initial settings to send
+    # @param queue [Thread::Queue, nil]
+    # @param on_message [Proc, nil]
+    # @return [Connection]
+    def self.iostream(adapter:, format: :msgpack, settings: {},
+      queue: nil, on_message: nil)
+      conn = new(format: format, queue: queue, on_message: on_message)
+      conn.send(:setup_iostream, adapter, settings)
+      conn
+    end
+
     # Send pre-encoded wire bytes to the renderer. Thread-safe.
     #
     # @param data [String] encoded message bytes
     def send_encoded(data)
       @write_mutex.synchronize do
-        case @format
-        when :msgpack
-          @stdin.write([data.bytesize].pack("N"))
-          @stdin.write(data)
-        when :json
-          @stdin.write(data)
+        if @iostream_adapter
+          @iostream_adapter.send_data(data)
+        else
+          case @format
+          when :msgpack
+            @stdin.write([data.bytesize].pack("N"))
+            @stdin.write(data)
+          when :json
+            @stdin.write(data)
+          end
+          @stdin.flush
         end
-        @stdin.flush
       end
     rescue IOError, Errno::EPIPE => e
       @closed = true
       dispatch_message({type: :connection_error, error: e})
+    end
+
+    # Called by the iostream adapter when data arrives from the transport.
+    # The adapter is responsible for framing -- each call should deliver
+    # one complete protocol message.
+    #
+    # @param data [String] a complete protocol message (decoded from framing)
+    def receive_data(data)
+      return if @closed
+
+      msg = Protocol::Decode.decode(data, @format)
+      decoded = Protocol::Decode.dispatch_message(msg)
+
+      if !@hello && decoded.is_a?(Hash) && decoded[:type] == :hello
+        @hello = decoded
+        @handshake_queue&.push(decoded)
+      elsif decoded
+        dispatch_message(decoded)
+      end
+    end
+
+    # Called by the iostream adapter when the transport closes.
+    #
+    # @param reason [Symbol, String] reason for closure
+    def transport_closed(reason)
+      return if @closed
+      @closed = true
+      dispatch_message({type: :connection_closed, reason: reason})
     end
 
     # Encode a hash and send it. Injects session field if missing.
@@ -105,9 +165,13 @@ module Plushie
       return if @closed
       @closed = true
       @reader_thread&.kill
-      @stdin&.close rescue nil
-      @stdout&.close rescue nil
-      @process_thread&.value rescue nil
+      if @iostream_adapter
+        @iostream_adapter.stop if @iostream_adapter.respond_to?(:stop)
+      else
+        @stdin&.close rescue nil
+        @stdout&.close rescue nil
+        @process_thread&.value rescue nil
+      end
     end
 
     # @return [Boolean] true if the connection is closed
@@ -128,6 +192,29 @@ module Plushie
       @reader_thread = nil
       @hello = nil
       @closed = false
+      @iostream_adapter = nil
+      @handshake_queue = nil
+    end
+
+    def setup_iostream(adapter, settings)
+      @iostream_adapter = adapter
+      @handshake_queue = Thread::Queue.new
+
+      # Notify the adapter so it can store our reference and start I/O.
+      adapter.on_bridge(self)
+
+      # Send settings as the first message (adapter handles framing).
+      send_encoded(Protocol::Encode.encode_settings(settings, @format))
+
+      # Wait for the hello response to arrive via receive_data.
+      @hello = @handshake_queue.pop
+      @handshake_queue = nil
+
+      if @hello.is_a?(Hash) && @hello[:type] == :hello
+        if @hello[:protocol] != Protocol::PROTOCOL_VERSION
+          raise Error, "protocol version mismatch: expected #{Protocol::PROTOCOL_VERSION}, got #{@hello[:protocol]}"
+        end
+      end
     end
 
     def spawn_process(binary, mode, max_sessions, log_level)

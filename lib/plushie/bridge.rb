@@ -26,15 +26,17 @@ module Plushie
     # @param event_queue [Thread::Queue] queue for decoded events
     # @param format [:msgpack, :json] wire format
     # @param binary [String, nil] renderer binary path
-    # @param transport [:spawn, :stdio] transport mode
+    # @param transport [:spawn, :stdio, Array(:iostream, adapter)] transport mode
     # @param log_level [Symbol] renderer log level
+    # @param token [String, nil] authentication token for the renderer
     def initialize(event_queue:, format: :msgpack, binary: nil,
-      transport: :spawn, log_level: :error)
+      transport: :spawn, log_level: :error, token: nil)
       @event_queue = event_queue
       @format = format
       @binary = binary
       @transport = transport
       @log_level = log_level
+      @token = token
       @connection = nil
       @retry_count = 0
       @settings = {}
@@ -74,18 +76,26 @@ module Plushie
 
     def connect!
       queue = Thread::Queue.new
+      settings = @token ? @settings.merge(token: @token) : @settings
 
       @connection = case @transport
       when :spawn
         Connection.spawn(
           format: @format, binary: @binary,
           mode: nil, log_level: @log_level,
-          settings: @settings, queue: queue
+          settings: settings, queue: queue
         )
       when :stdio
         Connection.attach(
           stdin: $stdout, stdout: $stdin,
-          format: @format, settings: @settings, queue: queue
+          format: @format, settings: settings, queue: queue
+        )
+      when Array
+        kind, adapter = @transport
+        raise ArgumentError, "unsupported transport tuple: #{@transport.inspect}" unless kind == :iostream
+        Connection.iostream(
+          adapter: adapter, format: @format,
+          settings: settings, queue: queue
         )
       else
         raise ArgumentError, "unsupported transport: #{@transport.inspect}"

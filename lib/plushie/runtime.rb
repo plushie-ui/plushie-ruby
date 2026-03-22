@@ -18,21 +18,23 @@ module Plushie
     include Subscriptions
 
     # @param app [Object] app instance (includes Plushie::App)
-    # @param transport [:spawn, :stdio] transport mode
+    # @param transport [:spawn, :stdio, Array(:iostream, adapter)] transport mode
     # @param format [:msgpack, :json] wire format
     # @param daemon [Boolean] keep running after last window closes
     # @param binary [String, nil] renderer binary path
     # @param log_level [Symbol] renderer log level
+    # @param token [String, nil] authentication token for the renderer
     # @param dev [Boolean] enable live code reloading via DevServer
     # @param dev_dirs [Array<String>, nil] directories to watch (default: ["lib/"])
     def initialize(app:, transport: :spawn, format: :msgpack, daemon: false,
-      binary: nil, log_level: :error, dev: false, dev_dirs: nil)
+      binary: nil, log_level: :error, token: nil, dev: false, dev_dirs: nil)
       @app = app
       @transport = transport
       @format = format
       @daemon = daemon
       @binary = binary
       @log_level = log_level
+      @token = token
       @dev = dev
       @dev_dirs = dev_dirs
 
@@ -88,7 +90,8 @@ module Plushie
         format: @format,
         binary: @binary,
         transport: @transport,
-        log_level: @log_level
+        log_level: @log_level,
+        token: @token
       )
       @bridge.start(settings: @app.settings)
     end

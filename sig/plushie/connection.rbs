@@ -1,0 +1,63 @@
+module Plushie
+  class Connection
+    attr_reader format: Symbol
+    attr_reader hello: Hash[Symbol, untyped]?
+
+    # Spawn a renderer process and perform the hello handshake.
+    def self.spawn: (
+      ?format: Symbol,
+      ?binary: String?,
+      ?mode: Symbol?,
+      ?max_sessions: Integer?,
+      ?log_level: Symbol?,
+      ?settings: Hash[Symbol, untyped],
+      ?queue: Thread::Queue?,
+      ?on_message: Proc?
+    ) -> Connection
+
+    # Attach to existing IO streams (for :stdio transport).
+    def self.attach: (
+      stdin: IO,
+      stdout: IO,
+      ?format: Symbol,
+      ?settings: Hash[Symbol, untyped],
+      ?queue: Thread::Queue?,
+      ?on_message: Proc?
+    ) -> Connection
+
+    interface _IoStreamAdapter
+      def on_bridge: (Connection connection) -> void
+      def send_data: (String data) -> void
+    end
+
+    # Create a connection backed by an iostream adapter.
+    def self.iostream: (
+      adapter: _IoStreamAdapter,
+      ?format: Symbol,
+      ?settings: Hash[Symbol, untyped],
+      ?queue: Thread::Queue?,
+      ?on_message: Proc?
+    ) -> Connection
+
+    # Send pre-encoded wire bytes to the renderer.
+    def send_encoded: (String data) -> void
+
+    # Encode a hash and send it.
+    def send_message: (Hash[Symbol, untyped] msg) -> void
+
+    # Send a message with a specific session ID.
+    def send_message_for_session: (Hash[Symbol, untyped] msg, String session_id) -> void
+
+    # Called by iostream adapter when data arrives.
+    def receive_data: (String data) -> void
+
+    # Called by iostream adapter when the transport closes.
+    def transport_closed: (Symbol | String reason) -> void
+
+    # Close the connection.
+    def close: () -> void
+
+    # Whether the connection is closed.
+    def closed?: () -> bool
+  end
+end
