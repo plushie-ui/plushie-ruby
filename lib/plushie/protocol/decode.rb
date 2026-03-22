@@ -414,6 +414,7 @@ module Plushie
       def decode_hello(msg)
         {
           type: :hello,
+          session: msg["session"],
           protocol: msg["protocol"],
           version: msg["version"],
           name: msg["name"],
@@ -454,6 +455,7 @@ module Plushie
       def decode_query_response(msg)
         {
           type: :query_response,
+          session: msg["session"],
           id: msg["id"],
           target: msg["target"],
           data: msg["data"]
@@ -467,6 +469,7 @@ module Plushie
       def decode_op_query_response(msg)
         {
           type: :op_query_response,
+          session: msg["session"],
           kind: msg["kind"]&.to_sym,
           tag: msg["tag"],
           data: msg["data"]
@@ -510,6 +513,7 @@ module Plushie
       def decode_tree_hash_response(msg)
         {
           type: :tree_hash_response,
+          session: msg["session"],
           id: msg["id"],
           name: msg["name"],
           hash: msg["hash"]
@@ -523,6 +527,7 @@ module Plushie
       def decode_screenshot_response(msg)
         {
           type: :screenshot_response,
+          session: msg["session"],
           id: msg["id"],
           name: msg["name"],
           hash: msg["hash"],
@@ -539,6 +544,7 @@ module Plushie
       def decode_reset_response(msg)
         {
           type: :reset_response,
+          session: msg["session"],
           id: msg["id"],
           status: msg["status"]
         }
