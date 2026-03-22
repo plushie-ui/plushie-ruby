@@ -23,19 +23,24 @@ module Plushie
     # @param daemon [Boolean] keep running after last window closes
     # @param binary [String, nil] renderer binary path
     # @param log_level [Symbol] renderer log level
+    # @param dev [Boolean] enable live code reloading via DevServer
+    # @param dev_dirs [Array<String>, nil] directories to watch (default: ["lib/"])
     def initialize(app:, transport: :spawn, format: :msgpack, daemon: false,
-      binary: nil, log_level: :error)
+      binary: nil, log_level: :error, dev: false, dev_dirs: nil)
       @app = app
       @transport = transport
       @format = format
       @daemon = daemon
       @binary = binary
       @log_level = log_level
+      @dev = dev
+      @dev_dirs = dev_dirs
 
       @event_queue = Thread::Queue.new
       @model = nil
       @previous_tree = nil
       @bridge = nil
+      @dev_server = nil
       @running = false
 
       @async_tasks = {}        # tag -> {thread:, nonce:}
@@ -51,6 +56,7 @@ module Plushie
     # Run the event loop in the calling thread (blocking).
     def run
       start_bridge
+      start_dev_server if @dev
       initialize_app
       event_loop
     ensure
@@ -85,6 +91,13 @@ module Plushie
         log_level: @log_level
       )
       @bridge.start(settings: @app.settings)
+    end
+
+    def start_dev_server
+      opts = {event_queue: @event_queue}
+      opts[:dirs] = @dev_dirs if @dev_dirs
+      @dev_server = DevServer.new(**opts)
+      @dev_server.start
     end
 
     def initialize_app
@@ -123,6 +136,8 @@ module Plushie
           dispatch_event(event)
         in [:effect_timeout, id]
           handle_effect_timeout(id)
+        in :force_rerender
+          render_and_patch
         else
           @logger.debug("plushie: unknown message: #{msg.inspect}")
         end
@@ -268,6 +283,7 @@ module Plushie
     # -- Shutdown ------------------------------------------------------------
 
     def shutdown
+      @dev_server&.stop
       @bridge&.stop
       @async_tasks.each_value { |entry| entry[:thread]&.kill }
       @async_tasks.clear

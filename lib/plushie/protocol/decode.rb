@@ -190,18 +190,33 @@ module Plushie
 
         # -- Keyboard events -> Event::Key ------------------------------------
 
-        when "key_press", "key_release"
-          type = (family == "key_press") ? :press : :release
-          key_data = data.empty? ? msg : data
+        when "key_press"
+          # Key data lives in data sub-object for subscription events,
+          # or at the top level for direct events.
+          kd = data.empty? ? msg : data
           Event::Key.new(
-            type: type,
-            key: Keys.parse_key(key_data["key"] || msg["key"]),
-            modified_key: key_data["modified_key"] || msg["modified_key"],
-            physical_key: Keys.parse_physical_key(key_data["physical_key"] || msg["physical_key"]),
-            location: Keys.parse_location(key_data["location"] || msg["location"]),
-            modifiers: parse_modifiers(msg["modifiers"] || key_data["modifiers"] || {}),
-            text: key_data["text"] || msg["text"],
-            repeat: key_data["repeat"] || msg["repeat"] || false,
+            type: :press,
+            key: Keys.parse_key(kd["key"]),
+            modified_key: kd["modified_key"],
+            physical_key: Keys.parse_physical_key(kd["physical_key"]),
+            location: Keys.parse_location(kd["location"]),
+            modifiers: parse_modifiers(msg["modifiers"] || kd["modifiers"] || {}),
+            text: kd["text"],
+            repeat: kd["repeat"] || false,
+            captured: msg["captured"] || false
+          )
+
+        when "key_release"
+          kd = data.empty? ? msg : data
+          Event::Key.new(
+            type: :release,
+            key: Keys.parse_key(kd["key"]),
+            modified_key: kd["modified_key"],
+            physical_key: Keys.parse_physical_key(kd["physical_key"]),
+            location: Keys.parse_location(kd["location"]),
+            modifiers: parse_modifiers(msg["modifiers"] || kd["modifiers"] || {}),
+            text: nil,     # key_release never carries text
+            repeat: false, # key_release never carries repeat
             captured: msg["captured"] || false
           )
 
@@ -362,10 +377,18 @@ module Plushie
           Event::System.new(type: :announce, data: data["text"])
 
         when "session_error"
-          Event::System.new(type: :session_error, data: data)
+          Event::System.new(
+            type: :session_error,
+            tag: msg["session"],
+            data: data["error"] || data
+          )
 
         when "session_closed"
-          Event::System.new(type: :session_closed, data: data)
+          Event::System.new(
+            type: :session_closed,
+            tag: msg["session"],
+            data: data["reason"] || data
+          )
 
         # -- Fallback: extension/unknown events -> Event::Widget --------------
 
