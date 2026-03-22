@@ -327,6 +327,20 @@ module Plushie
       shape
     end
 
+    # Canvas shape: image.
+    def canvas_image(source, x, y, w, h, **opts)
+      shape = Canvas::Shape.canvas_image(source, x, y, w, h, **opts)
+      _plushie_add_canvas_shape(shape)
+      shape
+    end
+
+    # Canvas shape: SVG.
+    def canvas_svg(source, x, y, w, h, **opts)
+      shape = Canvas::Shape.canvas_svg(source, x, y, w, h, **opts)
+      _plushie_add_canvas_shape(shape)
+      shape
+    end
+
     # Table widget (container with column/row data).
     def table(id, **props, &block)
       _plushie_container("table", id, props, &block)

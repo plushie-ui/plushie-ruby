@@ -1,11 +1,22 @@
 # frozen_string_literal: true
 
+require_relative "shape/dash"
+require_relative "shape/stroke"
+require_relative "shape/linear_gradient"
+require_relative "shape/shape_style"
+require_relative "shape/drag_bounds"
+require_relative "shape/hit_rect"
+require_relative "shape/interactive"
 require_relative "shape/rect"
 require_relative "shape/circle"
 require_relative "shape/line"
 require_relative "shape/canvas_text"
 require_relative "shape/path"
 require_relative "shape/group"
+require_relative "shape/canvas_image"
+require_relative "shape/canvas_svg"
+require_relative "shape/transform"
+require_relative "shape/clip"
 
 module Plushie
   module Canvas
@@ -44,14 +55,12 @@ module Plushie
 
       # Canvas image shape.
       def canvas_image(source, x, y, w, h, **opts)
-        shape = {type: "image", source: source, x: x, y: y, w: w, h: h}
-        merge_common(shape, opts)
+        CanvasImage.new(source: source, x: x, y: y, w: w, h: h, **opts)
       end
 
       # Canvas SVG shape.
       def canvas_svg(source, x, y, w, h, **opts)
-        shape = {type: "svg", source: source, x: x, y: y, w: w, h: h}
-        merge_common(shape, opts)
+        CanvasSvg.new(source: source, x: x, y: y, w: w, h: h, **opts)
       end
 
       # Group of shapes.
@@ -79,33 +88,40 @@ module Plushie
 
       # -- Style helpers --------------------------------------------------------
 
-      # Stroke descriptor.
+      # Stroke descriptor. Returns a typed Stroke struct.
       def stroke(color, width, **opts)
-        s = {color: color, width: width}
-        s[:line_cap] = opts[:line_cap] if opts.key?(:line_cap)
-        s[:line_join] = opts[:line_join] if opts.key?(:line_join)
-        s[:dash] = opts[:dash] if opts.key?(:dash)
-        s
+        Stroke.new(color: color, width: width, **opts)
       end
 
-      # Linear gradient descriptor.
+      # Linear gradient descriptor. Returns a typed LinearGradient struct.
       def linear_gradient(from, to, stops)
-        {type: "linear", from: from, to: to, stops: stops}
+        LinearGradient.new(from: from, to: to, stops: stops)
       end
 
-      # -- Internal -------------------------------------------------------------
+      # -- Transform commands ---------------------------------------------------
 
-      def merge_common(shape, opts)
-        shape[:fill] = opts[:fill] if opts.key?(:fill)
-        shape[:stroke] = opts[:stroke] if opts.key?(:stroke)
-        shape[:interactive] = opts[:interactive] if opts.key?(:interactive)
-        shape[:transform] = opts[:transform] if opts.key?(:transform)
-        shape[:clip] = opts[:clip] if opts.key?(:clip)
-        shape[:border_radius] = opts[:border_radius] if opts.key?(:border_radius)
-        shape[:opacity] = opts[:opacity] if opts.key?(:opacity)
-        shape
-      end
-      private_class_method :merge_common
+      # Push (save) the current transform state onto the stack.
+      def push_transform = PushTransform.new
+
+      # Pop (restore) the previously saved transform state from the stack.
+      def pop_transform = PopTransform.new
+
+      # Translate the coordinate origin.
+      def translate(x, y) = Translate.new(x: x, y: y)
+
+      # Rotate the coordinate system (angle in radians).
+      def rotate(angle) = Rotate.new(angle: angle)
+
+      # Scale the coordinate system.
+      def scale(x, y) = Scale.new(x: x, y: y)
+
+      # -- Clipping commands ----------------------------------------------------
+
+      # Push a clipping rectangle onto the clip stack.
+      def push_clip(x, y, w, h) = PushClip.new(x: x, y: y, w: w, h: h)
+
+      # Pop the most recent clipping rectangle.
+      def pop_clip = PopClip.new
     end
   end
 end
