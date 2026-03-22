@@ -6,7 +6,7 @@ module Plushie
   module Protocol
     # Inbound message decoding from the wire protocol.
     #
-    # Handles all response types and all 57 event families as defined
+    # Handles all response types and event families as defined
     # in protocol.md. The canonical reference is:
     # ~/projects/toddy-elixir/lib/plushie/protocol/decode.ex
     #
@@ -27,7 +27,11 @@ module Plushie
           require "msgpack"
           MessagePack.unpack(data)
         end
-      rescue => e
+      rescue JSON::ParserError, MessagePack::MalformedFormatError,
+        MessagePack::UnpackError, MessagePack::TypeError => e
+        {"error" => e.message}
+      rescue ArgumentError => e
+        # msgpack gem raises ArgumentError for some malformed inputs
         {"error" => e.message}
       end
 
@@ -124,7 +128,7 @@ module Plushie
           Event::Canvas.new(
             type: type, id: id, scope: scope,
             x: data["x"], y: data["y"],
-            button: data["button"]
+            button: data["button"] || "left"
           )
 
         when "canvas_move"
@@ -155,7 +159,10 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Pane.new(
             type: :dragged, id: id, scope: scope,
-            pane: data["pane"], target: data["target"]
+            pane: data["pane"], target: data["target"],
+            action: Parsers.parse_pane_action(data["action"]),
+            region: Parsers.parse_pane_region(data["region"]),
+            edge: Parsers.parse_pane_region(data["edge"])
           )
 
         when "pane_clicked"
@@ -257,25 +264,29 @@ module Plushie
         # -- IME events -> Event::Ime -----------------------------------------
 
         when "ime_opened"
-          Event::Ime.new(type: :opened, captured: msg["captured"] || false)
+          id, scope = split_scoped_id(msg["id"])
+          Event::Ime.new(type: :opened, id: id, scope: scope, captured: msg["captured"] || false)
 
         when "ime_preedit"
+          id, scope = split_scoped_id(msg["id"])
           Event::Ime.new(
-            type: :preedit,
+            type: :preedit, id: id, scope: scope,
             text: data["text"],
-            cursor: data["cursor"],
+            cursor: parse_ime_cursor(data["cursor"]),
             captured: msg["captured"] || false
           )
 
         when "ime_commit"
+          id, scope = split_scoped_id(msg["id"])
           Event::Ime.new(
-            type: :commit,
+            type: :commit, id: id, scope: scope,
             text: data["text"],
             captured: msg["captured"] || false
           )
 
         when "ime_closed"
-          Event::Ime.new(type: :closed, captured: msg["captured"] || false)
+          id, scope = split_scoped_id(msg["id"])
+          Event::Ime.new(type: :closed, id: id, scope: scope, captured: msg["captured"] || false)
 
         # -- Window subscription events -> Event::Window ----------------------
 
@@ -540,6 +551,17 @@ module Plushie
           logo: mods["logo"] || false,
           command: mods["command"] || false
         }.freeze
+      end
+
+      # Parse an IME cursor position from the wire format.
+      # @param cursor [Hash, Array, nil] cursor data from the renderer
+      # @return [Array(Integer, Integer), nil] [start, end] or nil
+      def parse_ime_cursor(cursor)
+        case cursor
+        when Hash then [cursor["start"], cursor["end"]]
+        when Array then cursor
+        else nil
+        end
       end
     end
   end

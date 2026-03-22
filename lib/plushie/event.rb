@@ -46,8 +46,8 @@ module Plushie
     end
 
     # IME (Input Method Editor) events
-    Ime = Data.define(:type, :text, :cursor, :captured) do
-      def initialize(type:, text: nil, cursor: nil, captured: false)
+    Ime = Data.define(:type, :id, :scope, :text, :cursor, :captured) do
+      def initialize(type:, id: nil, scope: [], text: nil, cursor: nil, captured: false)
         super
       end
     end
@@ -77,8 +77,10 @@ module Plushie
     end
 
     # Pane grid events
-    Pane = Data.define(:type, :id, :pane, :target, :split, :ratio, :scope) do
-      def initialize(type:, id:, pane: nil, target: nil, split: nil, ratio: nil, scope: [])
+    Pane = Data.define(:type, :id, :pane, :target, :split, :ratio, :scope,
+      :action, :region, :edge) do
+      def initialize(type:, id:, pane: nil, target: nil, split: nil, ratio: nil,
+        scope: [], action: nil, region: nil, edge: nil)
         super
       end
     end
