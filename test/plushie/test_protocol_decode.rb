@@ -329,6 +329,161 @@ class TestProtocolDecode < Minitest::Test
     assert_equal "Item saved", event.data
   end
 
+  # -- Pane events (additional) --------------------------------------------
+
+  def test_decode_pane_dragged_with_action_region_edge
+    event = D.decode_event({
+      "family" => "pane_dragged", "id" => "grid",
+      "data" => {"pane" => "p1", "target" => "p2", "action" => "dropped", "region" => "center", "edge" => "left"}
+    })
+    assert_instance_of Plushie::Event::Pane, event
+    assert_equal :dragged, event.type
+    assert_equal "p1", event.pane
+    assert_equal "p2", event.target
+    assert_equal :dropped, event.action
+    assert_equal :center, event.region
+    assert_equal :left, event.edge
+  end
+
+  def test_decode_pane_focus_cycle
+    event = D.decode_event({"family" => "pane_focus_cycle", "id" => "grid", "data" => {"pane" => "p3"}})
+    assert_instance_of Plushie::Event::Pane, event
+    assert_equal :focus_cycle, event.type
+    assert_equal "p3", event.pane
+  end
+
+  # -- Session events ------------------------------------------------------
+
+  def test_decode_session_error_with_session_id
+    event = D.decode_event({"family" => "session_error", "session" => "test_1", "data" => {"error" => "invalid state"}})
+    assert_instance_of Plushie::Event::System, event
+    assert_equal :session_error, event.type
+    assert_equal "test_1", event.tag
+    assert_equal "invalid state", event.data
+  end
+
+  def test_decode_session_closed_with_session_id
+    event = D.decode_event({"family" => "session_closed", "session" => "test_2", "data" => {"reason" => "timeout"}})
+    assert_instance_of Plushie::Event::System, event
+    assert_equal :session_closed, event.type
+    assert_equal "test_2", event.tag
+    assert_equal "timeout", event.data
+  end
+
+  # -- Window events (additional) ------------------------------------------
+
+  def test_decode_window_moved
+    event = D.decode_event({"family" => "window_moved", "data" => {"window_id" => "main", "x" => 50, "y" => 100}})
+    assert_instance_of Plushie::Event::Window, event
+    assert_equal :moved, event.type
+    assert_equal "main", event.window_id
+    assert_equal 50, event.x
+    assert_equal 100, event.y
+  end
+
+  def test_decode_window_focused
+    event = D.decode_event({"family" => "window_focused", "data" => {"window_id" => "main"}})
+    assert_instance_of Plushie::Event::Window, event
+    assert_equal :focused, event.type
+    assert_equal "main", event.window_id
+  end
+
+  def test_decode_window_unfocused
+    event = D.decode_event({"family" => "window_unfocused", "data" => {"window_id" => "main"}})
+    assert_instance_of Plushie::Event::Window, event
+    assert_equal :unfocused, event.type
+    assert_equal "main", event.window_id
+  end
+
+  def test_decode_window_rescaled
+    event = D.decode_event({"family" => "window_rescaled", "data" => {"window_id" => "main", "scale_factor" => 2.0}})
+    assert_instance_of Plushie::Event::Window, event
+    assert_equal :rescaled, event.type
+    assert_equal "main", event.window_id
+    assert_equal 2.0, event.scale_factor
+  end
+
+  def test_decode_files_hovered_left
+    event = D.decode_event({"family" => "files_hovered_left", "data" => {"window_id" => "main"}})
+    assert_instance_of Plushie::Event::Window, event
+    assert_equal :files_hovered_left, event.type
+    assert_equal "main", event.window_id
+  end
+
+  # -- Canvas events (additional) ------------------------------------------
+
+  def test_decode_canvas_release
+    event = D.decode_event({"family" => "canvas_release", "id" => "draw", "data" => {"x" => 30, "y" => 40, "button" => "right"}})
+    assert_instance_of Plushie::Event::Canvas, event
+    assert_equal :release, event.type
+    assert_equal 30, event.x
+    assert_equal 40, event.y
+    assert_equal "right", event.button
+  end
+
+  # -- Key events (additional) --------------------------------------------
+
+  def test_decode_key_release_hardcoded_text_nil_repeat_false
+    event = D.decode_event({"family" => "key_release", "key" => "a", "modifiers" => {}})
+    assert_instance_of Plushie::Event::Key, event
+    assert_equal :release, event.type
+    assert_equal "a", event.key
+    assert_nil event.text
+    assert_equal false, event.repeat
+  end
+
+  # -- Announce event (additional) -----------------------------------------
+
+  def test_decode_announce_event_full
+    event = D.decode_event({"family" => "announce", "data" => {"text" => "Record deleted"}})
+    assert_instance_of Plushie::Event::System, event
+    assert_equal :announce, event.type
+    assert_equal "Record deleted", event.data
+  end
+
+  # -- IME events with id and scope ----------------------------------------
+
+  def test_decode_ime_preedit_with_id_and_scope
+    event = D.decode_event({
+      "family" => "ime_preedit", "id" => "form/editor",
+      "data" => {"text" => "ka", "cursor" => [0, 2]}
+    })
+    assert_instance_of Plushie::Event::Ime, event
+    assert_equal :preedit, event.type
+    assert_equal "editor", event.id
+    assert_equal ["form"], event.scope
+    assert_equal "ka", event.text
+    assert_equal [0, 2], event.cursor
+  end
+
+  def test_decode_ime_commit_with_id_and_scope
+    event = D.decode_event({
+      "family" => "ime_commit", "id" => "panel/input",
+      "data" => {"text" => "hello"}
+    })
+    assert_instance_of Plushie::Event::Ime, event
+    assert_equal :commit, event.type
+    assert_equal "input", event.id
+    assert_equal ["panel"], event.scope
+    assert_equal "hello", event.text
+  end
+
+  def test_decode_ime_opened_with_id_and_scope
+    event = D.decode_event({"family" => "ime_opened", "id" => "sidebar/field"})
+    assert_instance_of Plushie::Event::Ime, event
+    assert_equal :opened, event.type
+    assert_equal "field", event.id
+    assert_equal ["sidebar"], event.scope
+  end
+
+  def test_decode_ime_closed_with_id_and_scope
+    event = D.decode_event({"family" => "ime_closed", "id" => "sidebar/field"})
+    assert_instance_of Plushie::Event::Ime, event
+    assert_equal :closed, event.type
+    assert_equal "field", event.id
+    assert_equal ["sidebar"], event.scope
+  end
+
   # -- Fallback (extension events) -----------------------------------------
 
   def test_decode_unknown_family_with_id
