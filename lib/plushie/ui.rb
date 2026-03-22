@@ -183,6 +183,155 @@ module Plushie
       _plushie_container("tooltip", id, props.merge(content:), &block)
     end
 
+    # -- Additional containers -------------------------------------------------
+
+    # Grid layout.
+    def grid(id = nil, **props, &block)
+      _plushie_container("grid", id || _plushie_auto_id, props, &block)
+    end
+
+    # Column with keyed children (stable reordering).
+    def keyed_column(id = nil, **props, &block)
+      _plushie_container("keyed_column", id || _plushie_auto_id, props, &block)
+    end
+
+    # Pin (absolute positioning within parent).
+    def pin(id = nil, **props, &block)
+      _plushie_container("pin", id || _plushie_auto_id, props, &block)
+    end
+
+    # Floating overlay container.
+    def floating(id = nil, **props, &block)
+      _plushie_container("floating", id || _plushie_auto_id, props, &block)
+    end
+
+    # Mouse area (tracks mouse events over children).
+    def mouse_area(id, **props, &block)
+      _plushie_container("mouse_area", id, props, &block)
+    end
+
+    # Sensor (tracks layout/size changes).
+    def sensor(id, **props, &block)
+      _plushie_container("sensor", id, props, &block)
+    end
+
+    # Themer (applies theme overrides to children).
+    def themer(id = nil, **props, &block)
+      _plushie_container("themer", id || _plushie_auto_id, props, &block)
+    end
+
+    # Pane grid (resizable panes).
+    def pane_grid(id, **props, &block)
+      _plushie_container("pane_grid", id, props, &block)
+    end
+
+    # Overlay container.
+    def overlay(id = nil, **props, &block)
+      _plushie_container("overlay", id || _plushie_auto_id, props, &block)
+    end
+
+    # -- Additional leaf widgets -----------------------------------------------
+
+    # Rich text display.
+    def rich_text(id, spans, **props)
+      _plushie_leaf("rich_text", id, props.merge(spans:))
+    end
+
+    # -- Canvas DSL ------------------------------------------------------------
+
+    # Canvas widget with optional layer blocks.
+    #   canvas("chart", width: 400, height: 300) do
+    #     layer("grid") do
+    #       rect(0, 0, 400, 300, stroke: "#eee")
+    #     end
+    #   end
+    def canvas(id, **props, &block)
+      if block
+        layers = {}
+        shapes = []
+        old_canvas_ctx = Thread.current[:_plushie_canvas_ctx]
+        Thread.current[:_plushie_canvas_ctx] = {layers: layers, shapes: shapes}
+        begin
+          block.call
+        ensure
+          Thread.current[:_plushie_canvas_ctx] = old_canvas_ctx
+        end
+        props = props.merge(layers: layers) unless layers.empty?
+        props = props.merge(shapes: shapes) unless shapes.empty?
+      end
+      _plushie_leaf("canvas", id, props)
+    end
+
+    # Layer inside a canvas block.
+    def layer(name, &block)
+      ctx = Thread.current[:_plushie_canvas_ctx]
+      raise "layer must be called inside a canvas block" unless ctx
+      shape_list = []
+      old = Thread.current[:_plushie_canvas_shapes]
+      Thread.current[:_plushie_canvas_shapes] = shape_list
+      begin
+        block.call
+      ensure
+        Thread.current[:_plushie_canvas_shapes] = old
+      end
+      ctx[:layers][name] = shape_list
+    end
+
+    # Group inside a canvas/layer block.
+    def canvas_group(**opts, &block)
+      shape_list = []
+      old = Thread.current[:_plushie_canvas_shapes]
+      Thread.current[:_plushie_canvas_shapes] = shape_list
+      begin
+        block.call
+      ensure
+        Thread.current[:_plushie_canvas_shapes] = old
+      end
+      shape = {type: "group", shapes: shape_list}.merge(opts)
+      _plushie_add_canvas_shape(shape)
+      shape
+    end
+
+    # Canvas shape: rectangle.
+    def canvas_rect(x, y, w, h, **opts)
+      shape = Canvas::Shape.rect(x, y, w, h, **opts)
+      _plushie_add_canvas_shape(shape)
+      shape
+    end
+
+    # Canvas shape: circle.
+    def canvas_circle(x, y, r, **opts)
+      shape = Canvas::Shape.circle(x, y, r, **opts)
+      _plushie_add_canvas_shape(shape)
+      shape
+    end
+
+    # Canvas shape: line.
+    def canvas_line(x1, y1, x2, y2, **opts)
+      shape = Canvas::Shape.line(x1, y1, x2, y2, **opts)
+      _plushie_add_canvas_shape(shape)
+      shape
+    end
+
+    # Canvas shape: text.
+    def canvas_text(x, y, content, **opts)
+      shape = Canvas::Shape.canvas_text(x, y, content, **opts)
+      _plushie_add_canvas_shape(shape)
+      shape
+    end
+
+    # Canvas shape: path.
+    def canvas_path(commands, **opts)
+      shape = Canvas::Shape.path(commands, **opts)
+      _plushie_add_canvas_shape(shape)
+      shape
+    end
+
+    # Table widget (container with column/row data).
+    def table(id, **props, &block)
+      _plushie_container("table", id, props, &block)
+    end
+
     # -- Internals -------------------------------------------------------------
 
     def _plushie_container(type, id, props, &block)
@@ -219,6 +368,16 @@ module Plushie
     def _plushie_auto_id
       loc = caller_locations(2, 1)&.first
       "auto:#{loc&.label}:#{loc&.lineno}"
+    end
+
+    def _plushie_add_canvas_shape(shape)
+      target = Thread.current[:_plushie_canvas_shapes]
+      if target
+        target << shape
+      else
+        ctx = Thread.current[:_plushie_canvas_ctx]
+        ctx[:shapes] << shape if ctx
+      end
     end
   end
 end

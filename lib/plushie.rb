@@ -32,6 +32,28 @@ require_relative "plushie/type/a11y"
 require_relative "plushie/encode"
 require_relative "plushie/dsl/buildable"
 
+# Widget builder modules (Layer 2 API)
+require_relative "plushie/widget/build"
+require_relative "plushie/widget/button"
+require_relative "plushie/widget/text"
+require_relative "plushie/widget/text_input"
+require_relative "plushie/widget/column"
+require_relative "plushie/widget/row"
+require_relative "plushie/widget/container"
+require_relative "plushie/widget/window"
+require_relative "plushie/widget/checkbox"
+require_relative "plushie/widget/slider"
+require_relative "plushie/widget/image"
+require_relative "plushie/widget/scrollable"
+require_relative "plushie/widget/canvas"
+require_relative "plushie/widget/table"
+
+# Canvas shapes
+require_relative "plushie/canvas/shape"
+
+# Extension system
+require_relative "plushie/extension"
+
 require_relative "plushie/ui"
 require_relative "plushie/app"
 require_relative "plushie/tree"
@@ -42,6 +64,16 @@ require_relative "plushie/connection"
 require_relative "plushie/bridge"
 require_relative "plushie/runtime"
 require_relative "plushie/binary"
+
+# State helpers
+require_relative "plushie/animation"
+require_relative "plushie/route"
+require_relative "plushie/selection"
+require_relative "plushie/undo"
+require_relative "plushie/data"
+require_relative "plushie/state"
+require_relative "plushie/key_modifiers"
+require_relative "plushie/dev_server"
 
 module Plushie
   class Error < StandardError; end
