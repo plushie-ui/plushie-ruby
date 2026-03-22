@@ -1,13 +1,28 @@
 # frozen_string_literal: true
 
 require "logger"
+require "set"
+require_relative "runtime/commands"
+require_relative "runtime/subscriptions"
 
 module Plushie
   # Core event loop for Plushie applications.
   #
   # Owns the Elm-style update cycle: event -> model -> view -> diff -> patch.
-  # Processes events sequentially from a thread-safe queue.
+  # Processes events sequentially from a thread-safe queue. All state is
+  # owned by the runtime thread -- no shared mutable state.
+  #
+  # @see ~/projects/toddy-elixir/lib/plushie/runtime.ex
   class Runtime
+    include Commands
+    include Subscriptions
+
+    # @param app [Object] app instance (includes Plushie::App)
+    # @param transport [:spawn, :stdio] transport mode
+    # @param format [:msgpack, :json] wire format
+    # @param daemon [Boolean] keep running after last window closes
+    # @param binary [String, nil] renderer binary path
+    # @param log_level [Symbol] renderer log level
     def initialize(app:, transport: :spawn, format: :msgpack, daemon: false,
       binary: nil, log_level: :error)
       @app = app
@@ -16,14 +31,20 @@ module Plushie
       @daemon = daemon
       @binary = binary
       @log_level = log_level
+
       @event_queue = Thread::Queue.new
       @model = nil
-      @tree = nil
+      @previous_tree = nil
       @bridge = nil
       @running = false
-      @async_tasks = {}
-      @subscriptions = {}
+
+      @async_tasks = {}        # tag -> {thread:, nonce:}
+      @pending_effects = {}    # effect_id -> timer_thread
+      @pending_timers = {}     # event_key -> timer_thread
+      @subscriptions = {}      # sub_key -> {sub_type:, ...}
+      @subscription_keys = []  # sorted keys for short-circuit
       @consecutive_errors = 0
+
       @logger = Logger.new($stderr, level: :warn, progname: "plushie")
     end
 
@@ -37,6 +58,7 @@ module Plushie
     end
 
     # Start the event loop in a background thread.
+    # @return [Runtime] self
     def start
       @loop_thread = Thread.new { run }
       @loop_thread.name = "plushie-runtime"
@@ -52,28 +74,31 @@ module Plushie
 
     private
 
+    # -- Lifecycle -----------------------------------------------------------
+
     def start_bridge
       @bridge = Bridge.new(
         event_queue: @event_queue,
         format: @format,
-        renderer_path: @binary,
+        binary: @binary,
         transport: @transport,
         log_level: @log_level
       )
-      @bridge.start
+      @bridge.start(settings: @app.settings)
     end
 
     def initialize_app
       result = @app.init({})
       @model, commands = unwrap_result(result)
 
-      send_settings
       render_and_snapshot
       execute_commands(commands)
       sync_subscriptions
 
       @running = true
     end
+
+    # -- Event loop ----------------------------------------------------------
 
     def event_loop
       while @running
@@ -90,16 +115,31 @@ module Plushie
         in [:stream_value, tag, nonce, value]
           handle_stream_value(tag, nonce, value)
         in [:timer_tick, tag]
-          dispatch_event(Event::Timer.new(tag:, timestamp: Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)))
+          dispatch_event(Event::Timer.new(
+            tag: tag,
+            timestamp: Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
+          ))
         in [:send_after_event, event]
           dispatch_event(event)
+        in [:effect_timeout, id]
+          handle_effect_timeout(id)
         else
-          @logger.warn("unknown message: #{msg.inspect}")
+          @logger.debug("plushie: unknown message: #{msg.inspect}")
         end
       end
     end
 
+    # -- Event dispatch ------------------------------------------------------
+
     def dispatch_event(event)
+      # Cancel effect timeout if this is an effect response
+      if event.is_a?(Event::Effect)
+        timer = @pending_effects.delete(event.request_id)
+        timer&.kill
+      end
+
+      saved_model = @model
+
       result = @app.update(@model, event)
       @model, commands = unwrap_result(result)
       @consecutive_errors = 0
@@ -108,130 +148,135 @@ module Plushie
       execute_commands(commands)
       sync_subscriptions
     rescue NoMatchingPatternError => e
-      handle_callback_error("update", e)
+      @model = saved_model
+      handle_callback_error("update", e,
+        hint: "Add an `else` clause to your update method to handle unmatched events")
     rescue StandardError => e
+      @model = saved_model
       handle_callback_error("update", e)
     end
 
+    # -- Rendering -----------------------------------------------------------
+
     def render_and_snapshot
-      @tree = Tree.normalize(@app.view(@model))
-      wire_tree = tree_to_wire(@tree)
-      @bridge.send_message(Protocol::Encode.encode_snapshot(wire_tree, @format))
+      tree_list = Tree.normalize(@app.view(@model))
+      @previous_tree = tree_list.is_a?(Array) ? tree_list.first : tree_list
+
+      wire = Tree.node_to_wire(@previous_tree)
+      encoded = Protocol::Encode.encode_snapshot(wire, @format)
+      @bridge.send_encoded(encoded)
+      @bridge.remember_snapshot(encoded)
     rescue StandardError => e
       handle_callback_error("view", e)
     end
 
     def render_and_patch
-      new_tree = Tree.normalize(@app.view(@model))
-      # TODO: implement diffing; for now, send full snapshot
-      @tree = new_tree
-      wire_tree = tree_to_wire(@tree)
-      @bridge.send_message(Protocol::Encode.encode_snapshot(wire_tree, @format))
+      tree_list = Tree.normalize(@app.view(@model))
+      new_tree = tree_list.is_a?(Array) ? tree_list.first : tree_list
+
+      if @previous_tree.nil?
+        # First render or post-restart: send full snapshot
+        @previous_tree = new_tree
+        wire = Tree.node_to_wire(new_tree)
+        encoded = Protocol::Encode.encode_snapshot(wire, @format)
+        @bridge.send_encoded(encoded)
+        @bridge.remember_snapshot(encoded)
+      else
+        ops = Tree.diff(@previous_tree, new_tree)
+        @previous_tree = new_tree
+
+        unless ops.empty?
+          @bridge.send_encoded(Protocol::Encode.encode_patch(ops, @format))
+          # Also remember the current tree as a snapshot for restart
+          wire = Tree.node_to_wire(new_tree)
+          @bridge.remember_snapshot(Protocol::Encode.encode_snapshot(wire, @format))
+        end
+      end
     rescue StandardError => e
       handle_callback_error("view", e)
     end
 
-    def send_settings
-      settings = @app.settings
-      @bridge.send_message(Protocol::Encode.encode_settings(settings, @format))
-    end
+    # -- Result validation ---------------------------------------------------
 
     def unwrap_result(result)
       case result
       in [model, Command::Cmd => cmd]
         [model, cmd]
-      in [model, Array => cmds]
+      in [model, Array => cmds] if cmds.all? { |c| c.is_a?(Command::Cmd) }
         [model, Command.batch(cmds)]
       else
+        if result.is_a?(Array) && result.length == 2
+          raise ArgumentError, <<~MSG.chomp
+            Invalid return from update/init: second element must be a Command or Array of Commands.
+            Got: [#{result[0].class}, #{result[1].class}]
+
+            Valid return shapes:
+              model                        # bare model, no commands
+              [model, Command.async(...)]  # model + single command
+              [model, [cmd1, cmd2]]        # model + command list
+          MSG
+        end
         [result, Command.none]
       end
     end
 
-    def execute_commands(cmd)
-      return if cmd.nil?
-
-      case cmd
-      in Command::Cmd[type: :none]
-        nil
-      in Command::Cmd[type: :batch, payload: {commands:}]
-        commands.each { |c| execute_commands(c) }
-      in Command::Cmd[type: :async, payload: {callable:, tag:}]
-        execute_async(callable, tag)
-      in Command::Cmd[type: :exit]
-        @running = false
-      in Command::Cmd[type: :send_after, payload: {delay:, event:}]
-        Thread.new do
-          sleep(delay / 1000.0)
-          @event_queue.push([:send_after_event, event])
-        end
-      else
-        @logger.debug("unhandled command: #{cmd.type}")
-      end
-    end
-
-    def execute_async(callable, tag)
-      # Cancel existing task with same tag
-      old = @async_tasks.delete(tag)
-      old&.fetch(:thread)&.kill
-
-      nonce = rand(1 << 64)
-      queue = @event_queue
-
-      thread = Thread.new do
-        result = callable.call
-        queue.push([:async_result, tag, nonce, result])
-      rescue StandardError => e
-        queue.push([:async_result, tag, nonce, [:error, e]])
-      end
-
-      @async_tasks[tag] = {thread:, nonce:}
-    end
+    # -- Async handling ------------------------------------------------------
 
     def handle_async_result(tag, nonce, result)
       entry = @async_tasks[tag]
       return unless entry && entry[:nonce] == nonce
-
       @async_tasks.delete(tag)
-      dispatch_event(Event::Async.new(tag:, result:))
+      dispatch_event(Event::Async.new(tag: tag, result: result))
     end
 
     def handle_stream_value(tag, nonce, value)
       entry = @async_tasks[tag]
       return unless entry && entry[:nonce] == nonce
-
-      dispatch_event(Event::Stream.new(tag:, value:))
+      dispatch_event(Event::Stream.new(tag: tag, value: value))
     end
 
-    def sync_subscriptions
-      # TODO: implement subscription diffing
+    # -- Effect handling -----------------------------------------------------
+
+    def handle_effect_timeout(id)
+      timer = @pending_effects.delete(id)
+      return unless timer
+      dispatch_event(Event::Effect.new(request_id: id, result: [:error, :timeout]))
     end
+
+    # -- Renderer exit -------------------------------------------------------
 
     def handle_renderer_exit(reason)
-      @logger.warn("renderer exited: #{reason}")
+      @logger.warn("plushie: renderer exited: #{reason}")
       @model = @app.handle_renderer_exit(@model, reason)
+      @previous_tree = nil # Force full snapshot on reconnect
       @running = false unless @daemon
     end
 
-    def handle_callback_error(callback_name, error)
+    # -- Error handling ------------------------------------------------------
+
+    def handle_callback_error(callback_name, error, hint: nil)
       @consecutive_errors += 1
       if @consecutive_errors <= 100
         @logger.error("plushie: exception in #{callback_name}: #{error.class}: #{error.message}")
+        @logger.error("  Hint: #{hint}") if hint
         error.backtrace&.first(5)&.each { |line| @logger.error("  #{line}") }
-      elsif @consecutive_errors % 1000 == 0
+      elsif (@consecutive_errors % 1000).zero?
         @logger.error("plushie: #{@consecutive_errors} consecutive errors in #{callback_name} (suppressing)")
       end
     end
 
-    def tree_to_wire(trees)
-      trees = [trees] unless trees.is_a?(Array)
-      return trees.first.to_h if trees.length == 1
-      trees.map(&:to_h)
-    end
+    # -- Shutdown ------------------------------------------------------------
 
     def shutdown
       @bridge&.stop
       @async_tasks.each_value { |entry| entry[:thread]&.kill }
       @async_tasks.clear
+      @pending_effects.each_value(&:kill)
+      @pending_effects.clear
+      @pending_timers.each_value(&:kill)
+      @pending_timers.clear
+      @subscriptions.each_value { |entry| entry[:thread]&.kill if entry[:sub_type] == :timer }
+      @subscriptions.clear
     end
   end
 end
