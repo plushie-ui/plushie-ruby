@@ -34,14 +34,6 @@ module Plushie
 
     RESERVED_PROP_NAMES = %i[id type children a11y event_rate].freeze
 
-    def self.included(base)
-      base.extend(ClassMethods)
-      base.instance_variable_set(:@_extension_widget, nil)
-      base.instance_variable_set(:@_extension_props, [])
-      base.instance_variable_set(:@_extension_commands, [])
-      base.instance_variable_set(:@_extension_container, false)
-    end
-
     module ClassMethods
       # Declares the widget type name.
       #   widget :gauge
@@ -120,7 +112,6 @@ module Plushie
 
       def _generate_initialize!
         props = @_extension_props
-        klass = self
 
         define_method(:initialize) do |id, **opts|
           @id = id.to_s
