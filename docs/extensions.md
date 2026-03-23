@@ -357,7 +357,9 @@ alignment types. The prelude also re-exports `CoalesceHint`,
 
 A sparkline widget that renders a line chart from a series of values.
 This shows both the Ruby declaration and the Rust implementation
-side-by-side.
+side-by-side. See the
+[sparkline-dashboard demo](https://github.com/plushie-ui/plushie-demos/tree/main/ruby/sparkline-dashboard)
+for the full working project.
 
 ### Ruby side
 
@@ -571,9 +573,11 @@ protocol carries prop updates between them.
 ## Complete worked example: Gauge (Tier C)
 
 A temperature gauge that demonstrates extension commands, `ExtensionCaches`,
-and the optimistic update pattern. Unlike the sparkline (which is Tier A,
+and the event confirmation pattern. Unlike the sparkline (which is Tier A,
 render-only), the gauge uses `prepare`, `handle_command`, and per-node
-Rust-side state.
+Rust-side state. See the
+[gauge-demo](https://github.com/plushie-ui/plushie-demos/tree/main/ruby/gauge-demo)
+for the full working project.
 
 ### Ruby side
 

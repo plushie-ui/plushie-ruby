@@ -7,7 +7,10 @@ building blocks -- `row`, `column`, `container`, `stack`, `button`, `text`,
 need.
 
 This guide shows how. Every pattern is copy-pasteable and produces a polished
-result. All examples assume `include Plushie::App` is in your class.
+result. All examples assume `include Plushie::App` is in your class. See the
+[notes demo](https://github.com/plushie-ui/plushie-demos/tree/main/ruby/notes)
+for a full app using pure Ruby composite widgets (NoteCard, Toolbar, ShortcutBar)
+with no Rust dependency.
 
 ---
 

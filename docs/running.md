@@ -3,8 +3,11 @@
 Plushie's **renderer** draws windows and handles input. Your Ruby
 code (the **host**) manages state and builds the UI tree. They talk
 over a wire protocol -- locally through a pipe, remotely over SSH,
-or through any transport you provide. This guide covers all the ways
-to connect them.
+or through any transport you provide. See the
+[collab demo](https://github.com/plushie-ui/plushie-demos/tree/main/ruby/collab)
+for a working example of native, SSH, and WebSocket transports.
+
+This guide covers all the ways to connect them.
 
 ## Local desktop
 
