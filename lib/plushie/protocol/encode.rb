@@ -108,11 +108,16 @@ module Plushie
 
       # Perform an operation on a widget (focus, scroll, etc.).
       #
+      # Binary fields (e.g. :data for load_font) are automatically
+      # base64-encoded for JSON and passed as raw binary for msgpack.
+      #
       # @param op [String, Symbol] operation name
       # @param payload [Hash] operation-specific parameters
       # @param format [:msgpack, :json]
       # @return [String]
       def encode_widget_op(op, payload, format = :msgpack)
+        # Encode binary fields if present (load_font sends raw TTF/OTF data)
+        payload = encode_binary_field(payload, :data, format)
         encode({type: "widget_op", session: "", op: op.to_s, payload: payload}, format)
       end
 
@@ -338,6 +343,19 @@ module Plushie
         when :json then Base64.strict_encode64(data)
         when :msgpack then data
         end
+      end
+
+      # Encode a binary field in a payload hash if present.
+      # Returns a new hash with the field encoded for the wire format,
+      # or the original hash if the field is absent or nil.
+      #
+      # @param payload [Hash] the payload hash
+      # @param key [Symbol] the field key to encode
+      # @param format [:msgpack, :json]
+      # @return [Hash]
+      def encode_binary_field(payload, key, format)
+        return payload unless payload.is_a?(Hash) && payload.key?(key) && payload[key].is_a?(String)
+        payload.merge(key => encode_binary(payload[key], format))
       end
     end
   end
