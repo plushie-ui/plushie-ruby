@@ -238,7 +238,11 @@ module Plushie
       args.push("--msgpack") if @format == :msgpack
       args.push("--json") if @format == :json
 
-      @stdin, @stdout, @process_thread = Open3.popen2(*args)
+      # Build a filtered environment to avoid leaking sensitive vars
+      # (API keys, database credentials, tokens) to the renderer.
+      env = RendererEnv.build(log_level: log_level || :error)
+
+      @stdin, @stdout, @process_thread = Open3.popen2(env, *args)
       @stdin.binmode
       @stdout.binmode
     end
