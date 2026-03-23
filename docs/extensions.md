@@ -605,6 +605,7 @@ end
 // native/gauge/src/lib.rs
 use plushie_ext::iced;
 use plushie_ext::prelude::*;
+use serde_json::json;
 
 pub struct GaugeExtension;
 
@@ -613,8 +614,11 @@ impl GaugeExtension {
 }
 
 /// Per-node state stored in ExtensionCaches.
+/// Tracks current and target values independently.
 struct GaugeState {
-    rust_value: f32,
+    current_value: f32,
+    target_value: f32,
+    generation: GenerationCounter,
 }
 
 impl WidgetExtension for GaugeExtension {
@@ -634,9 +638,13 @@ impl WidgetExtension for GaugeExtension {
         let value = prop_f32(node.props(), "value").unwrap_or(0.0);
         let state = caches.get_or_insert::<GaugeState>(
             self.config_key(), &node.id,
-            || GaugeState { rust_value: value },
+            || GaugeState {
+                current_value: value,
+                target_value: value,
+                generation: GenerationCounter::new(),
+            },
         );
-        state.rust_value = value;
+        state.current_value = value;
     }
 
     fn render<'a>(
@@ -678,22 +686,45 @@ impl WidgetExtension for GaugeExtension {
         caches: &mut ExtensionCaches,
     ) -> Vec<OutgoingEvent> {
         match op {
-            "set_value" | "animate_to" => {
+            "set_value" => {
                 if let Some(state) =
                     caches.get_mut::<GaugeState>(self.config_key(), node_id)
                 {
                     if let Some(v) =
                         payload.get("value").and_then(|v| v.as_f64())
                     {
-                        state.rust_value = v as f32;
+                        state.current_value = v as f32;
+                        state.generation.bump();
+                        // Confirm the value change back to Ruby
+                        return vec![OutgoingEvent::extension_event(
+                            "value_changed".to_string(),
+                            node_id.to_string(),
+                            Some(json!({"value": v})),
+                        )];
                     }
                 }
-                // No event emitted -- the Ruby side updates the model
-                // optimistically. Echoing back would race with rapid clicks.
+                vec![]
+            }
+            "animate_to" => {
+                if let Some(state) =
+                    caches.get_mut::<GaugeState>(self.config_key(), node_id)
+                {
+                    if let Some(v) =
+                        payload.get("value").and_then(|v| v.as_f64())
+                    {
+                        state.target_value = v as f32;
+                        state.generation.bump();
+                    }
+                }
+                // No event -- animate_to only updates the target
                 vec![]
             }
             _ => vec![],
         }
+    }
+
+    fn cleanup(&mut self, node_id: &str, caches: &mut ExtensionCaches) {
+        caches.remove(self.config_key(), node_id);
     }
 }
 ```
@@ -707,21 +738,27 @@ class TemperatureMonitor
   Model = Plushie::Model.define(:temperature, :target_temp, :history)
 
   def init(_opts)
-    Model.new(temperature: 20, target_temp: 20, history: [20])
+    Model.new(temperature: 20.0, target_temp: 20.0, history: [20.0])
   end
 
   def update(model, event)
     case event
+    # Extension confirms the value change
+    in Event::Widget[type: :value_changed, id: "temp", data:]
+      new_temp = data["value"].to_f
+      model.with(
+        temperature: new_temp,
+        history: (model.history + [new_temp]).last(50)
+      )
+
+    # Buttons send set_value; temperature updates when Rust confirms
     in Event::Widget[type: :click, id: "high"]
-      # Optimistic update: change model AND send extension command.
-      # The model updates immediately for responsive UI; the command
-      # syncs the Rust extension's internal state.
       [
-        model.with(temperature: 90, target_temp: 90,
-          history: (model.history + [90]).last(50)),
-        Command.extension_command("temp", "set_value", {value: 90})
+        model.with(target_temp: 90.0),
+        Command.extension_command("temp", "set_value", {value: 90.0})
       ]
 
+    # Slider sends animate_to (target only, no confirmation)
     in Event::Widget[type: :slide, id: "target"]
       target = event.data["value"]
       [
@@ -752,11 +789,11 @@ class TemperatureMonitor
 end
 ```
 
-The key difference from the sparkline: button handlers return
-`[model, command]` pairs. `Command.extension_command` sends a message
-directly to the Rust extension's `handle_command` method, bypassing
-the tree diff cycle. The model updates immediately (optimistic), and
-the command keeps Rust-side state in sync.
+The key difference from the sparkline: `set_value` commands flow to
+Rust and come back as `value_changed` events. The model's `temperature`
+only updates when the extension confirms the change. The slider's
+`animate_to` updates `target_temp` immediately with no confirmation --
+it's a visual-only target, not the authoritative value.
 
 
 ## Message::Event construction
