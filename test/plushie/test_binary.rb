@@ -17,12 +17,12 @@ class TestBinary < Minitest::Test
 
   def test_binary_name
     name = B.binary_name
-    assert_match(/\Aplushie-(linux|darwin|windows)-(x86_64|aarch64)/, name)
+    assert_match(/\Aplushie-renderer-(linux|darwin|windows)-(x86_64|aarch64)/, name)
   end
 
   def test_release_url
     url = B.release_url("0.4.1")
-    assert_match(%r{\Ahttps://github\.com/plushie-ui/plushie/releases/}, url)
+    assert_match(%r{\Ahttps://github\.com/plushie-ui/plushie-renderer/releases/}, url)
     assert_includes url, "0.4.1"
   end
 

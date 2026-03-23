@@ -26,8 +26,17 @@ Plushie.run(MyApp)
 The renderer is resolved automatically. For most projects,
 `bundle exec rake plushie:download` fetches a precompiled renderer and
 you're done. If you have native Rust extensions,
-`bundle exec rake plushie:build` compiles a custom renderer. You can
-also set `PLUSHIE_BINARY_PATH` explicitly, or use `Plushie.configure`:
+`bundle exec rake plushie:build` compiles a custom renderer.
+
+Override the install destination with environment variables:
+
+```sh
+PLUSHIE_BIN_FILE=bin/plushie rake plushie:download      # custom binary path
+PLUSHIE_WASM_DIR=public rake plushie:download[wasm]     # WASM files to public/
+PLUSHIE_BIN_FILE=bin/plushie rake plushie:build          # custom build output
+```
+
+You can also set `PLUSHIE_BINARY_PATH` explicitly, or use `Plushie.configure`:
 
 ```ruby
 Plushie.configure do |config|

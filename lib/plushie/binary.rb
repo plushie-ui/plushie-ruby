@@ -129,8 +129,9 @@ module Plushie
     # Verifies the SHA-256 checksum against a .sha256 sidecar file.
     #
     # @param version [String] binary version (default: BINARY_VERSION)
+    # @param dest [String, nil] override destination path (default: _build/plushie/bin/{name})
     # @return [String] path to the downloaded binary
-    def download!(version: BINARY_VERSION)
+    def download!(version: BINARY_VERSION, dest: nil)
       require "net/http"
       require "uri"
       require "fileutils"
@@ -138,9 +139,13 @@ module Plushie
 
       url = release_url(version)
       checksum_url = "#{url}.sha256"
-      dir = File.join("_build", "plushie", "bin")
-      FileUtils.mkdir_p(dir)
-      dest = File.join(dir, binary_name)
+      if dest
+        FileUtils.mkdir_p(File.dirname(dest))
+      else
+        dir = File.join("_build", "plushie", "bin")
+        FileUtils.mkdir_p(dir)
+        dest = File.join(dir, binary_name)
+      end
 
       warn "Downloading plushie #{version} for #{os_name}-#{arch_name}..."
 
@@ -212,8 +217,9 @@ module Plushie
     #
     # @param version [String] binary version (default: BINARY_VERSION)
     # @param force [Boolean] re-download even if files exist
+    # @param dir [String, nil] override output directory (default: wasm_path)
     # @return [String] path to the WASM directory
-    def download_wasm!(version: BINARY_VERSION, force: false)
+    def download_wasm!(version: BINARY_VERSION, force: false, dir: nil)
       require "net/http"
       require "uri"
       require "fileutils"
@@ -222,7 +228,7 @@ module Plushie
       require "zlib"
       require "stringio"
 
-      dir = wasm_path
+      dir ||= wasm_path
       js_path = File.join(dir, "plushie_wasm.js")
       wasm_file = File.join(dir, "plushie_wasm_bg.wasm")
 

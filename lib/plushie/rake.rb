@@ -19,7 +19,7 @@ require "fileutils"
 require "rake"
 
 namespace :plushie do
-  desc "Download precompiled plushie binary or WASM (args: wasm, force)"
+  desc "Download precompiled plushie binary or WASM (args: wasm, force; env: PLUSHIE_BIN_FILE, PLUSHIE_WASM_DIR)"
   task :download, [:arg1, :arg2] do |_t, args|
     require "plushie"
 
@@ -28,13 +28,17 @@ namespace :plushie do
     force = flags.include?("force")
 
     if want_wasm
-      Plushie::Binary.download_wasm!(force: force)
-      puts "WASM files installed to #{Plushie::Binary.wasm_path}"
-    elsif !force && Plushie::Binary.downloaded_path
-      puts "Binary already exists at #{Plushie::Binary.downloaded_path}. Use force to re-download."
+      wasm_dir = ENV["PLUSHIE_WASM_DIR"]
+      Plushie::Binary.download_wasm!(force: force, dir: wasm_dir)
+      puts "WASM files installed to #{wasm_dir || Plushie::Binary.wasm_path}"
     else
-      Plushie::Binary.download!
-      puts "Downloaded plushie binary to #{Plushie::Binary.downloaded_path}"
+      bin_file = ENV["PLUSHIE_BIN_FILE"]
+      if !force && !bin_file && Plushie::Binary.downloaded_path
+        puts "Binary already exists at #{Plushie::Binary.downloaded_path}. Use force to re-download."
+      else
+        dest = Plushie::Binary.download!(dest: bin_file)
+        puts "Downloaded plushie binary to #{dest}"
+      end
     end
   end
 
@@ -78,7 +82,7 @@ namespace :plushie do
 
       puts "Build succeeded."
 
-      # Install binary to _build/plushie/bin/
+      # Install binary
       profile_dir = release ? "release" : "debug"
       src = File.join(source_dir, "target", profile_dir, "plushie-renderer")
 
@@ -86,9 +90,14 @@ namespace :plushie do
         abort "Build succeeded but binary not found at #{src}"
       end
 
-      dest_dir = File.join("_build", "plushie", "bin")
-      FileUtils.mkdir_p(dest_dir)
-      dest = File.join(dest_dir, Plushie::Binary.binary_name)
+      if ENV["PLUSHIE_BIN_FILE"]
+        dest = ENV["PLUSHIE_BIN_FILE"]
+        FileUtils.mkdir_p(File.dirname(dest))
+      else
+        dest_dir = File.join("_build", "plushie", "bin")
+        FileUtils.mkdir_p(dest_dir)
+        dest = File.join(dest_dir, Plushie::Binary.binary_name)
+      end
       FileUtils.cp(src, dest)
       File.chmod(0o755, dest)
 
