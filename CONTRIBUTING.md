@@ -20,7 +20,7 @@ bundle exec rake test         # tests only
 bundle exec rake standard     # linter only
 bundle exec rake steep        # type check only
 bundle exec rake yard         # generate API docs to doc/
-rake plushie:preflight        # full CI mirror (standard, steep, test, yard)
+rake plushie:preflight        # pre-push gate (standard, test, steep, yard)
 ```
 
 ### Test backends

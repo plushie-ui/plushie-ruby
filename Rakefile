@@ -10,9 +10,6 @@ require "plushie/rake"
 
 desc "Run Steep type checker"
 task :steep do
-  unless system("bundle exec steep --version", out: File::NULL, err: File::NULL)
-    abort "steep is not available (may not support this Ruby version)"
-  end
   sh "bundle exec steep check"
 end
 
