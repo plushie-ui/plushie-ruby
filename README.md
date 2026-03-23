@@ -146,6 +146,31 @@ Plushie follows the Elm architecture. Your app implements four callbacks:
 - **WASM renderer** -- `rake plushie:download[wasm]` downloads a WASM
   build of the renderer for browser targets.
 
+## Documentation
+
+**Guides:**
+
+- [Getting started](docs/getting-started.md) -- setup, first app, rake tasks, dev mode
+- [Tutorial: building a todo app](docs/tutorial.md) -- step-by-step walkthrough
+- [App behaviour](docs/app-behaviour.md) -- init, update, view, subscribe callbacks
+- [Layout](docs/layout.md) -- column, row, container, spacing, alignment
+- [Events](docs/events.md) -- widget, keyboard, mouse, window, canvas events
+- [Commands](docs/commands.md) -- async, timers, widget ops, effects, batching
+- [Effects](docs/effects.md) -- file dialogs, clipboard, notifications
+- [Scoped IDs](docs/scoped-ids.md) -- how container nesting scopes widget IDs
+
+**Advanced:**
+
+- [Running](docs/running.md) -- transports, remote rendering, WASM
+- [Theming](docs/theming.md) -- built-in themes and custom styling
+- [Testing](docs/testing.md) -- mock, headless, and windowed backends
+- [Composition patterns](docs/composition-patterns.md) -- tabs, modals, forms, lists
+- [Accessibility](docs/accessibility.md) -- screen reader support, roles, labels
+- [Extensions](docs/extensions.md) -- Ruby composites and native Rust widgets
+- [DSL internals](docs/dsl-internals.md) -- how the UI builder works under the hood
+
+**API reference:** [rubydoc.info/gems/plushie](https://www.rubydoc.info/gems/plushie)
+
 ## Testing
 
 All testing goes through the renderer binary. No Ruby-side mocks.
