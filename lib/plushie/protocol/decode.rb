@@ -197,7 +197,7 @@ module Plushie
           Event::Key.new(
             type: :press,
             key: Keys.parse_key(kd["key"]),
-            modified_key: kd["modified_key"],
+            modified_key: Keys.parse_key(kd["modified_key"] || kd["key"]),
             physical_key: Keys.parse_physical_key(kd["physical_key"]),
             location: Keys.parse_location(kd["location"]),
             modifiers: parse_modifiers(msg["modifiers"] || kd["modifiers"] || {}),
@@ -211,7 +211,7 @@ module Plushie
           Event::Key.new(
             type: :release,
             key: Keys.parse_key(kd["key"]),
-            modified_key: kd["modified_key"],
+            modified_key: Keys.parse_key(kd["modified_key"] || kd["key"]),
             physical_key: Keys.parse_physical_key(kd["physical_key"]),
             location: Keys.parse_location(kd["location"]),
             modifiers: parse_modifiers(msg["modifiers"] || kd["modifiers"] || {}),

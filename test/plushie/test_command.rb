@@ -145,7 +145,7 @@ class TestCommand < Minitest::Test
   def test_set_window_mode
     cmd = C.set_window_mode("main", :fullscreen)
     assert_equal :set_mode, cmd.payload[:op]
-    assert_equal :fullscreen, cmd.payload[:mode]
+    assert_equal "fullscreen", cmd.payload[:mode]
   end
 
   def test_toggle_maximize
@@ -162,7 +162,7 @@ class TestCommand < Minitest::Test
 
   def test_set_window_level
     cmd = C.set_window_level("main", :always_on_top)
-    assert_equal :always_on_top, cmd.payload[:level]
+    assert_equal "always_on_top", cmd.payload[:level]
   end
 
   def test_drag_window
@@ -197,6 +197,7 @@ class TestCommand < Minitest::Test
   def test_allow_automatic_tabbing
     cmd = C.allow_automatic_tabbing(false)
     assert_equal false, cmd.payload[:enabled]
+    assert_equal "_global", cmd.payload[:window_id]
   end
 
   # -- Window queries ------------------------------------------------------
@@ -209,8 +210,9 @@ class TestCommand < Minitest::Test
 
   def test_get_system_theme
     cmd = C.get_system_theme(:theme)
-    assert_equal :widget_op, cmd.type
+    assert_equal :window_query, cmd.type
     assert_equal :get_system_theme, cmd.payload[:op]
+    assert_equal "_system", cmd.payload[:window_id]
   end
 
   # -- PaneGrid ------------------------------------------------------------
@@ -256,11 +258,26 @@ class TestCommand < Minitest::Test
   def test_tree_hash
     cmd = C.tree_hash(:hash_check)
     assert_equal :tree_hash, cmd.payload[:op]
+    assert_equal "hash_check", cmd.payload[:tag]
   end
 
   def test_find_focused
     cmd = C.find_focused(:focus_check)
     assert_equal :find_focused, cmd.payload[:op]
+    assert_equal "focus_check", cmd.payload[:tag]
+  end
+
+  def test_list_images_stringifies_tag
+    cmd = C.list_images(:img_list)
+    assert_equal :list_images, cmd.payload[:op]
+    assert_equal "img_list", cmd.payload[:tag]
+  end
+
+  def test_get_system_info
+    cmd = C.get_system_info(:info)
+    assert_equal :window_query, cmd.type
+    assert_equal :get_system_info, cmd.payload[:op]
+    assert_equal "_system", cmd.payload[:window_id]
   end
 
   # -- Font ----------------------------------------------------------------

@@ -165,7 +165,7 @@ module Plushie
     # @param window_id [String]
     # @param mode [Symbol] :fullscreen, :windowed, :hidden
     # @return [Cmd]
-    def self.set_window_mode(window_id, mode) = Cmd.new(type: :window_op, payload: {op: :set_mode, window_id:, mode:})
+    def self.set_window_mode(window_id, mode) = Cmd.new(type: :window_op, payload: {op: :set_mode, window_id:, mode: mode.to_s})
 
     # @param window_id [String]
     # @return [Cmd]
@@ -182,7 +182,7 @@ module Plushie
     # @param window_id [String]
     # @param level [Symbol] :normal, :always_on_top, :always_on_bottom
     # @return [Cmd]
-    def self.set_window_level(window_id, level) = Cmd.new(type: :window_op, payload: {op: :set_level, window_id:, level:})
+    def self.set_window_level(window_id, level) = Cmd.new(type: :window_op, payload: {op: :set_level, window_id:, level: level.to_s})
 
     # @param window_id [String]
     # @return [Cmd]
@@ -191,12 +191,12 @@ module Plushie
     # @param window_id [String]
     # @param direction [Symbol]
     # @return [Cmd]
-    def self.drag_resize_window(window_id, direction) = Cmd.new(type: :window_op, payload: {op: :drag_resize, window_id:, direction:})
+    def self.drag_resize_window(window_id, direction) = Cmd.new(type: :window_op, payload: {op: :drag_resize, window_id:, direction: direction.to_s})
 
     # @param window_id [String]
     # @param urgency [Symbol] :informational, :critical
     # @return [Cmd]
-    def self.request_user_attention(window_id, urgency) = Cmd.new(type: :window_op, payload: {op: :request_attention, window_id:, urgency:})
+    def self.request_user_attention(window_id, urgency) = Cmd.new(type: :window_op, payload: {op: :request_attention, window_id:, urgency: urgency&.to_s})
 
     # @param window_id [String]
     # @param tag [Symbol]
@@ -247,7 +247,7 @@ module Plushie
 
     # @param enabled [Boolean]
     # @return [Cmd]
-    def self.allow_automatic_tabbing(enabled) = Cmd.new(type: :window_op, payload: {op: :allow_automatic_tabbing, enabled:})
+    def self.allow_automatic_tabbing(enabled) = Cmd.new(type: :window_op, payload: {op: :allow_automatic_tabbing, window_id: "_global", enabled:})
 
     # -------------------------------------------------------------------
     # Window queries
@@ -299,11 +299,11 @@ module Plushie
 
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.get_system_theme(tag) = Cmd.new(type: :widget_op, payload: {op: :get_system_theme, tag:})
+    def self.get_system_theme(tag) = Cmd.new(type: :window_query, payload: {op: :get_system_theme, window_id: "_system", tag:})
 
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.get_system_info(tag) = Cmd.new(type: :widget_op, payload: {op: :get_system_info, tag:})
+    def self.get_system_info(tag) = Cmd.new(type: :window_query, payload: {op: :get_system_info, window_id: "_system", tag:})
 
     # -------------------------------------------------------------------
     # PaneGrid operations
@@ -314,7 +314,7 @@ module Plushie
     # @param axis [Symbol] :horizontal, :vertical
     # @param new_pane_id [String]
     # @return [Cmd]
-    def self.pane_split(grid_id, pane_id, axis, new_pane_id) = Cmd.new(type: :widget_op, payload: {op: :pane_split, target: grid_id, pane: pane_id, axis:, new_pane_id:})
+    def self.pane_split(grid_id, pane_id, axis, new_pane_id) = Cmd.new(type: :widget_op, payload: {op: :pane_split, target: grid_id, pane: pane_id, axis: axis.to_s, new_pane_id:})
 
     # @param grid_id [String]
     # @param pane_id [String]
@@ -372,7 +372,7 @@ module Plushie
     # List all image handles. Result via Event::System.
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.list_images(tag) = Cmd.new(type: :widget_op, payload: {op: :list_images, tag:})
+    def self.list_images(tag) = Cmd.new(type: :widget_op, payload: {op: :list_images, tag: tag.to_s})
 
     # Remove all image handles.
     # @return [Cmd]
@@ -385,12 +385,12 @@ module Plushie
     # Compute tree hash. Result via Event::System.
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.tree_hash(tag) = Cmd.new(type: :widget_op, payload: {op: :tree_hash, tag:})
+    def self.tree_hash(tag) = Cmd.new(type: :widget_op, payload: {op: :tree_hash, tag: tag.to_s})
 
     # Find focused widget. Result via Event::System.
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.find_focused(tag) = Cmd.new(type: :widget_op, payload: {op: :find_focused, tag:})
+    def self.find_focused(tag) = Cmd.new(type: :widget_op, payload: {op: :find_focused, tag: tag.to_s})
 
     # -------------------------------------------------------------------
     # Font

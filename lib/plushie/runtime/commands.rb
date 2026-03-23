@@ -176,7 +176,7 @@ module Plushie
         op = payload[:op]
         window_id = payload[:window_id]
         settings = payload.except(:op, :window_id, :tag)
-        settings[:request_id] = payload[:tag].to_s if payload[:tag]
+        settings[:tag] = payload[:tag].to_s if payload[:tag]
         @bridge.send_encoded(
           Protocol::Encode.encode_window_op(op, window_id, settings, @format)
         )

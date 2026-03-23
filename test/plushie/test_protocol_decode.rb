@@ -188,6 +188,33 @@ class TestProtocolDecode < Minitest::Test
     assert_equal :enter, event.key
   end
 
+  def test_decode_key_press_modified_key_parsed
+    event = D.decode_event({
+      "family" => "key_press", "key" => "a", "modified_key" => "A",
+      "modifiers" => {"shift" => true, "ctrl" => false, "alt" => false, "logo" => false, "command" => false}
+    })
+    assert_equal "a", event.key
+    assert_equal "A", event.modified_key
+  end
+
+  def test_decode_key_press_modified_key_falls_back_to_key
+    event = D.decode_event({
+      "family" => "key_press", "key" => "Escape",
+      "modifiers" => {}
+    })
+    assert_equal :escape, event.key
+    assert_equal :escape, event.modified_key
+  end
+
+  def test_decode_key_press_modified_key_named
+    event = D.decode_event({
+      "family" => "key_press", "key" => "a", "modified_key" => "Tab",
+      "modifiers" => {}
+    })
+    assert_equal "a", event.key
+    assert_equal :tab, event.modified_key
+  end
+
   # -- Modifier events -----------------------------------------------------
 
   def test_decode_modifiers_changed

@@ -146,6 +146,28 @@ module Plushie
         scoped_id
       end
 
+      # Resolve a11y ID references relative to current scope
+      if props.key?("a11y") || props.key?(:a11y)
+        a11y = props["a11y"] || props[:a11y]
+        if a11y.is_a?(Hash)
+          %w[labelled_by described_by error_message].each do |ref_key|
+            ref = a11y[ref_key] || a11y[ref_key.to_sym]
+            if ref.is_a?(String) && !ref.include?("/") && !child_scope.empty?
+              a11y = a11y.merge(ref_key => "#{child_scope}/#{ref}")
+            end
+          end
+          props = props.merge("a11y" => a11y)
+        end
+      end
+
+      # Detect canvas shape structs leaked into the widget tree
+      node.children.each do |child|
+        if child.respond_to?(:to_wire) && !child.is_a?(Plushie::Node)
+          raise ArgumentError, "Canvas shape #{child.class} found in widget tree. " \
+            "Shapes belong inside canvas/layer/group blocks, not as widget children."
+        end
+      end
+
       children = node.children.map { |c| normalize_node(c, child_scope) }
       Node.new(id: scoped_id, type: node.type, props: props, children: children)
     end
