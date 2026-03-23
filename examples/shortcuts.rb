@@ -1,16 +1,19 @@
 # frozen_string_literal: true
 
-# Keyboard shortcut example.
+# Keyboard shortcuts example showing a scrollable log of key presses.
 #
 # Demonstrates:
 # - Subscription.on_key_press for global keyboard events
-# - Pattern matching on Event::Key with modifiers
-# - Event log display
+# - Pattern matching on Event::Key with modifier inspection
+# - scrollable for overflow content with dynamic list items
+# - Capped log buffer (MAX_LOG_ENTRIES)
 
 require "plushie"
 
 class Shortcuts
   include Plushie::App
+
+  MAX_LOG_ENTRIES = 50
 
   Model = Plushie::Model.define(:log, :count)
 
@@ -18,42 +21,35 @@ class Shortcuts
     Model.new(log: [], count: 0)
   end
 
-  def subscribe(_model)
-    [Subscription.on_key_press(:keys)]
-  end
-
   def update(model, event)
     case event
-    in Event::Key[type: :press, key: "s", modifiers: {command: true}]
-      add_log(model, "Ctrl+S: Save!")
-
-    in Event::Key[type: :press, key: :escape]
-      add_log(model, "Escape: Clear log")
-        .with(log: [])
-
     in Event::Key[type: :press, key:, modifiers:]
-      mod_str = modifiers.select { |_, v| v }.keys.join("+")
-      key_str = mod_str.empty? ? key.to_s : "#{mod_str}+#{key}"
-      add_log(model, "Key: #{key_str}")
-
-    in Event::Widget[type: :click, id: "clear"]
-      model.with(log: [], count: 0)
-
+      entry = format_key_event(key, modifiers, model.count + 1)
+      model.with(
+        log: [entry, *model.log].first(MAX_LOG_ENTRIES),
+        count: model.count + 1
+      )
     else
       model
     end
   end
 
+  def subscribe(_model)
+    [Subscription.on_key_press(:keys)]
+  end
+
   def view(model)
     window("main", title: "Keyboard Shortcuts") do
       column(padding: 16, spacing: 12, width: :fill) do
-        text("title", "Press any key (try Ctrl+S, Escape)", size: 18)
-        text("counter", "Events captured: #{model.count}", color: "#888")
-        button("clear", "Clear Log")
-        scrollable("log_scroll", height: 300) do
-          column("log_list", spacing: 4) do
-            model.log.last(20).each_with_index do |entry, i|
-              text("log_#{i}", entry, size: 13, color: "#666")
+        text("header", "Press any key", size: 20)
+        text("count", "#{model.count} key events captured", size: 12, color: "#888888")
+
+        rule()
+
+        scrollable("log", height: :fill) do
+          column(spacing: 2, width: :fill) do
+            model.log.each_with_index do |entry, index|
+              text("log_#{index}", entry, size: 13)
             end
           end
         end
@@ -63,11 +59,20 @@ class Shortcuts
 
   private
 
-  def add_log(model, message)
-    model.with(
-      log: model.log + [message],
-      count: model.count + 1
-    )
+  def format_key_event(key, modifiers, n)
+    mods = format_modifiers(modifiers)
+    key_str = key.to_s.inspect
+    prefix = mods.empty? ? "" : "#{mods}+"
+    "##{n}: #{prefix}#{key_str}"
+  end
+
+  def format_modifiers(modifiers)
+    parts = []
+    parts << "Ctrl" if modifiers[:command] || modifiers[:ctrl]
+    parts << "Alt" if modifiers[:alt]
+    parts << "Shift" if modifiers[:shift]
+    parts << "Super" if modifiers[:logo]
+    parts.join("+")
   end
 end
 
