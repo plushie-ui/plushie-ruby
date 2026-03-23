@@ -513,7 +513,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-plushie-ext = "0.5.0"
+plushie-ext = "0.5.1"
 ```
 
 ### Using it in your app
