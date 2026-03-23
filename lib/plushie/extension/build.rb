@@ -266,9 +266,15 @@ module Plushie
       # Install the built extension binary.
       # @api private
       def install_extension_binary(src)
-        dest_dir = File.join("_build", "plushie", "bin")
-        FileUtils.mkdir_p(dest_dir)
-        dest = File.join(dest_dir, Plushie::Binary.binary_name)
+        bin_file = ENV["PLUSHIE_BIN_FILE"] || Plushie.configuration.bin_file
+        if bin_file
+          dest = bin_file
+          FileUtils.mkdir_p(File.dirname(dest))
+        else
+          dest_dir = File.join("_build", "plushie", "bin")
+          FileUtils.mkdir_p(dest_dir)
+          dest = File.join(dest_dir, Plushie::Binary.binary_name)
+        end
         FileUtils.cp(src, dest)
         File.chmod(0o755, dest)
 

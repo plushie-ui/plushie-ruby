@@ -1706,6 +1706,9 @@ end
 | `extensions` | `Array<Class>` | `[]` | Extension classes to include in custom builds. |
 | `extension_config` | `Hash` | `{}` | Runtime config passed to extensions via the Settings wire message, keyed by `config_key`. |
 | `test_backend` | `Symbol` | `nil` | Test backend (`:mock`, `:headless`, `:windowed`). Equivalent to `PLUSHIE_TEST_BACKEND` env var. |
+| `artifacts` | `Array<Symbol>` | `[:bin]` | Which artifacts to install: `:bin`, `:wasm`, or both. |
+| `bin_file` | `String` | `nil` | Override binary destination for download/build. Equivalent to `PLUSHIE_BIN_FILE` env var. |
+| `wasm_dir` | `String` | `nil` | Override WASM output directory. Equivalent to `PLUSHIE_WASM_DIR` env var. |
 
 The `extension_config` hash is sent to the renderer on startup. Each
 extension receives its own section via the `InitCtx` passed to the `init`

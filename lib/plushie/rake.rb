@@ -19,26 +19,28 @@ require "fileutils"
 require "rake"
 
 namespace :plushie do
-  desc "Download precompiled plushie binary or WASM (args: wasm, force; env: PLUSHIE_BIN_FILE, PLUSHIE_WASM_DIR)"
-  task :download, [:arg1, :arg2] do |_t, args|
+  desc "Download precompiled plushie binary and/or WASM (args: force; config: artifacts, bin_file, wasm_dir)"
+  task :download, [:arg1] do |_t, args|
     require "plushie"
 
-    flags = [args[:arg1], args[:arg2]].compact
-    want_wasm = flags.include?("wasm")
-    force = flags.include?("force")
+    config = Plushie.configuration
+    force = args[:arg1] == "force"
+    artifacts = config.artifacts
 
-    if want_wasm
-      wasm_dir = ENV["PLUSHIE_WASM_DIR"]
-      Plushie::Binary.download_wasm!(force: force, dir: wasm_dir)
-      puts "WASM files installed to #{wasm_dir || Plushie::Binary.wasm_path}"
-    else
-      bin_file = ENV["PLUSHIE_BIN_FILE"]
+    if artifacts.include?(:bin)
+      bin_file = ENV["PLUSHIE_BIN_FILE"] || config.bin_file
       if !force && !bin_file && Plushie::Binary.downloaded_path
         puts "Binary already exists at #{Plushie::Binary.downloaded_path}. Use force to re-download."
       else
         dest = Plushie::Binary.download!(dest: bin_file)
         puts "Downloaded plushie binary to #{dest}"
       end
+    end
+
+    if artifacts.include?(:wasm)
+      wasm_dir = ENV["PLUSHIE_WASM_DIR"] || config.wasm_dir
+      Plushie::Binary.download_wasm!(force: force, dir: wasm_dir)
+      puts "WASM files installed to #{wasm_dir || Plushie::Binary.wasm_path}"
     end
   end
 
@@ -90,8 +92,9 @@ namespace :plushie do
         abort "Build succeeded but binary not found at #{src}"
       end
 
-      if ENV["PLUSHIE_BIN_FILE"]
-        dest = ENV["PLUSHIE_BIN_FILE"]
+      bin_file = ENV["PLUSHIE_BIN_FILE"] || Plushie.configuration.bin_file
+      if bin_file
+        dest = bin_file
         FileUtils.mkdir_p(File.dirname(dest))
       else
         dest_dir = File.join("_build", "plushie", "bin")

@@ -74,7 +74,6 @@ class TestRakeTasks < Minitest::Test
   def test_download_task_accepts_args
     task = Rake::Task["plushie:download"]
     assert_includes task.arg_names, :arg1
-    assert_includes task.arg_names, :arg2
   end
 
   def test_run_task_accepts_options

@@ -168,6 +168,24 @@ module Plushie
     # @return [Symbol, nil]
     attr_accessor :test_backend
 
+    # Which artifacts to install with download/build tasks.
+    # Default: +[:bin]+. Set to +[:bin, :wasm]+ for projects that
+    # need both the native binary and the WASM renderer.
+    # @return [Array<Symbol>]
+    attr_accessor :artifacts
+
+    # Override destination path for the native binary.
+    # Used by +rake plushie:download+ and +rake plushie:build+.
+    # Env var +PLUSHIE_BIN_FILE+ takes precedence.
+    # @return [String, nil]
+    attr_accessor :bin_file
+
+    # Override output directory for WASM renderer files.
+    # Used by +rake plushie:download+.
+    # Env var +PLUSHIE_WASM_DIR+ takes precedence.
+    # @return [String, nil]
+    attr_accessor :wasm_dir
+
     def initialize
       @binary_path = nil
       @source_path = nil
@@ -175,6 +193,9 @@ module Plushie
       @extensions = []
       @extension_config = {}
       @test_backend = nil
+      @artifacts = [:bin]
+      @bin_file = nil
+      @wasm_dir = nil
     end
   end
 

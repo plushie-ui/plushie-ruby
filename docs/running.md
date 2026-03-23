@@ -28,15 +28,29 @@ The renderer is resolved automatically. For most projects,
 you're done. If you have native Rust extensions,
 `bundle exec rake plushie:build` compiles a custom renderer.
 
-Override the install destination with environment variables:
+Configure which artifacts to install and where they go:
 
-```sh
-PLUSHIE_BIN_FILE=bin/plushie rake plushie:download      # custom binary path
-PLUSHIE_WASM_DIR=public rake plushie:download[wasm]     # WASM files to public/
-PLUSHIE_BIN_FILE=bin/plushie rake plushie:build          # custom build output
+```ruby
+Plushie.configure do |config|
+  config.artifacts = [:bin, :wasm]   # download both (default: [:bin])
+  config.bin_file = "bin/plushie"    # custom binary path
+  config.wasm_dir = "public"         # WASM files to public/
+end
 ```
 
-You can also set `PLUSHIE_BINARY_PATH` explicitly, or use `Plushie.configure`:
+Then `rake plushie:download` and `rake plushie:build` use those
+defaults automatically. Environment variables override config for
+one-off use:
+
+```sh
+PLUSHIE_BIN_FILE=bin/plushie rake plushie:download
+PLUSHIE_WASM_DIR=public rake plushie:download
+```
+
+Resolution order: env var > `Plushie.configure` > hardcoded default.
+
+You can also set `PLUSHIE_BINARY_PATH` explicitly for runtime
+binary resolution:
 
 ```ruby
 Plushie.configure do |config|
