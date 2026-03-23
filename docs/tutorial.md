@@ -9,6 +9,7 @@ dynamic lists, scoped IDs, commands, and conditional rendering.
 Start with a model that tracks a list of todos and the current input
 text.
 
+<!-- test: tutorial_step1_init -- keep this code block in sync with the test -->
 ```ruby
 require "plushie"
 
@@ -45,6 +46,7 @@ placeholder message. Not much yet, but the structure is in place:
 Add a text input that updates the model on every keystroke, and a
 submit handler that creates a todo when the user presses Enter.
 
+<!-- test: tutorial_step2_input_updates_model, tutorial_step2_submit_creates_todo, tutorial_step2_empty_submit_noop -- keep this code block in sync with the test -->
 ```ruby
 def update(model, event)
   case event
@@ -96,6 +98,7 @@ We wrap each item in a named container using the todo's ID. This
 creates a **scope** -- children get unique IDs automatically
 without manual prefixing.
 
+<!-- test: tutorial_step3_view_renders_todo_list -- keep this code block in sync with the test -->
 ```ruby
 def view(model)
   window("main", title: "Todos") do
@@ -133,6 +136,7 @@ When the checkbox or delete button is clicked, the event carries the
 local `id` and a `scope` array with the todo's container ID as the
 immediate parent. Pattern match on both:
 
+<!-- test: tutorial_step4_toggle_with_scope, tutorial_step4_delete_with_scope -- keep this code block in sync with the test -->
 ```ruby
 in Event::Widget[type: :toggle, id: "toggle", scope: [todo_id, *]]
   todos = model.todos.map { |t|
@@ -153,6 +157,7 @@ later move the list into a sidebar or tab, the pattern still works.
 After submitting a todo, the text input loses focus. Let's refocus
 it automatically using `Command.focus`:
 
+<!-- test: tutorial_step5_submit_returns_focus_command -- keep this code block in sync with the test -->
 ```ruby
 in Event::Widget[type: :submit, id: "new_todo"]
   if model.input.strip != ""
@@ -177,6 +182,7 @@ always use the full scoped path.
 Add filter buttons that toggle between all, active, and completed
 todos.
 
+<!-- test: tutorial_step6_filter_all, tutorial_step6_filter_done -- keep this code block in sync with the test -->
 ```ruby
 in Event::Widget[type: :click, id: "filter_all"]
   model.with(filter: :all)
@@ -188,6 +194,7 @@ in Event::Widget[type: :click, id: "filter_done"]
 
 Add the filter buttons and apply the filter in the view:
 
+<!-- test: tutorial_step6_filtered_helper -- keep this code block in sync with the test -->
 ```ruby
 def view(model)
   window("main", title: "Todos") do

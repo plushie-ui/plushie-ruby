@@ -28,6 +28,7 @@ in Event::Widget[type: :click, id: "save"]
 
 #### Async work
 
+<!-- test: commands_async_construct -- keep this code block in sync with the test -->
 ```ruby
 # Run a lambda asynchronously. Result is delivered as an event.
 Command.async(callable, event_tag)
@@ -56,6 +57,7 @@ to `update` over time. The callable receives an `emit` proc; each call to
 `emit` delivers a tagged event through the normal update cycle. The
 callable's final return value is also delivered.
 
+<!-- test: commands_stream_construct -- keep this code block in sync with the test -->
 ```ruby
 Command.stream(callable, event_tag)
 
@@ -93,6 +95,7 @@ This is convenience sugar. You can achieve the same thing with a bare
 event tag. The runtime tracks running threads by tag and terminates the
 associated thread. If the task has already completed, this is a no-op.
 
+<!-- test: commands_cancel_construct -- keep this code block in sync with the test -->
 ```ruby
 Command.cancel(event_tag)
 ```
@@ -109,6 +112,7 @@ immediately dispatches `msg_fn.call(value)` through `update` without
 spawning a thread. Useful for lifting a pure value into the command
 pipeline.
 
+<!-- test: commands_done_construct -- keep this code block in sync with the test -->
 ```ruby
 Command.done(value, msg_fn)
 ```
@@ -122,6 +126,7 @@ in Event::Widget[type: :click, id: "reset"]
 
 `Command.exit` terminates the application.
 
+<!-- test: commands_exit_construct -- keep this code block in sync with the test -->
 ```ruby
 Command.exit
 ```
@@ -130,6 +135,7 @@ Command.exit
 
 ##### Focus
 
+<!-- test: commands_focus_construct -- keep this code block in sync with the test -->
 ```ruby
 Command.focus(widget_id)           # Focus a text input
 Command.focus_next                 # Focus next focusable widget
@@ -182,6 +188,7 @@ Windows are opened declaratively by including window nodes in the view tree.
 There is no `open_window` command. To open a window, add a `window` node to
 the tree returned by `view`. To close one, remove it or use `close_window`.
 
+<!-- test: commands_close_window_construct -- keep this code block in sync with the test -->
 ```ruby
 Command.close_window(window_id)                        # Close a window
 Command.resize_window(window_id, width, height)        # Resize
@@ -390,6 +397,7 @@ in Event::Widget[type: :click, id: "restore_panes"]
 
 #### Timers
 
+<!-- test: commands_send_after_construct -- keep this code block in sync with the test -->
 ```ruby
 Command.send_after(delay_ms, event)
 ```
@@ -405,6 +413,7 @@ in [:clear_message]
 
 #### Batch
 
+<!-- test: commands_batch_construct -- keep this code block in sync with the test -->
 ```ruby
 Command.batch([
   Command.focus("name_input"),

@@ -10,6 +10,7 @@ widget interactions to `Event::Widget` using the node's `id`.
 
 ### Click
 
+<!-- test: events_widget_click_construct -- keep this code block in sync with the test -->
 ```ruby
 Event::Widget[type: :click, id: "save"]
 ```
@@ -31,6 +32,7 @@ end
 
 ### Input
 
+<!-- test: events_widget_input_match -- keep this code block in sync with the test -->
 ```ruby
 Event::Widget[type: :input, id: "search", value:]
 ```
@@ -45,6 +47,7 @@ in Event::Widget[type: :input, id: "search", value:]
 
 ### Submit
 
+<!-- test: events_widget_submit_match -- keep this code block in sync with the test -->
 ```ruby
 Event::Widget[type: :submit, id: "search", value:]
 ```
@@ -59,6 +62,7 @@ in Event::Widget[type: :submit, id: "search", value:]
 
 ### Toggle
 
+<!-- test: events_widget_toggle_match -- keep this code block in sync with the test -->
 ```ruby
 Event::Widget[type: :toggle, id: "dark_mode", value:]
 ```
@@ -72,6 +76,7 @@ in Event::Widget[type: :toggle, id: "dark_mode", value:]
 
 ### Select
 
+<!-- test: events_widget_select_match -- keep this code block in sync with the test -->
 ```ruby
 Event::Widget[type: :select, id: "theme_picker", value:]
 ```
@@ -85,6 +90,7 @@ in Event::Widget[type: :select, id: "theme_picker", value:]
 
 ### Slide
 
+<!-- test: events_widget_slide_match -- keep this code block in sync with the test -->
 ```ruby
 Event::Widget[type: :slide, id: "volume", value:]
 Event::Widget[type: :slide_release, id: "volume", value:]
@@ -359,6 +365,7 @@ Character keys are single-character strings:
 
 ### Keyboard event examples
 
+<!-- test: events_key_press_cmd_s_match, events_key_press_escape_match -- keep this code block in sync with the test -->
 ```ruby
 in Event::Key[type: :press, key: "s", modifiers: {command: true, **}]
   [model, save_command]
@@ -476,6 +483,7 @@ switches. The `data` field holds the timestamp or the mode string
 
 Delivered by timer subscriptions.
 
+<!-- test: events_timer_tick_match -- keep this code block in sync with the test -->
 ```ruby
 Event::Timer[tag: :tick, timestamp: ts]
 ```
@@ -486,6 +494,7 @@ Where `timestamp` is the monotonic time in milliseconds.
 
 Delivered when an async command completes.
 
+<!-- test: events_async_result_ok_match -- keep this code block in sync with the test -->
 ```ruby
 Event::Async[tag: :data_loaded, result: [:ok, value]]
 Event::Async[tag: :data_loaded, result: [:error, reason]]
@@ -505,6 +514,7 @@ in Event::Async[tag: :data_loaded, result: [:ok, body]]
 
 Delivered when a renderer effect completes.
 
+<!-- test: events_effect_response_ok_match -- keep this code block in sync with the test -->
 ```ruby
 Event::Effect[request_id: "ef_1234", result: [:ok, data]]
 Event::Effect[request_id: "ef_1234", result: :cancelled]
@@ -557,6 +567,7 @@ Widget events include a `scope` field listing ancestor container IDs,
 nearest first. You can pattern match on scope to distinguish events from
 different contexts:
 
+<!-- test: events_scope_sidebar_match, events_scope_main_match -- keep this code block in sync with the test -->
 ```ruby
 # Button inside the "sidebar" container
 in Event::Widget[type: :click, id: "save", scope: ["sidebar", *]]

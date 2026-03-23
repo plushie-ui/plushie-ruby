@@ -23,6 +23,7 @@ def settings -> Hash
 Returns the initial model, optionally with commands. Called once when the
 runtime starts.
 
+<!-- test: app_behaviour_init_bare_model, app_behaviour_init_with_command -- keep this code block in sync with the test -->
 ```ruby
 def init(_opts)
   Model.new(
@@ -51,6 +52,7 @@ accept configuration at startup.
 Receives the current model and an event, returns the next model -- optionally
 with commands.
 
+<!-- test: app_behaviour_update_add_todo, app_behaviour_update_submit_returns_focus -- keep this code block in sync with the test -->
 ```ruby
 def update(model, event)
   case event
@@ -97,6 +99,7 @@ for the full event taxonomy. Common families:
 
 Receives the current model, returns a UI tree.
 
+<!-- test: app_behaviour_view_basic_structure -- keep this code block in sync with the test -->
 ```ruby
 def view(model)
   window("main", title: "Todos") do
@@ -160,6 +163,7 @@ Returns a list of active subscriptions based on the current model. Called
 after every `update`. The runtime diffs the list and starts/stops
 subscriptions automatically.
 
+<!-- test: app_behaviour_subscribe_without_auto_refresh, app_behaviour_subscribe_with_auto_refresh -- keep this code block in sync with the test -->
 ```ruby
 def subscribe(model)
   subs = [Subscription.on_key_press(:key_event)]
@@ -191,6 +195,7 @@ end
 Called when windows are opened, including at startup and after renderer
 restart. Default: single window with app class name as title.
 
+<!-- test: app_behaviour_window_config -- keep this code block in sync with the test -->
 ```ruby
 def window_config(_model)
   {
@@ -209,6 +214,7 @@ end
 Called once at startup to provide application-level settings to the
 renderer. Returns a hash.
 
+<!-- test: app_behaviour_settings -- keep this code block in sync with the test -->
 ```ruby
 def settings
   {

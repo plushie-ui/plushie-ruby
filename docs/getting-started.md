@@ -59,6 +59,7 @@ source instead, install [rustup](https://rustup.rs/) and run
 
 Create `lib/counter.rb`:
 
+<!-- test: getting_started_counter_init, getting_started_counter_increment, getting_started_counter_decrement, getting_started_counter_unknown_event, getting_started_counter_view, getting_started_counter_view_after_increments -- keep this code block in sync with the test -->
 ```ruby
 require "plushie"
 
