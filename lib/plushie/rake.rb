@@ -231,16 +231,12 @@ namespace :plushie do
     end
   end
 
-  desc "Run all CI checks (standard + steep + test + yard)"
+  desc "Run all CI checks (mirrors .github/workflows/ci.yml)"
   task :preflight do
     sh "bundle exec rake standard"
-    if system("bundle exec steep --version", out: File::NULL, err: File::NULL)
-      sh "bundle exec steep check"
-    end
     sh "bundle exec rake test"
-    if system("bundle exec yard --version", out: File::NULL, err: File::NULL)
-      sh "bundle exec yard doc"
-    end
+    sh "bundle exec steep check"
+    sh "bundle exec yard doc"
     puts "\nAll checks passed."
   end
 end
