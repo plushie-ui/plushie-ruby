@@ -6,8 +6,8 @@ module Plushie
     #
     # Wire format: { color: "#00000080", offset: [4, 4], blur_radius: 8.0 }
     #
-    # @example Builder pattern
-    #   Shadow.new.color("#00000040").offset(2, 2).blur_radius(6)
+    # @example Keyword construction
+    #   Shadow.from_opts(color: "#00000040", offset_x: 2, offset_y: 2, blur_radius: 6)
     #
     # @example DSL block form
     #   container("card") do

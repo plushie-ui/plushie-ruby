@@ -60,15 +60,17 @@ class TabApp
 
   def tab_style(active)
     if active
-      Plushie::Type::StyleMap.new
-        .background("#ffffff")
-        .text_color("#1a1a1a")
-        .border(Plushie::Type::Border.new.color("#0066ff").width(2).rounded(0))
+      Plushie::Type::StyleMap::Spec.new(
+        background: "#ffffff",
+        text_color: "#1a1a1a",
+        border: Plushie::Type::Border.from_opts(color: "#0066ff", width: 2, rounded: 0)
+      )
     else
-      Plushie::Type::StyleMap.new
-        .background("#f0f0f0")
-        .text_color("#666666")
-        .hovered(background: "#e0e0e0")
+      Plushie::Type::StyleMap::Spec.new(
+        background: "#f0f0f0",
+        text_color: "#666666",
+        hovered: {background: "#e0e0e0"}
+      )
     end
   end
 end
@@ -135,15 +137,17 @@ class SidebarApp
 
   def nav_item_style(selected)
     if selected
-      Plushie::Type::StyleMap.new
-        .background("#3366ff")
-        .text_color("#ffffff")
-        .hovered(background: "#4477ff")
+      Plushie::Type::StyleMap::Spec.new(
+        background: "#3366ff",
+        text_color: "#ffffff",
+        hovered: {background: "#4477ff"}
+      )
     else
-      Plushie::Type::StyleMap.new
-        .background("#1e1e2e")
-        .text_color("#cccccc")
-        .hovered(background: "#2a2a3e", text_color: "#ffffff")
+      Plushie::Type::StyleMap::Spec.new(
+        background: "#1e1e2e",
+        text_color: "#cccccc",
+        hovered: {background: "#2a2a3e", text_color: "#ffffff"}
+      )
     end
   end
 end
@@ -223,17 +227,19 @@ class ToolbarApp
 
   def tool_style(toggled)
     if toggled
-      Plushie::Type::StyleMap.new
-        .background("#d0d0d0")
-        .text_color("#1a1a1a")
-        .border(Plushie::Type::Border.new.color("#b0b0b0").width(1).rounded(3))
-        .hovered(background: "#c0c0c0")
+      Plushie::Type::StyleMap::Spec.new(
+        background: "#d0d0d0",
+        text_color: "#1a1a1a",
+        border: Plushie::Type::Border.from_opts(color: "#b0b0b0", width: 1, rounded: 3),
+        hovered: {background: "#c0c0c0"}
+      )
     else
-      Plushie::Type::StyleMap.new
-        .background("#f5f5f5")
-        .text_color("#333333")
-        .hovered(background: "#e0e0e0")
-        .pressed(background: "#d0d0d0")
+      Plushie::Type::StyleMap::Spec.new(
+        background: "#f5f5f5",
+        text_color: "#333333",
+        hovered: {background: "#e0e0e0"},
+        pressed: {background: "#d0d0d0"}
+      )
     end
   end
 end
@@ -302,8 +308,8 @@ class ModalApp
                     background: "#00000088", center: true) do
             container("dialog", max_width: 400, padding: 24,
                       background: "#ffffff",
-                      border: Plushie::Type::Border.new.color("#dddddd").width(1).rounded(8),
-                      shadow: Plushie::Type::Shadow.new.color("#00000040").offset(0, 4).blur_radius(16)) do
+                      border: Plushie::Type::Border.from_opts(color: "#dddddd", width: 1, rounded: 8),
+                      shadow: Plushie::Type::Shadow.from_opts(color: "#00000040", offset_y: 4, blur_radius: 16)) do
               column(spacing: 16) do
                 text("dialog_title", "Confirm action", size: 18, color: "#1a1a1a")
                 text("dialog_body", "Are you sure you want to proceed?",
@@ -347,8 +353,8 @@ end
 private
 
 def card(id, title, &block)
-  border = Plushie::Type::Border.new.color("#e0e0e0").width(1).rounded(8)
-  shadow = Plushie::Type::Shadow.new.color("#00000020").offset(0, 2).blur_radius(8)
+  border = Plushie::Type::Border.from_opts(color: "#e0e0e0", width: 1, rounded: 8)
+  shadow = Plushie::Type::Shadow.from_opts(color: "#00000020", offset_y: 2, blur_radius: 8)
 
   container(id, width: :fill, padding: 16, background: "#ffffff",
             border: border, shadow: shadow) do
@@ -434,10 +440,11 @@ end
 private
 
 def crumb_style
-  Plushie::Type::StyleMap.new
-    .background("#00000000")
-    .text_color("#3366ff")
-    .hovered(text_color: "#1144cc", background: "#f0f0ff")
+  Plushie::Type::StyleMap::Spec.new(
+    background: "#00000000",
+    text_color: "#3366ff",
+    hovered: {text_color: "#1144cc", background: "#f0f0ff"}
+  )
 end
 ```
 
@@ -455,7 +462,7 @@ def badge(id, label, bg_color, text_color)
   container(id,
     padding: {top: 2, bottom: 2, left: 8, right: 8},
     background: bg_color,
-    border: Plushie::Type::Border.new.rounded(999)) do
+    border: Plushie::Type::Border.from_opts(rounded: 999)) do
     text("badge_text", label, size: 11, color: text_color)
   end
 end
@@ -463,16 +470,18 @@ end
 # Clickable chip style
 def chip_style(selected)
   if selected
-    Plushie::Type::StyleMap.new
-      .background("#3366ff")
-      .text_color("#ffffff")
-      .border(Plushie::Type::Border.new.color("#3366ff").width(1).rounded(999))
+    Plushie::Type::StyleMap::Spec.new(
+      background: "#3366ff",
+      text_color: "#ffffff",
+      border: Plushie::Type::Border.from_opts(color: "#3366ff", width: 1, rounded: 999)
+    )
   else
-    Plushie::Type::StyleMap.new
-      .background("#f0f0f0")
-      .text_color("#333333")
-      .border(Plushie::Type::Border.new.color("#cccccc").width(1).rounded(999))
-      .hovered(background: "#e4e4e4")
+    Plushie::Type::StyleMap::Spec.new(
+      background: "#f0f0f0",
+      text_color: "#333333",
+      border: Plushie::Type::Border.from_opts(color: "#cccccc", width: 1, rounded: 999),
+      hovered: {background: "#e4e4e4"}
+    )
   end
 end
 ```
@@ -749,7 +758,7 @@ class ComboApp
           if model.open && count > 0
             content do
               container("combo-dropdown", width: 250, background: "#fff",
-                        border: Plushie::Type::Border.new.color("#ddd").width(1).rounded(8),
+                        border: Plushie::Type::Border.from_opts(color: "#ddd", width: 1, rounded: 8),
                         clip: true) do
                 scrollable("combo-scroll", height: [count * 32, 200].min) do
                   canvas("combo-opts", width: 250, height: count * 32,

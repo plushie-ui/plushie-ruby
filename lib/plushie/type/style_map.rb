@@ -35,7 +35,7 @@ module Plushie
     #   spec = StyleMap::Spec.new(
     #     background: "#333",
     #     text_color: "#fff",
-    #     border: Border.new.width(1).color("#555"),
+    #     border: Border.from_opts(width: 1, color: "#555"),
     #     hovered: { background: "#444" }
     #   )
     #   button("save", "Save", style: spec)

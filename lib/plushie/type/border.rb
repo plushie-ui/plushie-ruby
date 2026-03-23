@@ -6,8 +6,8 @@ module Plushie
     #
     # A border has color, width, and radius (uniform or per-corner).
     #
-    # @example Builder pattern
-    #   Border.new.color("#3366ff").width(2).rounded(8)
+    # @example Keyword construction
+    #   Border.from_opts(color: "#3366ff", width: 2, rounded: 8)
     #
     # @example DSL block form
     #   container("box") do
@@ -19,7 +19,7 @@ module Plushie
     #   end
     #
     # @example Per-corner radius
-    #   Border.new.width(1).radius(top_left: 8, top_right: 8, bottom_right: 0, bottom_left: 0)
+    #   Border.from_opts(width: 1, radius: {top_left: 8, top_right: 8, bottom_right: 0, bottom_left: 0})
     module Border
       Spec = Data.define(:color, :width, :radius) do
         def initialize(color: nil, width: 0, radius: 0)

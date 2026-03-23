@@ -172,21 +172,12 @@ rule, slider, vertical_slider, and tooltip.
 
 <!-- test: theming_style_map_spec, theming_container_with_style_map -- keep this code block in sync with the test -->
 ```ruby
-card_style = Plushie::Type::StyleMap.new
-  .background("#ffffff")
-  .text_color("#1a1a1a")
-  .border(
-    Plushie::Type::Border.new
-      .rounded(8)
-      .width(1)
-      .color("#e0e0e0")
-  )
-  .shadow(
-    Plushie::Type::Shadow.new
-      .color("#00000020")
-      .offset(0, 2)
-      .blur_radius(8)
-  )
+card_style = Plushie::Type::StyleMap::Spec.new(
+  background: "#ffffff",
+  text_color: "#1a1a1a",
+  border: Plushie::Type::Border.from_opts(color: "#e0e0e0", width: 1, rounded: 8),
+  shadow: Plushie::Type::Shadow.from_opts(color: "#00000020", offset_y: 2, blur_radius: 8)
+)
 
 container("card", style: card_style) do
   text("Card content")
@@ -206,12 +197,13 @@ Style maps support interaction state overrides:
 
 <!-- test: theming_style_map_with_status_overrides -- keep this code block in sync with the test -->
 ```ruby
-nav_item_style = Plushie::Type::StyleMap.new
-  .background("#00000000")
-  .text_color("#cccccc")
-  .hovered(background: "#333333", text_color: "#ffffff")
-  .pressed(background: "#222222")
-  .disabled(text_color: "#666666")
+nav_item_style = Plushie::Type::StyleMap::Spec.new(
+  background: "#00000000",
+  text_color: "#cccccc",
+  hovered: {background: "#333333", text_color: "#ffffff"},
+  pressed: {background: "#222222"},
+  disabled: {text_color: "#666666"}
+)
 ```
 
 Supported statuses: `hovered`, `pressed`, `disabled`, `focused`.
@@ -232,10 +224,11 @@ button("delete", "Delete", style: :danger)
 
 # Custom branded button
 button("cta", "Get Started", style:
-  Plushie::Type::StyleMap.new
-    .background("#7c3aed")
-    .text_color("#ffffff")
-    .border(Plushie::Type::Border.new.rounded(24))
+  Plushie::Type::StyleMap::Spec.new(
+    background: "#7c3aed",
+    text_color: "#ffffff",
+    border: Plushie::Type::Border.from_opts(rounded: 24)
+  )
 )
 ```
 
