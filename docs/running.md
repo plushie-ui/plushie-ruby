@@ -24,7 +24,14 @@ The renderer is resolved automatically. For most projects,
 `bundle exec rake plushie:download` fetches a precompiled renderer and
 you're done. If you have native Rust extensions,
 `bundle exec rake plushie:build` compiles a custom renderer. You can
-also set `PLUSHIE_BINARY_PATH` explicitly.
+also set `PLUSHIE_BINARY_PATH` explicitly, or use `Plushie.configure`:
+
+```ruby
+Plushie.configure do |config|
+  config.binary_path = "/opt/plushie/bin/plushie"
+  config.source_path = "~/projects/plushie"   # used by rake plushie:build
+end
+```
 
 ### Dev mode
 
@@ -206,6 +213,40 @@ On a LAN, animations are smooth and interactions feel instant. Over a
 WAN (50ms+), user interactions have a visible round-trip delay. Design
 for this by keeping UI responsive to local input (hover effects, focus
 states) and accepting that model updates lag by the round-trip time.
+
+## Token authentication
+
+When using `--exec` or remote rendering, you can require the host to
+authenticate with a token. The renderer generates a random token and
+passes it to the host process. The host must include the token in its
+Settings message. Connections with an invalid token are rejected.
+
+Configure token auth via `Plushie.configure`:
+
+```ruby
+Plushie.configure do |config|
+  # Token is read from PLUSHIE_TOKEN env var when using --exec
+end
+```
+
+Or pass `token:` directly to `Plushie.run`:
+
+```ruby
+Plushie.run(MyApp, transport: :stdio, token: ENV["PLUSHIE_TOKEN"])
+```
+
+## IoStream transport
+
+The iostream transport lets you connect the Plushie runtime to any
+bidirectional message-passing channel. Instead of spawning a child
+process, pass a process or object that speaks the iostream protocol:
+
+```ruby
+Plushie.run(MyApp, transport: [:iostream, adapter_pid])
+```
+
+This is useful for embedding a Plushie app inside an existing process
+(e.g. connecting over a TCP socket, WebSocket, or custom IPC).
 
 ## Custom transports
 

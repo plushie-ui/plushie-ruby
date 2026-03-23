@@ -236,6 +236,22 @@ Supported keys:
 - `scale_factor` -- number (default `1.0`). Global UI scale factor applied
   to all windows.
 
+The runtime also merges `extension_config` from `Plushie.configure`
+into the Settings wire message. This provides runtime configuration
+to native widget extensions without changing your `settings` callback:
+
+```ruby
+Plushie.configure do |config|
+  config.extension_config = {
+    "sparkline" => {"max_samples" => 1000}
+  }
+end
+```
+
+Each extension receives its own section via the `InitCtx` passed to the
+Rust-side `init` trait method. See [Extensions](extensions.md) for
+details.
+
 To follow the OS light/dark preference automatically, set the window
 `theme` prop to `:system`. The renderer detects the current OS theme
 and applies the matching built-in light or dark theme.
@@ -286,13 +302,28 @@ test infrastructure is needed. The renderer is not involved.
 ## Configuration
 
 Application-level configuration is set via `Plushie.configure` or
-environment variables.
+environment variables:
+
+```ruby
+Plushie.configure do |config|
+  config.binary_path = "/opt/plushie/bin/plushie"
+  config.source_path = "~/projects/plushie"
+  config.build_name = "my-app-plushie"
+  config.extensions = [MyGauge]
+  config.extension_config = {"gauge" => {"precision" => 2}}
+  config.test_backend = :headless
+end
+```
 
 | Key | Type | Default | Description |
 |---|---|---|---|
-| `test_backend` | `:mock`, `:headless`, `:windowed` | `:mock` | Test backend used by `Plushie::Test::Case`. Override per-run with `PLUSHIE_TEST_BACKEND` env var. |
+| `binary_path` | `String` | `nil` | Explicit path to the plushie binary. Overrides all resolution. Equivalent to `PLUSHIE_BINARY_PATH` env var. |
+| `source_path` | `String` | `nil` | Path to the plushie Rust source checkout. Used by `rake plushie:build`. Equivalent to `PLUSHIE_SOURCE_PATH` env var. |
+| `build_name` | `String` | `"plushie-custom"` | Custom binary name for extension builds. |
+| `extensions` | `Array<Class>` | `[]` | Extension classes to include in custom builds. |
+| `extension_config` | `Hash` | `{}` | Configuration hash passed to widget extensions at runtime via the Settings wire message. |
+| `test_backend` | `Symbol` | `nil` | Test backend (`:mock`, `:headless`, `:windowed`). Equivalent to `PLUSHIE_TEST_BACKEND` env var. |
 | `test_format` | `:json`, `:msgpack` | `:msgpack` | Wire format for test sessions. Set to `:json` for easier debugging. |
-| `extension_config` | `Hash` | `{}` | Configuration hash passed to widget extensions at runtime. |
 
 ## Multi-window
 

@@ -55,6 +55,22 @@ The precompiled binary requires no Rust toolchain. To build from
 source instead, install [rustup](https://rustup.rs/) and run
 `bundle exec rake plushie:build`.
 
+### 4. (Optional) Configure the SDK
+
+If you need to override binary paths, set up extensions, or change
+the test backend, use `Plushie.configure`:
+
+```ruby
+Plushie.configure do |config|
+  config.binary_path = "/opt/plushie/bin/plushie"
+  config.source_path = "~/projects/plushie"
+  config.test_backend = :headless
+end
+```
+
+See [Running](running.md) and [Extensions](extensions.md) for the
+full list of configuration options.
+
 ## Your first app: a counter
 
 Create `lib/counter.rb`:
@@ -145,9 +161,14 @@ Add `require "plushie/rake"` to your Rakefile, then:
 
 ```bash
 rake plushie:download              # download precompiled binary
-rake plushie:build                 # build from Rust source
+rake plushie:download[wasm]        # download WASM renderer
+rake plushie:build                 # build from Rust source (with extensions if configured)
 rake plushie:run[Counter]          # run an app
+rake plushie:run[Counter,dev]      # run an app with live reload
+rake plushie:connect[Counter]      # connect to renderer via stdio (for plushie --exec)
 rake plushie:inspect[Counter]      # print UI tree as JSON
+rake plushie:script                # run .plushie test scripts
+rake plushie:replay[path]          # replay a script with real windows
 rake plushie:preflight             # run all CI checks
 ```
 

@@ -1441,6 +1441,7 @@ Register extensions and pass runtime configuration using `Plushie.configure`:
 ```ruby
 Plushie.configure do |config|
   config.extensions = [MyGauge, MyChart]
+  config.build_name = "my-dashboard-plushie"
   config.extension_config = {
     "sparkline" => {"max_samples" => 1000},
     "terminal" => {"shell" => "/bin/bash"}
@@ -1448,10 +1449,14 @@ Plushie.configure do |config|
 end
 ```
 
-| Option | Type | Description |
-|---|---|---|
-| `extensions` | `Array<Class>` | Extension classes to include in custom builds |
-| `extension_config` | `Hash` | Runtime config passed to extensions via the Settings wire message, keyed by `config_key` |
+| Option | Type | Default | Description |
+|---|---|---|---|
+| `binary_path` | `String` | `nil` | Path to the plushie binary (overrides all resolution). Equivalent to `PLUSHIE_BINARY_PATH` env var. |
+| `source_path` | `String` | `nil` | Path to the plushie Rust source checkout. Used by `rake plushie:build`. Equivalent to `PLUSHIE_SOURCE_PATH` env var. |
+| `build_name` | `String` | `"plushie-custom"` | Custom binary name for extension builds. Used as the Cargo target name and installed filename. |
+| `extensions` | `Array<Class>` | `[]` | Extension classes to include in custom builds. |
+| `extension_config` | `Hash` | `{}` | Runtime config passed to extensions via the Settings wire message, keyed by `config_key`. |
+| `test_backend` | `Symbol` | `nil` | Test backend (`:mock`, `:headless`, `:windowed`). Equivalent to `PLUSHIE_TEST_BACKEND` env var. |
 
 The `extension_config` hash is sent to the renderer on startup. Each
 extension receives its own section via the `InitCtx` passed to the `init`

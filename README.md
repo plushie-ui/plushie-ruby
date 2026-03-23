@@ -139,6 +139,12 @@ Plushie follows the Elm architecture. Your app implements four callbacks:
   reloads on file changes. Model state is preserved.
 - **Remote rendering** -- native desktop UI for server-side Ruby apps
   over SSH. Your init/update/view code doesn't change.
+- **Widget extensions** -- pure Ruby composites or native Rust-backed
+  custom widgets via `include Plushie::Extension`.
+- **Configuration system** -- `Plushie.configure` for binary paths,
+  extensions, test backends, and extension runtime config.
+- **WASM renderer** -- `rake plushie:download[wasm]` downloads a WASM
+  build of the renderer for browser targets.
 
 ## Testing
 
@@ -214,9 +220,24 @@ Rake tasks (add `require "plushie/rake"` to your Rakefile):
 
 ```bash
 rake plushie:download          # download precompiled binary
+rake plushie:download[wasm]    # download WASM renderer
+rake plushie:build             # build from Rust source (with extensions if configured)
 rake plushie:run[Counter]      # run an app
+rake plushie:connect[Counter]  # connect to renderer via stdio
 rake plushie:inspect[Counter]  # print UI tree as JSON
+rake plushie:script            # run .plushie test scripts
+rake plushie:replay[path]      # replay a script with real windows
 rake plushie:preflight         # run all CI checks
+```
+
+Configure the SDK programmatically:
+
+```ruby
+Plushie.configure do |config|
+  config.binary_path = "/opt/plushie/bin/plushie"
+  config.extensions = [MyGauge]
+  config.test_backend = :headless
+end
 ```
 
 ## System requirements

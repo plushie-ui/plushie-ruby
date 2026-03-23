@@ -21,6 +21,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - 18 property type modules with wire encoding
 - State helpers: Animation, Route, Selection, Undo, DataQuery, State, KeyModifiers
 - Widget extension system (pure Ruby composites + native Rust-backed)
+- Native Rust extension build pipeline via `rake plushie:build` --
+  generates Cargo workspace, validates crate paths and constructors,
+  detects type name and crate collisions, builds custom renderer binary
+- `Plushie.configure` block for SDK-wide configuration: `binary_path`,
+  `source_path`, `build_name`, `extensions`, `extension_config`,
+  `test_backend`
+- `extension_config` runtime configuration passed to Rust extensions
+  via the Settings wire message and `InitCtx`
+- WASM renderer download via `rake plushie:download[wasm]`
+- `rake plushie:connect` task for stdio transport (plushie --exec)
+- Token authentication for --exec and remote rendering
+- `RendererEnv` to filter sensitive environment variables from renderer
+  subprocess
 - Dev server with hot code reloading
 - Test framework with three backends (mock, headless, windowed)
 - Session pooling for parallel test execution
@@ -28,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - .plushie script format parser and runner
 - Minitest and RSpec integration
 - RBS type signatures for core public API
-- Rake tasks: download, build, run, inspect, script, replay, preflight
+- Rake tasks: download, build, run, connect, inspect, script, replay,
+  preflight
 - Binary download with SHA-256 checksum verification
 - 8 examples: counter, clock, todo, async_fetch, notes, shortcuts, color_picker, catalog
