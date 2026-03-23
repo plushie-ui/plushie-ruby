@@ -231,13 +231,16 @@ namespace :plushie do
     end
   end
 
-  desc "Run all CI checks (standard + steep + test)"
+  desc "Run all CI checks (standard + steep + test + yard)"
   task :preflight do
     sh "bundle exec rake standard"
     if system("bundle exec steep --version", out: File::NULL, err: File::NULL)
       sh "bundle exec steep check"
     end
     sh "bundle exec rake test"
+    if system("bundle exec yard --version", out: File::NULL, err: File::NULL)
+      sh "bundle exec yard doc"
+    end
     puts "\nAll checks passed."
   end
 end

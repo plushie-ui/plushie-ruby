@@ -1,0 +1,22 @@
+--markup markdown
+--output-dir doc
+--protected
+--no-private
+--hide-void-return
+--embed-mixins
+-
+docs/getting-started.md
+docs/tutorial.md
+docs/app-behaviour.md
+docs/layout.md
+docs/events.md
+docs/commands.md
+docs/effects.md
+docs/scoped-ids.md
+docs/theming.md
+docs/testing.md
+docs/running.md
+docs/composition-patterns.md
+docs/accessibility.md
+docs/extensions.md
+docs/dsl-internals.md

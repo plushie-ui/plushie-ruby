@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    name: CI (Ruby ${{ matrix.ruby }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        ruby: ["3.2", "3.3"]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ matrix.ruby }}
+          bundler-cache: true
+
+      - name: Download plushie binary
+        run: bundle exec rake plushie:download
+
+      - name: Lint
+        run: bundle exec rake standard
+
+      - name: Test
+        run: bundle exec rake test
+
+      - name: Test (headless backend)
+        run: PLUSHIE_TEST_BACKEND=headless bundle exec rake test
+
+      - name: Type check
+        run: bundle exec steep check
+
+      - name: Docs
+        run: bundle exec yard doc

@@ -211,10 +211,14 @@ Plushie ships optional state management utilities:
 ## Development
 
 ```bash
-bundle exec rake test      # run tests
-bundle exec rake standard  # lint
-bundle exec rake           # both
+bundle exec rake              # tests + linter + type check
+bundle exec rake test         # tests only
+bundle exec rake standard     # linter only
+bundle exec rake steep        # type check only
+bundle exec rake yard         # generate API docs to doc/
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the full development guide.
 
 Rake tasks (add `require "plushie/rake"` to your Rakefile):
 
