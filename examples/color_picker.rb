@@ -14,21 +14,10 @@
 # - HSV to hex color conversion
 
 require "plushie"
+require_relative "widgets/color_picker_widget"
 
 class ColorPicker
   include Plushie::App
-
-  # Geometry constants
-  CANVAS_SIZE = 400
-  CX = CANVAS_SIZE / 2
-  CY = CANVAS_SIZE / 2
-  OUTER_R = 190
-  INNER_R = 150
-  MID_R = (INNER_R + OUTER_R) / 2
-  SQ_ORIGIN = 100
-  SQ_SIZE = 200
-  SEGMENTS = 72
-  CURSOR_R = 7
 
   Model = Plushie::Model.define(:hue, :saturation, :value, :drag)
 
@@ -39,11 +28,11 @@ class ColorPicker
   def update(model, event)
     case event
     in Event::Canvas[type: :press, id: "picker", x:, y:, button: "left"]
-      dx = x - CX
-      dy = y - CY
+      dx = x - ColorPickerWidget::CX
+      dy = y - ColorPickerWidget::CY
       dist = Math.sqrt(dx * dx + dy * dy)
 
-      if dist.between?(INNER_R, OUTER_R)
+      if dist.between?(ColorPickerWidget::INNER_R, ColorPickerWidget::OUTER_R)
         model.with(drag: :ring, hue: hue_from_point(dx, dy))
       elsif in_square?(x, y)
         apply_sv(model.with(drag: :square), x, y)
@@ -54,7 +43,7 @@ class ColorPicker
     in Event::Canvas[type: :move, id: "picker", x:, y:]
       case model.drag
       when :ring
-        model.with(hue: hue_from_point(x - CX, y - CY))
+        model.with(hue: hue_from_point(x - ColorPickerWidget::CX, y - ColorPickerWidget::CY))
       when :square
         apply_sv(model, x, y)
       else
@@ -74,7 +63,7 @@ class ColorPicker
 
     window("color_picker", title: "Color Picker") do
       column(padding: 20, spacing: 16, align_x: :center) do
-        picker_canvas("picker", model.hue, model.saturation, model.value)
+        ColorPickerWidget.render("picker", model.hue, model.saturation, model.value)
 
         row(spacing: 16, align_y: :center) do
           container("swatch", width: 48, height: 48, background: hex,
@@ -91,92 +80,11 @@ class ColorPicker
 
   private
 
-  # -- Canvas widget -----------------------------------------------------------
-
-  def picker_canvas(id, hue, saturation, value)
-    canvas(id, width: CANVAS_SIZE, height: CANVAS_SIZE,
-      on_press: true, on_release: true, on_move: true) do
-      layer("a_ring") do
-        ring_shapes
-      end
-
-      layer("b_sv_hue") do
-        sv_hue_shapes(hue)
-      end
-
-      layer("c_sv_dark") do
-        sv_dark_shapes
-      end
-
-      layer("d_cursors") do
-        cursor_shapes(hue, saturation, value)
-      end
-    end
-  end
-
-  # -- Ring layer --------------------------------------------------------------
-
-  def ring_shapes
-    deg_per_segment = 360.0 / SEGMENTS
-
-    SEGMENTS.times do |i|
-      hue_deg = i * deg_per_segment
-      a1 = (hue_deg - 90) * Math::PI / 180
-      a2 = (hue_deg + deg_per_segment - 90) * Math::PI / 180
-
-      canvas_path([
-        Plushie::Canvas::Shape.move_to(CX + INNER_R * Math.cos(a1), CY + INNER_R * Math.sin(a1)),
-        Plushie::Canvas::Shape.line_to(CX + OUTER_R * Math.cos(a1), CY + OUTER_R * Math.sin(a1)),
-        Plushie::Canvas::Shape.line_to(CX + OUTER_R * Math.cos(a2), CY + OUTER_R * Math.sin(a2)),
-        Plushie::Canvas::Shape.line_to(CX + INNER_R * Math.cos(a2), CY + INNER_R * Math.sin(a2)),
-        Plushie::Canvas::Shape.close
-      ], fill: hsv_to_hex(hue_deg, 1.0, 1.0))
-    end
-  end
-
-  # -- SV layers ---------------------------------------------------------------
-
-  def sv_hue_shapes(hue)
-    hue_color = hsv_to_hex(hue, 1.0, 1.0)
-
-    canvas_rect(SQ_ORIGIN, SQ_ORIGIN, SQ_SIZE, SQ_SIZE,
-      fill: Plushie::Canvas::Shape.linear_gradient(
-        [SQ_ORIGIN, SQ_ORIGIN],
-        [SQ_ORIGIN + SQ_SIZE, SQ_ORIGIN],
-        [[0.0, "#ffffff"], [1.0, hue_color]]
-      ))
-  end
-
-  def sv_dark_shapes
-    canvas_rect(SQ_ORIGIN, SQ_ORIGIN, SQ_SIZE, SQ_SIZE,
-      fill: Plushie::Canvas::Shape.linear_gradient(
-        [SQ_ORIGIN, SQ_ORIGIN],
-        [SQ_ORIGIN, SQ_ORIGIN + SQ_SIZE],
-        [[0.0, "#00000000"], [1.0, "#000000ff"]]
-      ))
-  end
-
-  # -- Cursors -----------------------------------------------------------------
-
-  def cursor_shapes(hue, saturation, value)
-    angle = (hue - 90) * Math::PI / 180
-    ring_x = CX + MID_R * Math.cos(angle)
-    ring_y = CY + MID_R * Math.sin(angle)
-
-    sv_x = SQ_ORIGIN + saturation * SQ_SIZE
-    sv_y = SQ_ORIGIN + (1.0 - value) * SQ_SIZE
-
-    cursor_stroke = Plushie::Canvas::Shape.stroke("#333333", 2)
-
-    canvas_circle(ring_x, ring_y, CURSOR_R, fill: "#ffffff", stroke: cursor_stroke)
-    canvas_circle(sv_x, sv_y, CURSOR_R, fill: "#ffffff", stroke: cursor_stroke)
-  end
-
   # -- Hit testing -------------------------------------------------------------
 
   def in_square?(x, y)
-    x.between?(SQ_ORIGIN, SQ_ORIGIN + SQ_SIZE) &&
-      y.between?(SQ_ORIGIN, SQ_ORIGIN + SQ_SIZE)
+    x.between?(ColorPickerWidget::SQ_ORIGIN, ColorPickerWidget::SQ_ORIGIN + ColorPickerWidget::SQ_SIZE) &&
+      y.between?(ColorPickerWidget::SQ_ORIGIN, ColorPickerWidget::SQ_ORIGIN + ColorPickerWidget::SQ_SIZE)
   end
 
   # -- Coordinate math ---------------------------------------------------------
@@ -189,8 +97,8 @@ class ColorPicker
   end
 
   def apply_sv(model, x, y)
-    s = ((x - SQ_ORIGIN).to_f / SQ_SIZE).clamp(0.0, 1.0)
-    v = (1.0 - (y - SQ_ORIGIN).to_f / SQ_SIZE).clamp(0.0, 1.0)
+    s = ((x - ColorPickerWidget::SQ_ORIGIN).to_f / ColorPickerWidget::SQ_SIZE).clamp(0.0, 1.0)
+    v = (1.0 - (y - ColorPickerWidget::SQ_ORIGIN).to_f / ColorPickerWidget::SQ_SIZE).clamp(0.0, 1.0)
     model.with(saturation: s, value: v)
   end
 

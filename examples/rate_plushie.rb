@@ -7,6 +7,8 @@
 # animates and flips the entire page theme.
 
 require "plushie"
+require_relative "widgets/star_rating"
+require_relative "widgets/theme_toggle"
 
 class RatePlushie
   include Plushie::App
@@ -152,7 +154,7 @@ class RatePlushie
       column(spacing: 20) do
         text("prompt", "How would you rate Plushie?", size: 14, color: t[:text_secondary])
 
-        star_rating_canvas("stars", model.rating,
+        StarRating.render("stars", model.rating,
           hover: model.hover_star, focused: model.focused_star,
           theme_progress: p)
 
@@ -180,7 +182,7 @@ class RatePlushie
     row("theme-row", align_y: :center) do
       space("theme-spacer", width: :fill)
       text("toggle-label", "Dark humor", color: t[:text_secondary])
-      theme_toggle_canvas("theme-toggle", model.toggle_progress)
+      ThemeToggle.render("theme-toggle", model.toggle_progress)
     end
   end
 
@@ -198,7 +200,7 @@ class RatePlushie
   def review_card(review, i, p, t)
     column("review-#{i}", spacing: 4, padding: 12, width: :fill) do
       row("rhdr-#{i}", spacing: 8, align_y: :center) do
-        star_rating_canvas("rstars-#{i}", review[:stars],
+        StarRating.render("rstars-#{i}", review[:stars],
           readonly: true, scale: 0.4, theme_progress: p)
         text("rname-#{i}", review[:user], size: 12, color: t[:text_secondary])
         space("rsp-#{i}", width: :fill)
@@ -207,134 +209,6 @@ class RatePlushie
 
       text("rtext-#{i}", "\u201C#{review[:text]}\u201D", size: 14, color: t[:text])
     end
-  end
-
-  # -- Star rating canvas widget -----------------------------------------------
-
-  def star_rating_canvas(id, rating, hover: nil, focused: nil, theme_progress: 0.0, readonly: false, scale: 1.0)
-    outer_r = 13 * scale
-    inner_r = 5 * scale
-    size = (30 * scale).round
-    gap = (2 * scale).round
-    display = hover || rating
-    width = 5 * size + 4 * gap
-    focus_r = outer_r + 3 * scale
-
-    commands = star_commands(outer_r, inner_r)
-
-    canvas(id, width: width, height: size) do
-      layer("stars") do
-        5.times do |i|
-          star_cx = i * (size + gap) + size / 2
-          star_cy = size / 2
-          filled = i < display
-          preview = !readonly && !hover.nil? && i < hover && i >= rating
-          is_focused = !readonly && focused == i
-
-          group_opts = {x: star_cx, y: star_cy}
-          unless readonly
-            group_opts.merge!(
-              on_click: true,
-              on_hover: true,
-              cursor: "pointer",
-              a11y: {role: :button, label: "#{i + 1} star#{"s" unless i == 0}"}
-            )
-          end
-
-          canvas_group(readonly ? nil : "star-#{i}", **group_opts) do
-            if is_focused
-              canvas_circle(0, 0, focus_r,
-                stroke: Plushie::Canvas::Shape.stroke("#3b82f6", 2 * scale))
-            end
-            canvas_path(commands, fill: star_color(filled, preview, theme_progress))
-          end
-        end
-      end
-    end
-  end
-
-  def star_commands(outer_r, inner_r)
-    points = (0..9).map do |i|
-      angle = i * Math::PI / 5 - Math::PI / 2
-      r = i.even? ? outer_r : inner_r
-      [r * Math.cos(angle), r * Math.sin(angle)]
-    end
-
-    fx, fy = points.first
-    rest = points[1..].map { |x, y| Plushie::Canvas::Shape.line_to(x, y) }
-    [Plushie::Canvas::Shape.move_to(fx, fy), *rest, Plushie::Canvas::Shape.close]
-  end
-
-  def star_color(filled, preview, progress)
-    if filled && !preview
-      "#f59e0b"
-    elsif preview
-      "#fcd34d"
-    else
-      r = (209 + (74 - 209) * progress).round
-      g = (213 + (74 - 213) * progress).round
-      b = (219 + (94 - 219) * progress).round
-      "#%02x%02x%02x" % [r, g, b]
-    end
-  end
-
-  # -- Theme toggle canvas widget ----------------------------------------------
-
-  TRACK_W = 64
-  TRACK_H = 32
-  THUMB_R = 13
-
-  def theme_toggle_canvas(id, progress)
-    eased = smoothstep(progress)
-    thumb_x = lerp(TRACK_H / 2.0, TRACK_W - TRACK_H / 2.0, eased)
-    track_color = lerp_color([253, 230, 138], [91, 33, 182], eased)
-    rotation = eased * Math::PI
-    face_color = (progress < 0.5) ? "#665500" : "#4c1d95"
-
-    canvas(id, width: TRACK_W, height: TRACK_H) do
-      layer("toggle") do
-        canvas_group("switch",
-          on_click: true,
-          cursor: "pointer",
-          hit_rect: Plushie::Canvas::Shape::HitRect.new(x: 0, y: 0, w: TRACK_W, h: TRACK_H),
-          a11y: {role: :switch, label: "Dark humor"}) do
-          # Track (rounded rect via path since canvas_rect has no radius)
-          r = TRACK_H / 2.0
-          canvas_path([
-            Plushie::Canvas::Shape.move_to(r, 0),
-            Plushie::Canvas::Shape.line_to(TRACK_W - r, 0),
-            Plushie::Canvas::Shape.arc(TRACK_W - r, r, r, -Math::PI / 2, Math::PI / 2),
-            Plushie::Canvas::Shape.line_to(r, TRACK_H),
-            Plushie::Canvas::Shape.arc(r, r, r, Math::PI / 2, 3 * Math::PI / 2)
-          ], fill: track_color)
-
-          # Thumb circle
-          canvas_circle(thumb_x, TRACK_H / 2.0, THUMB_R, fill: "#ffffff")
-
-          # Face -- nested group with transforms instead of push/pop
-          canvas_group(transforms: [
-            Plushie::Canvas::Shape.translate(thumb_x, TRACK_H / 2.0),
-            Plushie::Canvas::Shape.rotate(rotation)
-          ]) do
-            # Left eye
-            canvas_circle(-3.5, -3, 2, fill: face_color)
-            # Right eye
-            canvas_circle(3.5, -3, 2, fill: face_color)
-            # Mouth (smile path)
-            canvas_path(smile_path, stroke: Plushie::Canvas::Shape.stroke(face_color, 2))
-          end
-        end
-      end
-    end
-  end
-
-  def smile_path
-    [
-      Plushie::Canvas::Shape.move_to(-5, 1),
-      Plushie::Canvas::Shape.line_to(-3, 5),
-      Plushie::Canvas::Shape.line_to(3, 5),
-      Plushie::Canvas::Shape.line_to(5, 1)
-    ]
   end
 
   # -- Theme interpolation -----------------------------------------------------
@@ -372,17 +246,6 @@ class RatePlushie
     else
       current
     end
-  end
-
-  def lerp(a, b, t)
-    a + (b - a) * t
-  end
-
-  def lerp_color(rgb1, rgb2, t)
-    r = lerp(rgb1[0], rgb2[0], t).round
-    g = lerp(rgb1[1], rgb2[1], t).round
-    b = lerp(rgb1[2], rgb2[2], t).round
-    "#%02x%02x%02x" % [r, g, b]
   end
 end
 
