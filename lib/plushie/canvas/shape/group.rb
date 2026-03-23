@@ -12,14 +12,14 @@ module Plushie
         :children, :transforms, :clip, :opacity,
         :id, :on_click, :on_hover, :draggable, :drag_axis, :drag_bounds,
         :cursor, :hit_rect, :tooltip, :hover_style, :pressed_style,
-        :focus_style, :show_focus_ring, :focusable, :a11y
+        :focus_style, :show_focus_ring, :focus_ring_radius, :focusable, :a11y
       ) do
         def initialize(
           children:, transforms: nil, clip: nil, opacity: nil,
           id: nil, on_click: nil, on_hover: nil, draggable: nil,
           drag_axis: nil, drag_bounds: nil, cursor: nil, hit_rect: nil,
           tooltip: nil, hover_style: nil, pressed_style: nil,
-          focus_style: nil, show_focus_ring: nil, focusable: nil, a11y: nil
+          focus_style: nil, show_focus_ring: nil, focus_ring_radius: nil, focusable: nil, a11y: nil
         )
           super
         end
@@ -53,6 +53,7 @@ module Plushie
           h[:pressed_style] = pressed_style.respond_to?(:to_wire) ? pressed_style.to_wire : pressed_style if pressed_style
           h[:focus_style] = focus_style.respond_to?(:to_wire) ? focus_style.to_wire : focus_style if focus_style
           h[:show_focus_ring] = show_focus_ring unless show_focus_ring.nil?
+          h[:focus_ring_radius] = focus_ring_radius unless focus_ring_radius.nil?
           h[:focusable] = focusable unless focusable.nil?
           h[:a11y] = a11y if a11y
           h

@@ -181,6 +181,7 @@ module Plushie
         attr_reader pressed_style: ShapeStyle?
         attr_reader focus_style: ShapeStyle?
         attr_reader show_focus_ring: bool?
+        attr_reader focus_ring_radius: Numeric?
         attr_reader focusable: bool?
         attr_reader a11y: untyped
 
@@ -202,6 +203,7 @@ module Plushie
           ?pressed_style: ShapeStyle?,
           ?focus_style: ShapeStyle?,
           ?show_focus_ring: bool?,
+          ?focus_ring_radius: Numeric?,
           ?focusable: bool?,
           ?a11y: untyped
         ) -> void
