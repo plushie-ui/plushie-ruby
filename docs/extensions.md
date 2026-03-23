@@ -27,7 +27,7 @@ class MySparkline
   rust_crate "native/my_sparkline"
   rust_constructor "my_sparkline::SparklineExtension::new()"
 
-  prop :data, [:list, :number], doc: "Sample values to plot"
+  prop :data, :any, doc: "Sample values to plot"
   prop :color, :color, default: "#4CAF50", doc: "Line color"
   prop :capacity, :number, default: 100, doc: "Max samples in the ring buffer"
 
@@ -55,8 +55,8 @@ impl WidgetExtension for SparklineExtension {
     fn type_names(&self) -> &[&str] { &["sparkline"] }
     fn config_key(&self) -> &str { "sparkline" }
 
-    fn render<'a>(&self, node: &'a TreeNode, env: &WidgetEnv<'a>) -> Element<'a, Message> {
-        let label = prop_str(node, "label").unwrap_or_default();
+    fn render<'a>(&self, node: &'a TreeNode, _env: &WidgetEnv<'a>) -> Element<'a, Message> {
+        let label = prop_str(node.props(), "label").unwrap_or_default();
         text(label).into()
     }
 }
@@ -1226,38 +1226,51 @@ impl<'a> From<MyWidget<'a>> for Element<'a, Message> {
 ## Prop helpers reference
 
 The `plushie_core::prop_helpers` module (re-exported via `prelude::*`) provides
-typed accessors for reading props from `TreeNode`. Use these instead of
-manually traversing `serde_json::Value`:
+typed accessors for reading props. The freestanding helpers take
+`Props<'_>` (returned by `node.props()`). `TreeNode` also has convenience
+methods that call through to the freestanding helpers.
+
+**Freestanding helpers** (take `props: Props<'_>`, i.e. `node.props()`):
 
 | Helper | Return type | Notes |
 |---|---|---|
-| `prop_str(node, key)` | `Option<String>` | |
-| `prop_f32(node, key)` | `Option<f32>` | Accepts numbers and numeric strings |
-| `prop_f64(node, key)` | `Option<f64>` | Accepts numbers and numeric strings |
-| `prop_u32(node, key)` | `Option<u32>` | Rejects negative values |
-| `prop_u64(node, key)` | `Option<u64>` | Rejects negative values |
-| `prop_usize(node, key)` | `Option<usize>` | Via `prop_u64` |
-| `prop_i64(node, key)` | `Option<i64>` | Signed integers |
-| `prop_bool(node, key)` | `Option<bool>` | |
-| `prop_bool_default(node, key, default)` | `bool` | Returns default when absent |
-| `prop_length(node, key, fallback)` | `Length` | Parses "fill", "shrink", numbers, `{fill_portion: n}` |
-| `prop_range_f32(node)` | `RangeInclusive<f32>` | Reads `range` prop as `[min, max]`, defaults to `0.0..=100.0` |
-| `prop_range_f64(node)` | `RangeInclusive<f64>` | Same as above, f64 |
-| `prop_color(node, key)` | `Option<iced::Color>` | Parses `#RRGGBB` / `#RRGGBBAA` hex strings |
-| `prop_f32_array(node, key)` | `Option<Vec<f32>>` | Array of numbers |
-| `prop_horizontal_alignment(node, key)` | `alignment::Horizontal` | "left"/"center"/"right", defaults Left |
-| `prop_vertical_alignment(node, key)` | `alignment::Vertical` | "top"/"center"/"bottom", defaults Top |
-| `prop_content_fit(node)` | `Option<ContentFit>` | Reads `content_fit` prop |
-| `node.prop_str(key)` | `Option<String>` | Method on `TreeNode` (same as `prop_str`) |
-| `node.prop_f32(key)` | `Option<f32>` | Method on `TreeNode` (same as `prop_f32`) |
-| `node.prop_bool(key)` | `Option<bool>` | Method on `TreeNode` (same as `prop_bool`) |
-| `node.prop_color(key)` | `Option<Color>` | Method on `TreeNode` (same as `prop_color`) |
-| `node.prop_padding(key)` | `Padding` | Method on `TreeNode` (same as `prop_padding`) |
-| `node.props()` | `Option<&Map>` | Access the props object directly |
+| `prop_str(props, key)` | `Option<String>` | |
+| `prop_f32(props, key)` | `Option<f32>` | Accepts numbers and numeric strings |
+| `prop_f64(props, key)` | `Option<f64>` | Accepts numbers and numeric strings |
+| `prop_u32(props, key)` | `Option<u32>` | Rejects negative values |
+| `prop_u64(props, key)` | `Option<u64>` | Rejects negative values |
+| `prop_usize(props, key)` | `Option<usize>` | Via `prop_u64` |
+| `prop_i64(props, key)` | `Option<i64>` | Signed integers |
+| `prop_bool(props, key)` | `Option<bool>` | |
+| `prop_bool_default(props, key, default)` | `bool` | Returns default when absent |
+| `prop_length(props, key, fallback)` | `Length` | Parses "fill", "shrink", numbers, `{fill_portion: n}` |
+| `prop_range_f32(props)` | `RangeInclusive<f32>` | Reads `range` prop as `[min, max]`, defaults to `0.0..=100.0` |
+| `prop_range_f64(props)` | `RangeInclusive<f64>` | Same as above, f64 |
+| `prop_color(props, key)` | `Option<iced::Color>` | Parses `#RRGGBB` / `#RRGGBBAA` hex strings |
+| `prop_f32_array(props, key)` | `Option<Vec<f32>>` | Array of numbers |
+| `prop_horizontal_alignment(props, key)` | `alignment::Horizontal` | "left"/"center"/"right", defaults Left |
+| `prop_vertical_alignment(props, key)` | `alignment::Vertical` | "top"/"center"/"bottom", defaults Top |
+| `prop_content_fit(props)` | `Option<ContentFit>` | Reads `content_fit` prop |
+| `prop_padding(props, key)` | `Padding` | Public padding prop helper |
+
+**TreeNode convenience methods** (call through to freestanding helpers):
+
+| Method | Return type | Notes |
+|---|---|---|
+| `node.props()` | `Props<'_>` | Access the props map (`Option<&Map>`) |
+| `node.prop_str(key)` | `Option<String>` | |
+| `node.prop_f32(key)` | `Option<f32>` | |
+| `node.prop_bool(key)` | `Option<bool>` | |
+| `node.prop_color(key)` | `Option<Color>` | |
+| `node.prop_padding(key)` | `Padding` | |
+
+**Utility functions:**
+
+| Helper | Return type | Notes |
+|---|---|---|
+| `f64_to_f32(v)` | `f32` | Clamping f64-to-f32 conversion |
 | `OutgoingEvent::with_value(value)` | `OutgoingEvent` | Set the `value` field on extension events |
 | `PlushieAppBuilder::extension_boxed(ext)` | `PlushieAppBuilder` | Register pre-boxed extensions |
-| `f64_to_f32(v)` | `f32` | Clamping f64-to-f32 conversion |
-| `prop_padding(node, key)` | `Padding` | Public padding prop helper |
 
 
 ## ExtensionCaches
