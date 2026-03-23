@@ -42,6 +42,7 @@ When the renderer emits an event for a widget, the wire ID is the full
 scoped path (e.g. `"sidebar/form/save"`). The protocol decode layer
 splits it into a local `id` and a `scope` array:
 
+<!-- test: scoped_ids_event_local_id_match, scoped_ids_event_immediate_parent_match -- keep this code block in sync with the test -->
 ```ruby
 Event::Widget[type: :click, id: "save", scope: ["form", "sidebar"]]
 ```
@@ -49,6 +50,7 @@ Event::Widget[type: :click, id: "save", scope: ["form", "sidebar"]]
 The `scope` array is in **reverse order** -- nearest parent first. This
 design optimises the common case of matching on the immediate parent:
 
+<!-- test: scoped_ids_event_local_id_match, scoped_ids_event_immediate_parent_match, scoped_ids_event_dynamic_list_binding -- keep this code block in sync with the test -->
 ```ruby
 # Match on local ID only (ignores scope entirely)
 in Event::Widget[type: :click, id: "save"]
@@ -67,6 +69,7 @@ in Event::Widget[type: :toggle, id: "done", scope: [item_id, *]]
 
 Use `Plushie::Event.target(event)` to get the full forward-order path:
 
+<!-- test: scoped_ids_event_target -- keep this code block in sync with the test -->
 ```ruby
 event = Event::Widget.new(type: :click, id: "save", scope: ["form", "sidebar"])
 Plushie::Event.target(event)
@@ -89,6 +92,7 @@ do not carry scope.
 `Tree.find` and `Tree.exists?` support both full scoped paths and
 local IDs:
 
+<!-- test: scoped_ids_tree_find_full_path, scoped_ids_tree_find_local_id -- keep this code block in sync with the test -->
 ```ruby
 # Exact match on scoped path
 Plushie::Tree.find(tree, "sidebar/form/save")
@@ -151,6 +155,7 @@ pattern works if the list is moved to a different part of the tree.
 
 The reversed scope array is designed for ergonomic pattern matching:
 
+<!-- test: scoped_ids_event_exact_depth_match, scoped_ids_event_no_scope_match -- keep this code block in sync with the test -->
 ```ruby
 # Depth-agnostic: works whether "search" is at root or deeply nested
 in Event::Widget[id: "query", scope: ["search", *]]
@@ -171,6 +176,7 @@ The a11y props `labelled_by`, `described_by`, and `error_message`
 reference other widgets by ID. During normalization, these references
 are automatically resolved relative to the current scope:
 
+<!-- test: scoped_ids_a11y_labelled_by_resolved -- keep this code block in sync with the test -->
 ```ruby
 container("form") do
   text("name_label", "Name:")

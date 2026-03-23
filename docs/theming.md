@@ -8,6 +8,7 @@ build them in your app.
 
 Themes are set at the window level:
 
+<!-- test: theming_themer_widget -- keep this code block in sync with the test -->
 ```ruby
 def view(model)
   window("main", title: "My App") do
@@ -59,6 +60,7 @@ Unknown names fall back to `dark`.
 
 Custom themes are defined by providing a palette:
 
+<!-- test: theming_custom_hash -- keep this code block in sync with the test -->
 ```ruby
 theme = Plushie::Type::Theme.custom("my_app",
   background: "#1e1e2e",
@@ -110,6 +112,7 @@ The background family has eight levels: `background_base`,
 
 ### Example
 
+<!-- test: theming_custom_with_shade_overrides -- keep this code block in sync with the test -->
 ```ruby
 theme = Plushie::Type::Theme.custom("branded",
   background: "#1a1a2e",
@@ -128,6 +131,7 @@ symbols like `:dark` or `:nord` are not affected.
 
 Themes can be overridden for a subtree using a `themer` wrapper:
 
+<!-- test: theming_subtree_override -- keep this code block in sync with the test -->
 ```ruby
 column do
   text("Uses window theme")
@@ -149,6 +153,7 @@ or a `Plushie::Type::StyleMap` for per-instance visual customization.
 
 ### Named presets
 
+<!-- test: theming_button_style_preset, theming_button_style_danger -- keep this code block in sync with the test -->
 ```ruby
 button("save", "Save", style: :primary)
 button("cancel", "Cancel", style: :secondary)
@@ -165,6 +170,7 @@ writing Rust. They work on all styleable widgets: button, container,
 text_input, text_editor, checkbox, radio, toggler, pick_list, progress_bar,
 rule, slider, vertical_slider, and tooltip.
 
+<!-- test: theming_style_map_spec, theming_container_with_style_map -- keep this code block in sync with the test -->
 ```ruby
 card_style = Plushie::Type::StyleMap.new
   .background("#ffffff")
@@ -198,6 +204,7 @@ end
 
 Style maps support interaction state overrides:
 
+<!-- test: theming_style_map_with_status_overrides -- keep this code block in sync with the test -->
 ```ruby
 nav_item_style = Plushie::Type::StyleMap.new
   .background("#00000000")
@@ -237,6 +244,7 @@ button("cta", "Get Started", style:
 The simplest way to follow the OS light/dark preference is to set the
 window theme to `:system`:
 
+<!-- test: theming_system_themer -- keep this code block in sync with the test -->
 ```ruby
 window("main", title: "My App") do
   themer("sys_theme", theme: :system) do
@@ -248,6 +256,7 @@ end
 The renderer tracks the current OS mode and applies Light or Dark
 automatically. This also works in `settings` for the app-level default:
 
+<!-- test: theming_settings_hash -- keep this code block in sync with the test -->
 ```ruby
 def settings = {theme: :system}
 ```

@@ -14,6 +14,7 @@ Length controls how a widget claims space along an axis.
 | `:shrink` | `Length::Shrink` | Use minimum/intrinsic size |
 | `200` or `200.0` | `Length::Fixed(200.0)` | Exact pixel size |
 
+<!-- test: layout_length_fill, layout_length_shrink, layout_length_fill_portion, layout_length_fixed -- keep this code block in sync with the test -->
 ```ruby
 # Fill available width
 column(width: :fill) do ... end
@@ -48,6 +49,7 @@ Padding is the space between a widget's boundary and its content.
 | `{top: 5, right: 10, bottom: 5, left: 10}` | Per-side |
 | `0` | No padding |
 
+<!-- test: layout_padding_uniform, layout_padding_axis, layout_padding_per_side -- keep this code block in sync with the test -->
 ```ruby
 container("box", padding: 16) do ... end
 container("box", padding: [8, 16]) do ... end
@@ -61,6 +63,7 @@ Padding is accepted by `container`, `column`, `row`, `scrollable`,
 
 Spacing is the gap between children in a layout container.
 
+<!-- test: layout_column_spacing_padding -- keep this code block in sync with the test -->
 ```ruby
 column(spacing: 8) do
   text("First")
@@ -92,6 +95,7 @@ the cross axis.
 | `:center` | Centered |
 | `:end` or `:bottom` | Bottom-aligned |
 
+<!-- test: layout_column_center_align, layout_container_center_shorthand -- keep this code block in sync with the test -->
 ```ruby
 # Center children horizontally in a column
 column(align_x: :center) do
@@ -114,6 +118,7 @@ and `align_y: :center`.
 
 Arranges children vertically (top to bottom).
 
+<!-- test: layout_column_spacing_padding -- keep this code block in sync with the test -->
 ```ruby
 column(id: "main", spacing: 16, padding: 20, width: :fill, align_x: :center) do
   text("title", "Title", size: 24)
@@ -127,6 +132,7 @@ Props: `spacing`, `padding`, `width`, `height`, `align_x`.
 
 Arranges children horizontally (left to right).
 
+<!-- test: layout_row_spacing -- keep this code block in sync with the test -->
 ```ruby
 row(spacing: 8, align_y: :center) do
   button("back", "<")
@@ -142,6 +148,7 @@ in plushie-iced -- wraps children to next line when they overflow).
 
 Wraps a single child with padding, alignment, and styling.
 
+<!-- test: layout_container_with_style -- keep this code block in sync with the test -->
 ```ruby
 container("card", padding: 16, style: :rounded_box, width: :fill) do
   column do
@@ -158,6 +165,7 @@ Props: `padding`, `width`, `height`, `align_x`, `align_y`, `center`,
 
 Wraps content in a scrollable region.
 
+<!-- test: layout_scrollable -- keep this code block in sync with the test -->
 ```ruby
 scrollable("list", height: 400, width: :fill) do
   column(spacing: 4) do
@@ -176,6 +184,7 @@ Props: `width`, `height`, `direction` (`:vertical`, `:horizontal`,
 Overlays children on top of each other (z-stacking). Later children
 are on top.
 
+<!-- test: layout_stack -- keep this code block in sync with the test -->
 ```ruby
 stack do
   image("bg", "background.png", width: :fill, height: :fill)
@@ -189,6 +198,7 @@ end
 
 Empty spacer. Takes up space without rendering anything.
 
+<!-- test: layout_space -- keep this code block in sync with the test -->
 ```ruby
 row do
   text("Left")
@@ -201,6 +211,7 @@ end
 
 Arranges children in a grid layout (new in plushie-iced).
 
+<!-- test: layout_grid -- keep this code block in sync with the test -->
 ```ruby
 grid(id: "gallery", columns: 3, spacing: 8) do
   items.each do |item|
@@ -213,6 +224,7 @@ end
 
 ### Centered page
 
+<!-- test: layout_centered_page -- keep this code block in sync with the test -->
 ```ruby
 container("page", width: :fill, height: :fill, center: true) do
   column(spacing: 16, align_x: :center) do
@@ -224,6 +236,7 @@ end
 
 ### Sidebar + content
 
+<!-- test: layout_sidebar_content -- keep this code block in sync with the test -->
 ```ruby
 row(width: :fill, height: :fill) do
   container("sidebar", width: 250, height: :fill, padding: 16) do
@@ -237,6 +250,7 @@ end
 
 ### Header + body + footer
 
+<!-- test: layout_header_body_footer -- keep this code block in sync with the test -->
 ```ruby
 column(width: :fill, height: :fill) do
   container("header", width: :fill, padding: [8, 16]) do

@@ -19,6 +19,7 @@ renderer (decide whether to execute it). Keep the renderer dumb.
 
 ### Ruby side
 
+<!-- test: effects_file_open_returns_command, effects_result_ok_match, effects_result_error_cancelled, effects_update_pattern -- keep this code block in sync with the test -->
 ```ruby
 def update(model, event)
   case event
