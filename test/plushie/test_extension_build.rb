@@ -142,8 +142,8 @@ class TestExtensionBuild < Minitest::Test
   def test_generate_cargo_toml_with_source_path
     Dir.mktmpdir do |tmpdir|
       # Create fake source dirs so the check passes
-      FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie-core"))
-      FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie"))
+      FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie-ext"))
+      FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie-renderer"))
       FileUtils.mkdir_p(File.join(tmpdir, "native", "sparkline"))
 
       build_dir = File.join(tmpdir, "_build", "plushie", "custom")
@@ -162,8 +162,8 @@ class TestExtensionBuild < Minitest::Test
       assert_includes toml, "plushie_custom"
       assert_includes toml, 'edition = "2024"'
       assert_includes toml, "plushie-custom"
-      assert_includes toml, "plushie-core = { path ="
-      assert_includes toml, "plushie = { path ="
+      assert_includes toml, "plushie-ext = { path ="
+      assert_includes toml, "plushie-renderer = { path ="
       assert_includes toml, "sparkline = { path ="
     end
   end
@@ -179,8 +179,8 @@ class TestExtensionBuild < Minitest::Test
       ENV["PLUSHIE_SOURCE_PATH"] = old_val if old_val
     end
 
-    assert_includes toml, %(plushie-core = "#{Plushie::BINARY_VERSION}")
-    assert_includes toml, %(plushie = "#{Plushie::BINARY_VERSION}")
+    assert_includes toml, %(plushie-ext = "#{Plushie::BINARY_VERSION}")
+    assert_includes toml, %(plushie-renderer = "#{Plushie::BINARY_VERSION}")
   end
 
   def test_generate_cargo_toml_uses_project_version
@@ -202,7 +202,7 @@ class TestExtensionBuild < Minitest::Test
   def test_generate_main_rs_contains_builder
     rs = Build.generate_main_rs([FakeSparkline])
     assert_includes rs, "PlushieAppBuilder::new()"
-    assert_includes rs, "plushie::run(builder)"
+    assert_includes rs, "plushie_renderer::run(builder)"
     assert_includes rs, ".extension(sparkline::SparklineExt::new())"
   end
 

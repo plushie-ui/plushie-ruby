@@ -20,7 +20,7 @@ An extension has two halves:
 1. **Ruby side:** use `include Plushie::Extension`. This declares the widget's
    props, commands, and (for native widgets) the Rust crate and constructor.
 
-2. **Rust side:** implement the `WidgetExtension` trait from `plushie-core`. This
+2. **Rust side:** implement the `WidgetExtension` trait from `plushie-ext`. This
    receives tree nodes from Ruby and returns `iced::Element`s for rendering.
 
 ```ruby
@@ -49,7 +49,7 @@ This generates:
 
 ```rust
 // native/my_sparkline/src/lib.rs
-use plushie_core::prelude::*;
+use plushie_ext::prelude::*;
 
 pub struct SparklineExtension;
 
@@ -346,8 +346,8 @@ Extensions doing DPI-aware rendering or per-window adaptation can use
 
 ### Prelude additions
 
-The `plushie_core::prelude` re-exports `alignment`, `Point`, and `Size`,
-so you do not need to reach into `plushie_core::iced::alignment` for
+The `plushie_ext::prelude` re-exports `alignment`, `Point`, and `Size`,
+so you do not need to reach into `plushie_ext::iced::alignment` for
 alignment types. The prelude also re-exports `CoalesceHint`,
 `OutgoingEvent`, `GenerationCounter`, `ExtensionCaches`, and the
 `prop_*` helper functions.
@@ -383,8 +383,8 @@ end
 
 ```rust
 // native/sparkline/src/lib.rs
-use plushie_core::iced;
-use plushie_core::prelude::*;
+use plushie_ext::iced;
+use plushie_ext::prelude::*;
 
 pub struct SparklineExtension;
 
@@ -511,7 +511,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-plushie-core = "0.4.1"
+plushie-ext = "0.4.1"
 ```
 
 ### Using it in your app
@@ -603,8 +603,8 @@ end
 
 ```rust
 // native/gauge/src/lib.rs
-use plushie_core::iced;
-use plushie_core::prelude::*;
+use plushie_ext::iced;
+use plushie_ext::prelude::*;
 
 pub struct GaugeExtension;
 
@@ -766,7 +766,7 @@ publish events back through the extension system. Use the `Message::Event`
 variant:
 
 ```rust
-use plushie_core::message::Message;
+use plushie_ext::message::Message;
 use serde_json::json;
 
 // In your Widget::update() method:
@@ -851,12 +851,18 @@ inside an extension's node tree.
 | `canvas_release` | `data.x`, `data.y`, `data.button` |
 | `canvas_move` | `data.x`, `data.y` |
 | `canvas_scroll` | `data.x`, `data.y`, `data.delta_x`, `data.delta_y` |
-| `canvas_shape_enter` | `data.shape_id`, `data.x`, `data.y` |
-| `canvas_shape_leave` | `data.shape_id` |
-| `canvas_shape_click` | `data.shape_id`, `data.x`, `data.y`, `data.button` |
-| `canvas_shape_drag` | `data.shape_id`, `data.x`, `data.y`, `data.delta_x`, `data.delta_y` |
-| `canvas_shape_drag_end` | `data.shape_id`, `data.x`, `data.y` |
-| `canvas_shape_focused` | `data.shape_id` |
+| `canvas_element_enter` | `data.element_id`, `data.x`, `data.y` |
+| `canvas_element_leave` | `data.element_id` |
+| `canvas_element_click` | `data.element_id`, `data.x`, `data.y`, `data.button` |
+| `canvas_element_drag` | `data.element_id`, `data.x`, `data.y`, `data.delta_x`, `data.delta_y` |
+| `canvas_element_drag_end` | `data.element_id`, `data.x`, `data.y` |
+| `canvas_element_focused` | `data.element_id` |
+| `canvas_element_blurred` | `data.element_id` |
+| `canvas_focused` | -- |
+| `canvas_blurred` | -- |
+| `canvas_group_focused` | `data.group_id` |
+| `canvas_group_blurred` | `data.group_id` |
+| `diagnostic` | `data.level`, `data.element_id`, `data.code`, `data.message` |
 
 ### MouseArea events (node ID in `id` field)
 
@@ -987,7 +993,7 @@ via `Widget::state()` or `canvas::Program`), and a `GenerationCounter` in
 `ExtensionCaches` tracks when your data changes.
 
 ```rust
-use plushie_core::prelude::*;
+use plushie_ext::prelude::*;
 use iced::widget::canvas;
 
 /// Stored in ExtensionCaches (Send + Sync).
@@ -1140,7 +1146,7 @@ fn tag(&self) -> widget::tree::Tag {
 
 Use `shell.publish(Message::Event(...))` as described in the Message::Event
 construction section above. The `Message` type is re-exported from
-`plushie_core::prelude`.
+`plushie_ext::prelude`.
 
 ### Full Widget skeleton
 
@@ -1149,7 +1155,7 @@ use iced::advanced::widget::{self, Widget};
 use iced::advanced::{layout, mouse, renderer, Clipboard, Layout, Shell};
 use iced::event;
 use iced::{Element, Length, Rectangle, Size, Theme};
-use plushie_core::prelude::*;
+use plushie_ext::prelude::*;
 
 struct MyWidget<'a> {
     node_id: String,
@@ -1231,7 +1237,7 @@ impl<'a> From<MyWidget<'a>> for Element<'a, Message> {
 
 ## Prop helpers reference
 
-The `plushie_core::prop_helpers` module (re-exported via `prelude::*`) provides
+The `plushie_ext::prop_helpers` module (re-exported via `prelude::*`) provides
 typed accessors for reading props. The freestanding helpers take
 `Props<'_>` (returned by `node.props()`). `TreeNode` also has convenience
 methods that call through to the freestanding helpers.
@@ -1358,7 +1364,7 @@ end
 ```rust
 #[cfg(test)]
 mod tests {
-    use plushie_core::testing::*;
+    use plushie_ext::testing::*;
     use super::*;
 
     #[test]
@@ -1681,7 +1687,7 @@ PLUSHIE_EXTENSIONS="MyGauge,MyChart" bundle exec rake plushie:build
 
 When no extensions are configured, the task builds the plushie binary
 from the Rust source checkout specified by `PLUSHIE_SOURCE_PATH`. This
-is a plain `cargo build -p plushie`.
+is a plain `cargo build -p plushie-renderer`.
 
 ### Custom build (with extensions)
 
@@ -1713,8 +1719,8 @@ When extensions are present (via `Plushie.configure` or
 
 6. **Generates Cargo workspace.** Creates `_build/plushie/custom/`
    with:
-   - `Cargo.toml` -- declares dependencies on `plushie`,
-     `plushie-core`, and each extension crate
+   - `Cargo.toml` -- declares dependencies on `plushie-renderer`,
+     `plushie-ext`, and each extension crate
    - `src/main.rs` -- registers each extension via
      `PlushieAppBuilder::new().extension(...)` calls
 
@@ -1730,12 +1736,12 @@ The generated `main.rs` looks like:
 // Auto-generated by rake plushie:build
 // Do not edit manually.
 
-use plushie_core::app::PlushieAppBuilder;
+use plushie_ext::app::PlushieAppBuilder;
 
 fn main() -> iced::Result {
     let builder = PlushieAppBuilder::new()
         .extension(my_sparkline::SparklineExtension::new())
         .extension(my_gauge::GaugeExtension::new());
-    plushie::run(builder)
+    plushie_renderer::run(builder)
 }
 ```

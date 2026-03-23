@@ -216,7 +216,7 @@ code.
 
 Plushie supports custom Rust-backed widgets via the extension system.
 You write the widget logic in Rust (implementing the `WidgetExtension`
-trait from `plushie-core`) and declare the Ruby-side interface with
+trait from `plushie-ext`) and declare the Ruby-side interface with
 `include Plushie::Extension`. The build system compiles a custom
 renderer binary that includes your extensions.
 

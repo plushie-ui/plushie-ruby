@@ -66,7 +66,7 @@ namespace :plushie do
           "or Plushie.configuration.source_path to the plushie repo checkout."
       end
 
-      cmd_args = ["cargo", "build", "-p", "plushie"]
+      cmd_args = ["cargo", "build", "-p", "plushie-renderer"]
       cmd_args << "--release" if release
 
       label = release ? " (release)" : ""
@@ -80,7 +80,7 @@ namespace :plushie do
 
       # Install binary to _build/plushie/bin/
       profile_dir = release ? "release" : "debug"
-      src = File.join(source_dir, "target", profile_dir, "plushie")
+      src = File.join(source_dir, "target", profile_dir, "plushie-renderer")
 
       unless File.exist?(src)
         abort "Build succeeded but binary not found at #{src}"
