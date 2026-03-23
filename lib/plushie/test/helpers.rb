@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "fileutils"
+
 module Plushie
   module Test
     # Test helper methods for interacting with a Plushie test session.

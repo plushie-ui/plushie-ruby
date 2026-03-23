@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "fileutils"
+
 module Plushie
   # Resolves the path to the plushie renderer binary.
   #

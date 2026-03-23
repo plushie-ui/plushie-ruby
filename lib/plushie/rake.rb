@@ -14,6 +14,7 @@
 #   plushie:replay    -- replay a .plushie script with real windows
 #   plushie:preflight -- run all CI checks
 
+require "fileutils"
 require "rake"
 
 namespace :plushie do
