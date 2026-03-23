@@ -6,6 +6,7 @@ require "minitest/test_task"
 Minitest::TestTask.create
 
 require "standard/rake"
+require "plushie/rake"
 
 desc "Run Steep type checker"
 task :steep do
