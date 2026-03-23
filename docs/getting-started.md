@@ -191,6 +191,19 @@ Edit any `.rb` file in `lib/`, save, and the GUI updates in place.
 The model is preserved -- only `view` is re-evaluated with the new
 code.
 
+## Extensions
+
+Plushie supports custom Rust-backed widgets via the extension system.
+You write the widget logic in Rust (implementing the `WidgetExtension`
+trait from `plushie-core`) and declare the Ruby-side interface with
+`include Plushie::Extension`. The build system compiles a custom
+renderer binary that includes your extensions.
+
+Pure Ruby composite widgets are also supported -- compose existing
+Plushie widgets into reusable components without touching Rust.
+
+See [Writing widget extensions](extensions.md) for the full guide.
+
 ## Next steps
 
 - [Tutorial: building a todo app](tutorial.md) -- step-by-step guide

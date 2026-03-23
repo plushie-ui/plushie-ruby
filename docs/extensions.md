@@ -317,12 +317,86 @@ The full list of trait methods:
 |---|---|---|---|---|
 | `type_names` | yes | registration | -- | `&[&str]` |
 | `config_key` | yes | registration | -- | `&str` |
-| `init` | no | startup | `&InitCtx<'_>` | -- |
+| `init` | no | startup | `&InitCtx<'_>` (ctx.config, ctx.theme, ctx.default_text_size, ctx.default_font) | -- |
 | `prepare` | no | mutable (pre-view) | `&TreeNode`, `&mut ExtensionCaches`, `&Theme` | -- |
 | `render` | yes | immutable (view) | `&TreeNode`, `&WidgetEnv` | `Element<Message>` |
 | `handle_event` | no | update | node_id, family, data, `&mut ExtensionCaches` | `EventResult` |
 | `handle_command` | no | update | node_id, op, payload, `&mut ExtensionCaches` | `Vec<OutgoingEvent>` |
 | `cleanup` | no | tree diff | node_id, `&mut ExtensionCaches` | -- |
+
+### WidgetEnv / RenderCtx fields
+
+`WidgetEnv` (and the underlying `RenderCtx`) provides access to:
+
+- `env.theme` -- the current iced `Theme`
+- `env.window_id` -- the window ID (`&str`) this render pass is for
+- `env.scale_factor` -- DPI scale factor (`f32`) for the current window
+
+Extensions doing DPI-aware rendering or per-window adaptation can use
+`window_id` and `scale_factor` directly.
+
+### Prelude additions
+
+The `plushie_core::prelude` re-exports `alignment`, `Point`, and `Size`,
+so you do not need to reach into `plushie_core::iced::alignment` for
+alignment types. The prelude also re-exports `CoalesceHint`,
+`OutgoingEvent`, `GenerationCounter`, `ExtensionCaches`, and the
+`prop_*` helper functions.
+
+
+## Message::Event construction
+
+Extensions that implement custom `iced::advanced::Widget` types need to
+publish events back through the extension system. Use the `Message::Event`
+variant:
+
+```rust
+use plushie_core::message::Message;
+use serde_json::json;
+
+// In your Widget::update() method:
+shell.publish(Message::Event(
+    self.node_id.clone(),           // node ID (String)
+    json!({"key": "value"}),        // event data (serde_json::Value)
+    "my_event_family".to_string(),  // family string (String)
+));
+```
+
+The event flows through the system like this:
+
+```
+Widget::update()
+  -> shell.publish(Message::Event(id, data, family))
+  -> App::update() in renderer.rs
+  -> ExtensionDispatcher::handle_event(id, family, data, caches)
+  -> your extension's handle_event() method
+  -> EventResult determines what reaches Ruby
+```
+
+If your extension does not implement `handle_event` (or returns
+`EventResult::PassThrough`), the event is serialized as-is and sent to
+Ruby over the wire as an `OutgoingEvent` with the family and data you
+provided.
+
+### Constructing OutgoingEvent from extensions
+
+When your `handle_event` or `handle_command` needs to emit events to Ruby,
+use `OutgoingEvent::extension_event`:
+
+```rust
+OutgoingEvent::extension_event(
+    "my_custom_family".to_string(),  // family string
+    node_id.to_string(),             // node ID
+    Some(json!({"detail": 42})),     // optional data payload (None for bare events)
+)
+```
+
+This is equivalent to `OutgoingEvent::generic(family, id, data)`. The
+resulting JSON sent to Ruby looks like:
+
+```json
+{"type": "event", "family": "my_custom_family", "id": "node-1", "data": {"detail": 42}}
+```
 
 ## Event family reference
 
@@ -483,6 +557,356 @@ EventResult::Observed(vec![
 
 The original event is sent first, then the additional events in order.
 
+
+## canvas::Cache and GenerationCounter
+
+`iced::widget::canvas::Cache` is `!Send + !Sync`. This means it cannot be
+stored in `ExtensionCaches` (which requires `Send + Sync + 'static`). This
+is a fundamental constraint of iced's rendering architecture, not a bug.
+
+### The pattern
+
+Instead of storing `canvas::Cache` in `ExtensionCaches`, use iced's built-in
+tree state mechanism. The cache lives in your `Program::State` (initialized
+via `Widget::state()` or `canvas::Program`), and a `GenerationCounter` in
+`ExtensionCaches` tracks when your data changes.
+
+```rust
+use plushie_core::prelude::*;
+use iced::widget::canvas;
+
+/// Stored in ExtensionCaches (Send + Sync).
+struct SparklineData {
+    samples: Vec<f32>,
+    generation: GenerationCounter,
+}
+
+/// Stored in canvas Program::State (not Send, not Sync -- iced manages it).
+struct SparklineState {
+    last_generation: u64,
+    cache: canvas::Cache,
+}
+```
+
+In `prepare` or `handle_command`, bump the generation when data changes:
+
+```rust
+fn handle_command(&mut self, node_id: &str, op: &str, payload: &Value, caches: &mut ExtensionCaches) -> Vec<OutgoingEvent> {
+    if op == "push" {
+        if let Some(data) = caches.get_mut::<SparklineData>(self.config_key(), node_id) {
+            data.samples.push(payload.as_f64().unwrap_or(0.0) as f32);
+            data.generation.bump();  // signal that a redraw is needed
+        }
+    }
+    vec![]
+}
+```
+
+In `draw`, compare generations to decide whether to clear the cache:
+
+```rust
+impl canvas::Program<Message> for SparklineProgram<'_> {
+    type State = SparklineState;
+
+    fn draw(
+        &self,
+        state: &Self::State,
+        renderer: &iced::Renderer,
+        _theme: &Theme,
+        bounds: iced::Rectangle,
+        _cursor: iced::mouse::Cursor,
+    ) -> Vec<canvas::Geometry> {
+        // Check if data has changed since last draw
+        if state.last_generation != self.current_generation {
+            state.cache.clear();
+            // Note: state.last_generation is updated after draw via update()
+        }
+
+        let geometry = state.cache.draw(renderer, bounds.size(), |frame| {
+            // Draw your content here
+        });
+
+        vec![geometry]
+    }
+}
+```
+
+### Why GenerationCounter instead of content hashing
+
+`GenerationCounter` is a simple `u64` counter. Incrementing it is O(1) and
+comparing two values is a single integer comparison. Content hashing is
+more expensive and harder to get right (what do you hash? serialized JSON?
+raw bytes?). The counter approach is the recommended pattern.
+
+`GenerationCounter` implements `Send + Sync + Clone` and stores cleanly in
+`ExtensionCaches`. Create it with `GenerationCounter::new()` (starts at 0),
+call `.bump()` to increment, and `.get()` to read the current value.
+
+
+## plushie-iced Widget trait guide
+
+Extensions implementing `iced::advanced::Widget` directly (Tier C) need to
+be aware of the plushie-iced API. Several methods changed names and signatures
+from earlier versions.
+
+### Key changes
+
+**`on_event` is now `update`:**
+
+```rust
+// plushie-iced
+fn update(
+    &mut self,
+    tree: &mut widget::Tree,
+    event: iced::Event,
+    layout: Layout<'_>,
+    cursor: mouse::Cursor,
+    renderer: &Renderer,
+    clipboard: &mut dyn Clipboard,
+    shell: &mut Shell<'_, Message>,
+    viewport: &Rectangle,
+) -> event::Status {
+    // ...
+}
+```
+
+**Capturing events:** Instead of returning `event::Status::Captured`, call
+`shell.capture_event()` and return `event::Status::Captured`:
+
+```rust
+// In update():
+shell.capture_event();
+event::Status::Captured
+```
+
+**Alignment fields renamed:**
+
+```rust
+// 0.13:
+// fn horizontal_alignment(&self) -> alignment::Horizontal
+// fn vertical_alignment(&self) -> alignment::Vertical
+
+// 0.14:
+fn align_x(&self) -> alignment::Horizontal { ... }
+fn align_y(&self) -> alignment::Vertical { ... }
+```
+
+Note: the types are different too. `align_x` returns
+`alignment::Horizontal`, `align_y` returns `alignment::Vertical`.
+
+**Widget::size() returns Size\<Length\>:**
+
+```rust
+fn size(&self) -> iced::Size<Length> {
+    iced::Size::new(self.width, self.height)
+}
+```
+
+**Widget::state() initializes tree state:**
+
+```rust
+fn state(&self) -> widget::tree::State {
+    widget::tree::State::new(MyWidgetState::default())
+}
+```
+
+Called once on first mount. The state persists in iced's widget tree and is
+accessible in `update()` and `draw()` via `tree.state.downcast_ref::<MyWidgetState>()`.
+
+**Widget::tag() for state type verification:**
+
+```rust
+fn tag(&self) -> widget::tree::Tag {
+    widget::tree::Tag::of::<MyWidgetState>()
+}
+```
+
+### Publishing events from custom widgets
+
+Use `shell.publish(Message::Event(...))` as described in the Message::Event
+construction section above. The `Message` type is re-exported from
+`plushie_core::prelude`.
+
+### Full Widget skeleton
+
+```rust
+use iced::advanced::widget::{self, Widget};
+use iced::advanced::{layout, mouse, renderer, Clipboard, Layout, Shell};
+use iced::event;
+use iced::{Element, Length, Rectangle, Size, Theme};
+use plushie_core::prelude::*;
+
+struct MyWidget<'a> {
+    node_id: String,
+    node: &'a TreeNode,
+}
+
+struct MyWidgetState {
+    // your per-instance state
+}
+
+impl Default for MyWidgetState {
+    fn default() -> Self { Self { /* ... */ } }
+}
+
+impl<'a> Widget<Message, Theme, iced::Renderer> for MyWidget<'a> {
+    fn tag(&self) -> widget::tree::Tag {
+        widget::tree::Tag::of::<MyWidgetState>()
+    }
+
+    fn state(&self) -> widget::tree::State {
+        widget::tree::State::new(MyWidgetState::default())
+    }
+
+    fn size(&self) -> Size<Length> {
+        Size::new(Length::Fill, Length::Shrink)
+    }
+
+    fn layout(&self, _tree: &mut widget::Tree, _renderer: &iced::Renderer, limits: &layout::Limits) -> layout::Node {
+        let size = limits.max();
+        layout::Node::new(Size::new(size.width, 200.0))
+    }
+
+    fn draw(
+        &self,
+        tree: &widget::Tree,
+        renderer: &mut iced::Renderer,
+        theme: &Theme,
+        style: &renderer::Style,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        viewport: &Rectangle,
+    ) {
+        // Draw your widget
+    }
+
+    fn update(
+        &mut self,
+        tree: &mut widget::Tree,
+        event: iced::Event,
+        layout: Layout<'_>,
+        cursor: mouse::Cursor,
+        renderer: &iced::Renderer,
+        clipboard: &mut dyn Clipboard,
+        shell: &mut Shell<'_, Message>,
+        viewport: &Rectangle,
+    ) -> event::Status {
+        if let iced::Event::Mouse(mouse::Event::ButtonPressed(mouse::Button::Left)) = &event {
+            if cursor.is_over(layout.bounds()) {
+                shell.publish(Message::Event(
+                    self.node_id.clone(),
+                    serde_json::json!({"x": 0, "y": 0}),
+                    "my_widget_click".to_string(),
+                ));
+                shell.capture_event();
+                return event::Status::Captured;
+            }
+        }
+        event::Status::Ignored
+    }
+}
+
+impl<'a> From<MyWidget<'a>> for Element<'a, Message> {
+    fn from(w: MyWidget<'a>) -> Self {
+        Self::new(w)
+    }
+}
+```
+
+
+## Prop helpers reference
+
+The `plushie_core::prop_helpers` module (re-exported via `prelude::*`) provides
+typed accessors for reading props from `TreeNode`. Use these instead of
+manually traversing `serde_json::Value`:
+
+| Helper | Return type | Notes |
+|---|---|---|
+| `prop_str(node, key)` | `Option<String>` | |
+| `prop_f32(node, key)` | `Option<f32>` | Accepts numbers and numeric strings |
+| `prop_f64(node, key)` | `Option<f64>` | Accepts numbers and numeric strings |
+| `prop_u32(node, key)` | `Option<u32>` | Rejects negative values |
+| `prop_u64(node, key)` | `Option<u64>` | Rejects negative values |
+| `prop_usize(node, key)` | `Option<usize>` | Via `prop_u64` |
+| `prop_i64(node, key)` | `Option<i64>` | Signed integers |
+| `prop_bool(node, key)` | `Option<bool>` | |
+| `prop_bool_default(node, key, default)` | `bool` | Returns default when absent |
+| `prop_length(node, key, fallback)` | `Length` | Parses "fill", "shrink", numbers, `{fill_portion: n}` |
+| `prop_range_f32(node)` | `RangeInclusive<f32>` | Reads `range` prop as `[min, max]`, defaults to `0.0..=100.0` |
+| `prop_range_f64(node)` | `RangeInclusive<f64>` | Same as above, f64 |
+| `prop_color(node, key)` | `Option<iced::Color>` | Parses `#RRGGBB` / `#RRGGBBAA` hex strings |
+| `prop_f32_array(node, key)` | `Option<Vec<f32>>` | Array of numbers |
+| `prop_horizontal_alignment(node, key)` | `alignment::Horizontal` | "left"/"center"/"right", defaults Left |
+| `prop_vertical_alignment(node, key)` | `alignment::Vertical` | "top"/"center"/"bottom", defaults Top |
+| `prop_content_fit(node)` | `Option<ContentFit>` | Reads `content_fit` prop |
+| `node.prop_str(key)` | `Option<String>` | Method on `TreeNode` (same as `prop_str`) |
+| `node.prop_f32(key)` | `Option<f32>` | Method on `TreeNode` (same as `prop_f32`) |
+| `node.prop_bool(key)` | `Option<bool>` | Method on `TreeNode` (same as `prop_bool`) |
+| `node.prop_color(key)` | `Option<Color>` | Method on `TreeNode` (same as `prop_color`) |
+| `node.prop_padding(key)` | `Padding` | Method on `TreeNode` (same as `prop_padding`) |
+| `node.props()` | `Option<&Map>` | Access the props object directly |
+| `OutgoingEvent::with_value(value)` | `OutgoingEvent` | Set the `value` field on extension events |
+| `PlushieAppBuilder::extension_boxed(ext)` | `PlushieAppBuilder` | Register pre-boxed extensions |
+| `f64_to_f32(v)` | `f32` | Clamping f64-to-f32 conversion |
+| `prop_padding(node, key)` | `Padding` | Public padding prop helper |
+
+
+## ExtensionCaches
+
+`ExtensionCaches` is type-erased storage keyed by `(namespace, key)` pairs.
+The namespace is typically your extension's `config_key()`, and the key is
+the node ID. This is the primary mechanism for persisting state between
+`prepare`/`render`/`handle_event`/`handle_command` calls.
+
+Key methods:
+
+| Method | Signature | Notes |
+|---|---|---|
+| `get::<T>(ns, key)` | `-> Option<&T>` | Immutable access |
+| `get_mut::<T>(ns, key)` | `-> Option<&mut T>` | Mutable access |
+| `get_or_insert::<T>(ns, key, default_fn)` | `-> &mut T` | Initialize if absent. Replaces on type mismatch. |
+| `insert::<T>(ns, key, value)` | `-> ()` | Overwrites existing |
+| `remove(ns, key)` | `-> bool` | Returns whether key existed |
+| `contains(ns, key)` | `-> bool` | |
+| `remove_namespace(ns)` | `-> ()` | Remove all entries for a namespace |
+
+Common keying patterns:
+
+- **Per-node state:** `caches.get::<MyState>(self.config_key(), &node.id)`
+- **Per-node sub-keys:** `caches.get::<GenerationCounter>(self.config_key(), &format!("{}:gen", node.id))`
+- **Global extension state:** `caches.get::<GlobalConfig>(self.config_key(), "_global")`
+
+The type parameter `T` must be `Send + Sync + 'static`. This is why
+`canvas::Cache` (which is `!Send + !Sync`) cannot be stored here.
+
+
+## Panic isolation
+
+The `ExtensionDispatcher` wraps all mutable extension calls (`init`,
+`prepare`, `handle_event`, `handle_command`, `cleanup`) in
+`catch_unwind`. If your extension panics:
+
+1. The panic is logged via `log::error!`.
+2. The extension is marked as "poisoned".
+3. All subsequent calls to the poisoned extension are skipped.
+4. `render()` returns a red error placeholder text instead of calling your code.
+5. Poisoned state is cleared on the next `Snapshot` message (full tree sync).
+
+This means a bug in one extension cannot crash the renderer or affect other
+extensions. But it also means panics are unrecoverable until the next
+snapshot -- design your extension to avoid panics in production.
+
+**Note:** `render()` panics ARE caught via `catch_unwind` in
+`widgets::render()`. When a render panic is caught, the extension is
+marked as "poisoned" and subsequent renders skip it, returning a red
+error placeholder text until `clear_poisoned()` is called (typically on
+the next `Snapshot` message).
+
+Set `PLUSHIE_NO_CATCH_UNWIND=1` to disable panic isolation during
+development. This lets panics propagate normally, giving you a full
+backtrace instead of a red placeholder. Useful when debugging Rust-side
+extension code. Do not use this in production.
+
 ## Testing extensions
 
 ### Ruby-side tests
@@ -532,17 +956,31 @@ PLUSHIE_TEST_BACKEND=headless bundle exec rake test
 
 ## Publishing widget packages
 
-Two tiers:
+Widget packages come in two tiers:
 
-1. **Pure Ruby** -- compose existing primitives. Works with prebuilt
-   renderer binaries. No Rust toolchain needed.
-2. **Ruby + Rust** -- custom native rendering. Requires a Rust toolchain.
+1. **Pure Ruby** -- compose existing primitives (canvas, column, container,
+   etc.) into higher-level widgets. Works with prebuilt renderer binaries.
+   No Rust toolchain needed.
+2. **Ruby + Rust** -- custom native rendering via a `WidgetExtension`
+   trait. Requires a Rust toolchain to compile a custom renderer binary.
+
+The rest of this section covers Tier 1 (pure Ruby packages). For Tier 2,
+see the extension quick start and trait reference above.
 
 ### When pure Ruby is enough
 
-Canvas + Shape builders cover custom 2D rendering. Style maps provide
-per-instance visual customization. Composition of layout primitives covers
-structural patterns.
+Canvas + Shape builders cover custom 2D rendering: charts, diagrams,
+gauges, sparklines, colour pickers, drawing tools. The overlay widget
+enables dropdowns, popovers, and context menus. Style maps provide
+per-instance visual customization. Composition of layout primitives
+(column, row, container, stack) covers cards, tab bars, sidebars, toolbars,
+and other structural patterns.
+
+See [composition-patterns.md](composition-patterns.md) for examples.
+
+Pure Ruby falls short when you need: custom text layout engines, GPU
+shaders, platform-native controls (e.g. a native file tree), or
+performance-critical rendering that canvas cannot handle efficiently.
 
 ### Package structure
 
@@ -551,18 +989,320 @@ A plushie widget package is a standard gem:
 ```
 my_widget/
   lib/
-    my_widget.rb              # public API
+    my_widget.rb              # public API (convenience constructors)
     my_widget/
-      donut_chart.rb          # widget + Node building
+      donut_chart.rb          # widget struct + Node building
   test/
     my_widget/
-      donut_chart_test.rb
+      donut_chart_test.rb     # struct, builder, and node tests
   my_widget.gemspec
 ```
 
+#### my_widget.gemspec
+
+```ruby
+Gem::Specification.new do |spec|
+  spec.name = "my_widget"
+  spec.version = "0.1.0"
+  spec.summary = "Donut chart widget for Plushie"
+  spec.authors = ["Your Name"]
+  spec.files = Dir["lib/**/*.rb"]
+
+  spec.add_dependency "plushie", "~> 0.1"
+end
+```
+
+Plushie is a runtime dependency. Your package does not need the renderer
+binary -- it only uses plushie's Ruby modules (`Plushie::Node`,
+`Plushie::Canvas::Shape`, type modules).
+
+### Building a widget
+
+Build `Plushie::Node` trees from your struct. The node types must be
+types the stock renderer understands. The renderer handles them without
+modification.
+
+#### Example: DonutChart
+
+A ring chart rendered via canvas:
+
+```ruby
+# lib/my_widget/donut_chart.rb
+class MyWidget::DonutChart
+  attr_reader :id, :segments, :size, :thickness, :background
+
+  # @param id [String] widget ID
+  # @param segments [Array<Array(String, Numeric, String)>] [label, value, color] tuples
+  # @param size [Numeric] canvas size in pixels
+  # @param thickness [Numeric] ring thickness
+  # @param background [String, nil] background color
+  def initialize(id, segments, size: 200, thickness: 40, background: nil)
+    @id = id
+    @segments = segments
+    @size = size
+    @thickness = thickness
+    @background = background
+  end
+
+  def build
+    layers = {arcs: build_arc_shapes}
+
+    props = {layers: layers, width: @size, height: @size}
+    props[:background] = @background if @background
+
+    Plushie::Node.new(id: @id, type: "canvas", props: props, children: [])
+  end
+
+  private
+
+  def build_arc_shapes
+    total = @segments.sum { |_, v, _| v }
+    return [] if total == 0
+
+    r = @size / 2.0
+    inner_r = r - @thickness
+    shapes = []
+    start_angle = -Math::PI / 2
+
+    @segments.each do |_label, value, color|
+      sweep = value / total * 2 * Math::PI
+      stop_angle = start_angle + sweep
+
+      shapes << {
+        type: "path",
+        commands: [
+          {type: "arc", cx: r, cy: r, r: r, start: start_angle, end: stop_angle},
+          {type: "line_to", x: r + inner_r * Math.cos(stop_angle), y: r + inner_r * Math.sin(stop_angle)},
+          {type: "arc", cx: r, cy: r, r: inner_r, start: stop_angle, end: start_angle},
+          {type: "close"}
+        ],
+        fill: color
+      }
+      start_angle = stop_angle
+    end
+
+    shapes
+  end
+end
+```
+
+Key points:
+
+- The struct follows a simple builder pattern with keyword arguments.
+- `build` emits a `"canvas"` node with `"layers"` -- a type the stock
+  renderer already handles.
+- No Rust code. No custom node types. The renderer sees a canvas widget.
+
+#### Convenience constructors
+
+For consumer ergonomics, add a top-level module with functions that mirror
+the `Plushie::UI` calling conventions:
+
+```ruby
+# lib/my_widget.rb
+require_relative "my_widget/donut_chart"
+
+module MyWidget
+  # Creates a donut chart node.
+  #
+  # @param id [String]
+  # @param segments [Array] [label, value, color] tuples
+  # @param opts [Hash] size:, thickness:, background:
+  # @return [Plushie::Node]
+  def self.donut_chart(id, segments, **opts)
+    DonutChart.new(id, segments, **opts).build
+  end
+end
+```
+
+Consumers use it like any other widget:
+
+```ruby
+include Plushie::UI
+
+column do
+  text("title", "Revenue breakdown")
+  # returns a Plushie::Node -- composes naturally with the DSL
+  MyWidget.donut_chart("revenue", model.segments, size: 300)
+end
+```
+
+### Testing widget packages
+
+#### Unit tests (no renderer needed)
+
+Test the struct, builders, and `build` output directly:
+
+```ruby
+class MyWidget::DonutChartTest < Minitest::Test
+  def test_new_creates_struct_with_defaults
+    chart = MyWidget::DonutChart.new("c1", [["A", 50, "#ff0000"]])
+    assert_equal "c1", chart.id
+    assert_equal 200, chart.size
+    assert_equal 40, chart.thickness
+  end
+
+  def test_build_produces_a_canvas_node
+    node = MyWidget::DonutChart.new("c1", [["A", 50, "#ff0000"]]).build
+    assert_equal "canvas", node.type
+    assert_equal "c1", node.id
+    assert node.props[:layers].is_a?(Hash)
+  end
+end
+```
+
+#### Integration tests with mock backend
+
+For testing widget behaviour in a running app, use plushie's mock
+backend:
+
+```ruby
+class MyWidget::IntegrationTest < Plushie::Test::Case
+  class ChartApp
+    include Plushie::App
+
+    Model = Plushie::Model.define(:segments)
+
+    def init(_opts)
+      Model.new(segments: [["A", 50, "#ff0000"], ["B", 50, "#0000ff"]])
+    end
+
+    def update(model, _event) = model
+
+    def view(model)
+      window("main") do
+        MyWidget.donut_chart("chart", model.segments, size: 200)
+      end
+    end
+  end
+
+  def test_chart_renders_in_the_tree
+    session = start!(ChartApp)
+    element = find!(session, "#chart")
+    assert_equal "canvas", element.type
+  end
+end
+```
+
+### What consumers need to know
+
+Document these in your package README:
+
+1. **Minimum plushie version.** Your package depends on plushie; specify the
+   compatible range.
+2. **No renderer changes needed.** Pure Ruby packages work with the stock
+   plushie binary. Consumers do not need to rebuild anything.
+3. **Which built-in features are required.** If your widget uses canvas,
+   consumers need the feature enabled (it is by default). Document this if
+   it matters.
+
 ### Limitations of pure Ruby packages
 
-- **No custom node types.** Your builder must emit node types the stock
+- **No custom node types.** Your `build` must emit node types the stock
   renderer understands (`canvas`, `column`, `container`, etc.).
-- **Canvas performance ceiling.** Complex scenes may hit limits.
-- **No access to iced internals.**
+- **Canvas performance ceiling.** Complex canvas scenes (thousands of shapes,
+  60fps animation) may hit limits.
+- **No access to iced internals.** You cannot customize widget state
+  continuity, keyboard focus, accessibility, or rendering internals.
+- **Overlay requires the overlay node type.** If your widget needs popover
+  behaviour, it depends on the `overlay` node type being available.
+
+
+## Configuration
+
+Register extensions and pass runtime configuration using `Plushie.configure`:
+
+```ruby
+Plushie.configure do |config|
+  config.extensions = [MyGauge, MyChart]
+  config.extension_config = {
+    "sparkline" => {"max_samples" => 1000},
+    "terminal" => {"shell" => "/bin/bash"}
+  }
+end
+```
+
+| Option | Type | Description |
+|---|---|---|
+| `extensions` | `Array<Class>` | Extension classes to include in custom builds |
+| `extension_config` | `Hash` | Runtime config passed to extensions via the Settings wire message, keyed by `config_key` |
+
+The `extension_config` hash is sent to the renderer on startup. Each
+extension receives its own section via the `InitCtx` passed to the `init`
+trait method. Use this for runtime tuning (buffer sizes, feature flags,
+backend URLs) that should not be baked into the binary.
+
+For CI or one-off builds, you can also set `PLUSHIE_EXTENSIONS` as a
+comma-separated list of class names:
+
+```sh
+PLUSHIE_EXTENSIONS="MyGauge,MyChart" bundle exec rake plushie:build
+```
+
+
+## Build pipeline
+
+`rake plushie:build` handles both stock and custom builds.
+
+### Stock build (no extensions)
+
+When no extensions are configured, the task builds the plushie binary
+from the Rust source checkout specified by `PLUSHIE_SOURCE_PATH`. This
+is a plain `cargo build -p plushie`.
+
+### Custom build (with extensions)
+
+When extensions are present (via `Plushie.configure` or
+`PLUSHIE_EXTENSIONS`), the build pipeline:
+
+1. **Resolves extensions.** Calls `configured_extensions` which reads
+   from the configure block first, then falls back to the env var.
+   Each class is validated to be a `native_widget`.
+
+2. **Checks for type name collisions.** If two extensions claim the
+   same type name (e.g. both register `"sparkline"`), the build
+   fails with a clear error listing the conflicting classes.
+
+3. **Checks for crate name collisions.** If two extensions have crate
+   directories with the same basename (e.g. both use
+   `native/my_widget`), the build fails.
+
+4. **Validates crate paths.** Each extension's `rust_crate` path is
+   resolved relative to the project root. If the resolved path
+   escapes the project directory (path traversal), the build fails.
+   This prevents extensions from referencing arbitrary filesystem
+   locations in the generated Cargo workspace.
+
+5. **Validates Rust constructors.** Each extension's
+   `rust_constructor` expression is checked against a safe pattern
+   (`identifier::path::function()`). Arbitrary code injection is
+   rejected.
+
+6. **Generates Cargo workspace.** Creates `_build/plushie/custom/`
+   with:
+   - `Cargo.toml` -- declares dependencies on `plushie`,
+     `plushie-core`, and each extension crate
+   - `src/main.rs` -- registers each extension via
+     `PlushieAppBuilder::new().extension(...)` calls
+
+7. **Runs `cargo build`.** Compiles the workspace. Pass
+   `rake plushie:build[release]` for an optimized build.
+
+8. **Installs the binary.** Copies the compiled binary to
+   `_build/plushie/bin/` where the SDK's binary resolver finds it.
+
+The generated `main.rs` looks like:
+
+```rust
+// Auto-generated by rake plushie:build
+// Do not edit manually.
+
+use plushie_core::app::PlushieAppBuilder;
+
+fn main() -> iced::Result {
+    let builder = PlushieAppBuilder::new()
+        .extension(my_sparkline::SparklineExtension::new())
+        .extension(my_gauge::GaugeExtension::new());
+    plushie::run(builder)
+}
+```
