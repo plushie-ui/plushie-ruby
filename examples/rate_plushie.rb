@@ -50,21 +50,24 @@ class RatePlushie
   def update(model, event)
     case event
     # Star rating interactions
-    in Event::Widget[type: :canvas_shape_click, id: "stars", data: {shape_id: /\Astar-(\d+)\z/ => m}]
-      model.with(rating: m.match(/(\d+)/)[1].to_i + 1)
+    in Event::Widget[type: :canvas_shape_click, id: "stars", data:]
+      n = parse_star_index(data)
+      n ? model.with(rating: n + 1) : model
 
-    in Event::Widget[type: :canvas_shape_enter, id: "stars", data: {shape_id: /\Astar-(\d+)\z/ => m}]
-      model.with(hover_star: m.match(/(\d+)/)[1].to_i + 1)
+    in Event::Widget[type: :canvas_shape_enter, id: "stars", data:]
+      n = parse_star_index(data)
+      n ? model.with(hover_star: n + 1) : model
 
     in Event::Widget[type: :canvas_shape_leave, id: "stars"]
       model.with(hover_star: nil)
 
-    in Event::Widget[type: :canvas_shape_focused, id: "stars", data: {shape_id: /\Astar-(\d+)\z/ => m}]
-      model.with(focused_star: m.match(/(\d+)/)[1].to_i)
+    in Event::Widget[type: :canvas_shape_focused, id: "stars", data:]
+      n = parse_star_index(data)
+      n ? model.with(focused_star: n) : model
 
     # Theme toggle
     in Event::Widget[type: :canvas_shape_click, id: "theme-toggle"]
-      target = model.toggle_target == 0.0 ? 1.0 : 0.0
+      target = (model.toggle_target == 0.0) ? 1.0 : 0.0
       model.with(toggle_target: target)
 
     # Review form
@@ -108,7 +111,6 @@ class RatePlushie
         padding: {top: 32, bottom: 32, left: 24, right: 24},
         background: t[:page_bg],
         width: :fill, height: :fill) do
-
         column(spacing: 24, width: :fill) do
           text("heading", "Rate Plushie", size: 28, color: t[:text])
           rating_card(model, p, t)
@@ -120,6 +122,13 @@ class RatePlushie
   end
 
   private
+
+  def parse_star_index(data)
+    shape_id = data && data["shape_id"]
+    return nil unless shape_id.is_a?(String) && shape_id.start_with?("star-")
+
+    shape_id.delete_prefix("star-").to_i
+  end
 
   def submit_review(model)
     name = model.review_name.strip
@@ -140,7 +149,6 @@ class RatePlushie
       padding: 24, width: :fill,
       border: {width: 1, color: t[:card_border], rounded: 12},
       background: t[:card_bg]) do
-
       column(spacing: 20) do
         text("prompt", "How would you rate Plushie?", size: 14, color: t[:text_secondary])
 
@@ -148,7 +156,7 @@ class RatePlushie
           hover: model.hover_star, focused: model.focused_star,
           theme_progress: p)
 
-        rule()
+        rule
         review_form(model, t)
         theme_row(model, t)
       end
@@ -224,18 +232,19 @@ class RatePlushie
           is_focused = !readonly && focused == i
 
           interactive_wire = unless readonly
-            Canvas::Shape::Interactive.new(
+            Plushie::Canvas::Shape::Interactive.new(
               id: "star-#{i}",
               on_click: true,
               on_hover: true,
               cursor: "pointer",
-              a11y: {role: :button, label: "#{i + 1} star#{i == 0 ? '' : 's'}"}).to_wire
+              a11y: {role: :button, label: "#{i + 1} star#{"s" unless i == 0}"}
+            ).to_wire
           end
 
           canvas_group(x: star_cx, y: star_cy, interactive: interactive_wire) do
             if is_focused
               canvas_circle(0, 0, focus_r,
-                stroke: Canvas::Shape.stroke("#3b82f6", 2 * scale))
+                stroke: Plushie::Canvas::Shape.stroke("#3b82f6", 2 * scale))
             end
             canvas_path(commands, fill: star_color(filled, preview, theme_progress))
           end
@@ -252,8 +261,8 @@ class RatePlushie
     end
 
     fx, fy = points.first
-    rest = points[1..].map { |x, y| Canvas::Shape.line_to(x, y) }
-    [Canvas::Shape.move_to(fx, fy), *rest, Canvas::Shape.close]
+    rest = points[1..].map { |x, y| Plushie::Canvas::Shape.line_to(x, y) }
+    [Plushie::Canvas::Shape.move_to(fx, fy), *rest, Plushie::Canvas::Shape.close]
   end
 
   def star_color(filled, preview, progress)
@@ -280,15 +289,15 @@ class RatePlushie
     thumb_x = lerp(TRACK_H / 2.0, TRACK_W - TRACK_H / 2.0, eased)
     track_color = lerp_color([253, 230, 138], [91, 33, 182], eased)
     rotation = eased * Math::PI
-    face_color = progress < 0.5 ? "#665500" : "#4c1d95"
+    face_color = (progress < 0.5) ? "#665500" : "#4c1d95"
 
     canvas(id, width: TRACK_W, height: TRACK_H) do
       layer("toggle") do
-        interactive_wire = Canvas::Shape::Interactive.new(
+        interactive_wire = Plushie::Canvas::Shape::Interactive.new(
           id: "switch",
           on_click: true,
           cursor: "pointer",
-          hit_rect: Canvas::Shape::HitRect.new(x: 0, y: 0, w: TRACK_W, h: TRACK_H),
+          hit_rect: Plushie::Canvas::Shape::HitRect.new(x: 0, y: 0, w: TRACK_W, h: TRACK_H),
           a11y: {role: :switch, label: "Dark humor"}
         ).to_wire
 
@@ -296,29 +305,29 @@ class RatePlushie
           # Track (rounded rect via path since canvas_rect has no radius)
           r = TRACK_H / 2.0
           canvas_path([
-            Canvas::Shape.move_to(r, 0),
-            Canvas::Shape.line_to(TRACK_W - r, 0),
-            Canvas::Shape.arc(TRACK_W - r, r, r, -Math::PI / 2, Math::PI / 2),
-            Canvas::Shape.line_to(r, TRACK_H),
-            Canvas::Shape.arc(r, r, r, Math::PI / 2, 3 * Math::PI / 2)
+            Plushie::Canvas::Shape.move_to(r, 0),
+            Plushie::Canvas::Shape.line_to(TRACK_W - r, 0),
+            Plushie::Canvas::Shape.arc(TRACK_W - r, r, r, -Math::PI / 2, Math::PI / 2),
+            Plushie::Canvas::Shape.line_to(r, TRACK_H),
+            Plushie::Canvas::Shape.arc(r, r, r, Math::PI / 2, 3 * Math::PI / 2)
           ], fill: track_color)
 
           # Thumb circle
           canvas_circle(thumb_x, TRACK_H / 2.0, THUMB_R, fill: "#ffffff")
 
           # Face with transform (push, translate, rotate, shapes, pop)
-          _plushie_add_canvas_shape(Canvas::Shape::PushTransform.new)
-          _plushie_add_canvas_shape(Canvas::Shape::Translate.new(x: thumb_x, y: TRACK_H / 2.0))
-          _plushie_add_canvas_shape(Canvas::Shape::Rotate.new(angle: rotation))
+          _plushie_add_canvas_shape(Plushie::Canvas::Shape::PushTransform.new)
+          _plushie_add_canvas_shape(Plushie::Canvas::Shape::Translate.new(x: thumb_x, y: TRACK_H / 2.0))
+          _plushie_add_canvas_shape(Plushie::Canvas::Shape::Rotate.new(angle: rotation))
 
           # Left eye
           canvas_circle(-3.5, -3, 2, fill: face_color)
           # Right eye
           canvas_circle(3.5, -3, 2, fill: face_color)
           # Mouth (smile path)
-          canvas_path(smile_path, stroke: Canvas::Shape.stroke(face_color, 2))
+          canvas_path(smile_path, stroke: Plushie::Canvas::Shape.stroke(face_color, 2))
 
-          _plushie_add_canvas_shape(Canvas::Shape::PopTransform.new)
+          _plushie_add_canvas_shape(Plushie::Canvas::Shape::PopTransform.new)
         end
       end
     end
@@ -326,10 +335,10 @@ class RatePlushie
 
   def smile_path
     [
-      Canvas::Shape.move_to(-5, 1),
-      Canvas::Shape.line_to(-3, 5),
-      Canvas::Shape.line_to(3, 5),
-      Canvas::Shape.line_to(5, 1)
+      Plushie::Canvas::Shape.move_to(-5, 1),
+      Plushie::Canvas::Shape.line_to(-3, 5),
+      Plushie::Canvas::Shape.line_to(3, 5),
+      Plushie::Canvas::Shape.line_to(5, 1)
     ]
   end
 

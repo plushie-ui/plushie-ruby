@@ -44,7 +44,7 @@ class Shortcuts
         text("header", "Press any key", size: 20)
         text("count", "#{model.count} key events captured", size: 12, color: "#888888")
 
-        rule()
+        rule
 
         scrollable("log", height: :fill) do
           column(spacing: 2, width: :fill) do

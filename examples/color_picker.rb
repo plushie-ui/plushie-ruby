@@ -43,7 +43,7 @@ class ColorPicker
       dy = y - CY
       dist = Math.sqrt(dx * dx + dy * dy)
 
-      if dist >= INNER_R && dist <= OUTER_R
+      if dist.between?(INNER_R, OUTER_R)
         model.with(drag: :ring, hue: hue_from_point(dx, dy))
       elsif in_square?(x, y)
         apply_sv(model.with(drag: :square), x, y)
@@ -125,11 +125,11 @@ class ColorPicker
       a2 = (hue_deg + deg_per_segment - 90) * Math::PI / 180
 
       canvas_path([
-        Canvas::Shape.move_to(CX + INNER_R * Math.cos(a1), CY + INNER_R * Math.sin(a1)),
-        Canvas::Shape.line_to(CX + OUTER_R * Math.cos(a1), CY + OUTER_R * Math.sin(a1)),
-        Canvas::Shape.line_to(CX + OUTER_R * Math.cos(a2), CY + OUTER_R * Math.sin(a2)),
-        Canvas::Shape.line_to(CX + INNER_R * Math.cos(a2), CY + INNER_R * Math.sin(a2)),
-        Canvas::Shape.close
+        Plushie::Canvas::Shape.move_to(CX + INNER_R * Math.cos(a1), CY + INNER_R * Math.sin(a1)),
+        Plushie::Canvas::Shape.line_to(CX + OUTER_R * Math.cos(a1), CY + OUTER_R * Math.sin(a1)),
+        Plushie::Canvas::Shape.line_to(CX + OUTER_R * Math.cos(a2), CY + OUTER_R * Math.sin(a2)),
+        Plushie::Canvas::Shape.line_to(CX + INNER_R * Math.cos(a2), CY + INNER_R * Math.sin(a2)),
+        Plushie::Canvas::Shape.close
       ], fill: hsv_to_hex(hue_deg, 1.0, 1.0))
     end
   end
@@ -140,7 +140,7 @@ class ColorPicker
     hue_color = hsv_to_hex(hue, 1.0, 1.0)
 
     canvas_rect(SQ_ORIGIN, SQ_ORIGIN, SQ_SIZE, SQ_SIZE,
-      fill: Canvas::Shape.linear_gradient(
+      fill: Plushie::Canvas::Shape.linear_gradient(
         [SQ_ORIGIN, SQ_ORIGIN],
         [SQ_ORIGIN + SQ_SIZE, SQ_ORIGIN],
         [[0.0, "#ffffff"], [1.0, hue_color]]
@@ -149,7 +149,7 @@ class ColorPicker
 
   def sv_dark_shapes
     canvas_rect(SQ_ORIGIN, SQ_ORIGIN, SQ_SIZE, SQ_SIZE,
-      fill: Canvas::Shape.linear_gradient(
+      fill: Plushie::Canvas::Shape.linear_gradient(
         [SQ_ORIGIN, SQ_ORIGIN],
         [SQ_ORIGIN, SQ_ORIGIN + SQ_SIZE],
         [[0.0, "#00000000"], [1.0, "#000000ff"]]
@@ -166,7 +166,7 @@ class ColorPicker
     sv_x = SQ_ORIGIN + saturation * SQ_SIZE
     sv_y = SQ_ORIGIN + (1.0 - value) * SQ_SIZE
 
-    cursor_stroke = Canvas::Shape.stroke("#333333", 2)
+    cursor_stroke = Plushie::Canvas::Shape.stroke("#333333", 2)
 
     canvas_circle(ring_x, ring_y, CURSOR_R, fill: "#ffffff", stroke: cursor_stroke)
     canvas_circle(sv_x, sv_y, CURSOR_R, fill: "#ffffff", stroke: cursor_stroke)
@@ -175,8 +175,8 @@ class ColorPicker
   # -- Hit testing -------------------------------------------------------------
 
   def in_square?(x, y)
-    x >= SQ_ORIGIN && x <= SQ_ORIGIN + SQ_SIZE &&
-      y >= SQ_ORIGIN && y <= SQ_ORIGIN + SQ_SIZE
+    x.between?(SQ_ORIGIN, SQ_ORIGIN + SQ_SIZE) &&
+      y.between?(SQ_ORIGIN, SQ_ORIGIN + SQ_SIZE)
   end
 
   # -- Coordinate math ---------------------------------------------------------
@@ -189,13 +189,9 @@ class ColorPicker
   end
 
   def apply_sv(model, x, y)
-    s = clamp((x - SQ_ORIGIN).to_f / SQ_SIZE, 0.0, 1.0)
-    v = clamp(1.0 - (y - SQ_ORIGIN).to_f / SQ_SIZE, 0.0, 1.0)
+    s = ((x - SQ_ORIGIN).to_f / SQ_SIZE).clamp(0.0, 1.0)
+    v = (1.0 - (y - SQ_ORIGIN).to_f / SQ_SIZE).clamp(0.0, 1.0)
     model.with(saturation: s, value: v)
-  end
-
-  def clamp(val, lo, hi)
-    [[val, lo].max, hi].min
   end
 
   # -- Display helpers ---------------------------------------------------------
