@@ -268,7 +268,7 @@ module Plushie
 
     # @return [String] path to the WASM output directory
     def wasm_path
-      File.join("_build", "plushie", "wasm")
+      File.join("_build", "plushie-renderer", "wasm")
     end
   end
 end
