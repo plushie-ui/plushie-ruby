@@ -27,7 +27,12 @@ module Plushie
 
         names = env.split(",").map(&:strip).reject(&:empty?)
         names.map { |name|
-          mod = Object.const_get(name)
+          begin
+            mod = Object.const_get(name)
+          rescue NameError
+            raise Error, "Extension class '#{name}' specified in PLUSHIE_EXTENSIONS could not be found. " \
+              "Ensure the class is defined and the file is required before running the build."
+          end
           mod.finalize! if mod.respond_to?(:finalize!)
 
           unless mod.respond_to?(:native?) && mod.native?

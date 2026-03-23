@@ -51,10 +51,10 @@ namespace :plushie do
     end
 
     # Check for configured extensions
+    require "plushie/extension/build"
     extensions = Plushie::Extension::Build.configured_extensions
 
     if extensions.any?
-      require "plushie/extension/build"
       Plushie::Extension::Build.build_with_extensions(
         extensions, release: release
       )
