@@ -7,6 +7,8 @@ module Plushie
     # These convert wire-format strings into Ruby symbols for pattern
     # matching in user code.
     module Parsers
+      # Mouse button name mapping.
+      # @api private
       MOUSE_BUTTONS = {
         "left" => :left, "right" => :right, "middle" => :middle,
         "back" => :back, "forward" => :forward

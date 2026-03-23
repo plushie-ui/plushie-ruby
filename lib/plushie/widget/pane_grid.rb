@@ -22,10 +22,14 @@ module Plushie
     # - event_rate (integer) -- max events per second.
     # - a11y (hash) -- accessibility overrides.
     class PaneGrid
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[panes spacing width height min_size divider_color
         divider_width leeway event_rate a11y].freeze
 
-      attr_reader :id, :children, *PROPS
+      # @!parse
+      #   attr_reader :id, :children, :panes, :spacing, :width, :height, :min_size, :divider_color, :divider_width, :leeway, :event_rate, :a11y
+      class_eval { attr_reader :id, :children, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties

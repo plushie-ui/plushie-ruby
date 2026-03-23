@@ -19,6 +19,7 @@ require_relative "shape/transform"
 require_relative "shape/clip"
 
 module Plushie
+  # Canvas drawing primitives for the canvas widget.
   module Canvas
     # Pure builder functions for canvas shape descriptors.
     #
@@ -71,17 +72,23 @@ module Plushie
       # -- Path commands --------------------------------------------------------
 
       def move_to(x, y) = ["move_to", x, y]
+      # Line segment to the given point.
       def line_to(x, y) = ["line_to", x, y]
+
+      # Close the current path.
       def close = ["close"]
 
+      # Cubic bezier curve segment.
       def bezier_to(cp1x, cp1y, cp2x, cp2y, x, y)
         ["bezier_to", cp1x, cp1y, cp2x, cp2y, x, y]
       end
 
+      # Quadratic bezier curve segment.
       def quadratic_to(cpx, cpy, x, y)
         ["quadratic_to", cpx, cpy, x, y]
       end
 
+      # Arc path segment.
       def arc(cx, cy, r, start_angle, end_angle)
         ["arc", cx, cy, r, start_angle, end_angle]
       end

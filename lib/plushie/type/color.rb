@@ -80,9 +80,17 @@ module Plushie
         whitesmoke: "#f5f5f5", yellow: "#ffff00", yellowgreen: "#9acd32"
       }.freeze
 
+      # Pattern for 3-digit hex colors.
+      # @api private
       HEX3_RE = /\A#[0-9a-fA-F]{3}\z/
+      # Pattern for 4-digit hex colors.
+      # @api private
       HEX4_RE = /\A#[0-9a-fA-F]{4}\z/
+      # Pattern for 6-digit hex colors.
+      # @api private
       HEX6_RE = /\A#[0-9a-fA-F]{6}\z/
+      # Pattern for 8-digit hex colors.
+      # @api private
       HEX8_RE = /\A#[0-9a-fA-F]{8}\z/
 
       module_function

@@ -7,6 +7,8 @@ module Plushie
     # @example
     #   text("content", long_text, wrapping: :word)
     module Wrapping
+      # Valid text wrapping modes.
+      # @api private
       VALID = %i[none word glyph word_or_glyph].freeze
 
       # @param value [Symbol] :none, :word, :glyph, :word_or_glyph

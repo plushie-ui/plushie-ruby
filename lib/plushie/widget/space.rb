@@ -13,9 +13,13 @@ module Plushie
     # - height (length) -- space height.
     # - a11y (hash) -- accessibility overrides.
     class Space
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[width height a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :width, :height, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties

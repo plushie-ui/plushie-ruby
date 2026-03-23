@@ -14,21 +14,31 @@ module Plushie
     # @example Detailed
     #   Font.from_opts(family: "Inter", weight: :bold, style: :italic)
     module Font
+      # Valid font weight values.
+      # @api private
       WEIGHTS = %i[thin extra_light light normal medium semi_bold bold extra_bold black].freeze
+      # Valid font style values.
+      # @api private
       STYLES = %i[normal italic oblique].freeze
+      # Valid font stretch values.
+      # @api private
       STRETCHES = %i[ultra_condensed extra_condensed condensed semi_condensed
         normal semi_expanded expanded extra_expanded ultra_expanded].freeze
 
+      # Immutable spec; use {#with} to create modified copies.
       Spec = Data.define(:family, :weight, :style, :stretch) do
         def initialize(family: nil, weight: nil, style: nil, stretch: nil)
           super
         end
 
+        # Returns a copy with the given fields updated.
         def with(**changes)
           self.class.new(**to_h.merge(changes))
         end
       end
 
+      # Recognized field keys for font specs.
+      # @api private
       FIELD_KEYS = %i[family weight style stretch].freeze
 
       module_function

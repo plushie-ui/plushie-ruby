@@ -7,6 +7,8 @@ module Plushie
     # @example
     #   tooltip("tip", "Helpful text", position: :bottom)
     module Position
+      # Valid position values.
+      # @api private
       VALID = %i[top bottom left right follow_cursor].freeze
 
       # @param value [Symbol] :top, :bottom, :left, :right, :follow_cursor

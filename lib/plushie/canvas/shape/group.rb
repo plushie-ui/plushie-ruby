@@ -13,9 +13,14 @@ module Plushie
           super
         end
 
+        # Access shape properties by key.
+        #
+        # @param key [Symbol]
+        # @return [Object]
         def [](key) = to_wire[key]
 
-        # @return [Hash] wire-ready shape map
+        # Encode shape for the wire protocol.
+        # @api private
         def to_wire
           h = {type: "group", x: x, y: y}
           h[:shapes] = shapes.map { |s| s.respond_to?(:to_wire) ? s.to_wire : s }

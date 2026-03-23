@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Plushie
+  # Property type modules for widget configuration.
   module Type
     # Alignment values for `align_x` and `align_y` widget props.
     #
@@ -11,6 +12,8 @@ module Plushie
     #   column(align_x: :center)
     #   text("hello", align_x: :right)
     module Alignment
+      # Valid alignment values.
+      # @api private
       VALID = %i[left center right top bottom start end].freeze
 
       # Encode an alignment value to the wire format.

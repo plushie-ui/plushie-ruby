@@ -29,7 +29,9 @@ module Plushie
         on_press on_release on_move on_scroll alt description
         event_rate a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :layers, :shapes, :width, :height, :background, :interactive, :on_press, :on_release, :on_move, :on_scroll, :alt, :description, :event_rate, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties matching PROPS keys

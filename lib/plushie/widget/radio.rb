@@ -25,10 +25,14 @@ module Plushie
     # - style (symbol|hash) -- named style or style map.
     # - a11y (hash) -- accessibility overrides.
     class Radio
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[value selected label group spacing width size text_size
         font line_height shaping wrapping style a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :value, :selected, :label, :group, :spacing, :width, :size, :text_size, :font, :line_height, :shaping, :wrapping, :style, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param value [String] the value this radio represents

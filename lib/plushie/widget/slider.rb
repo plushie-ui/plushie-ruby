@@ -29,7 +29,9 @@ module Plushie
         circular_handle rail_color rail_width style label
         event_rate a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :range, :value, :step, :shift_step, :default, :width, :height, :circular_handle, :rail_color, :rail_width, :style, :label, :event_rate, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param range [Array<Numeric>] two-element [min, max] range

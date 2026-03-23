@@ -29,11 +29,15 @@ module Plushie
     # - style (symbol|hash) -- named style or style map.
     # - a11y (hash) -- accessibility overrides.
     class ComboBox
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[options selected placeholder width padding size font
         line_height menu_height icon on_option_hovered on_open on_close
         shaping ellipsis menu_style style a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :options, :selected, :placeholder, :width, :padding, :size, :font, :line_height, :menu_height, :icon, :on_option_hovered, :on_open, :on_close, :shaping, :ellipsis, :menu_style, :style, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param options [Array<String>] available choices

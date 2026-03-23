@@ -21,7 +21,9 @@ module Plushie
       # Supported property keys for the button widget.
       PROPS = %i[label width height padding clip style disabled a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :label, :width, :height, :padding, :clip, :style, :disabled, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier (first arg by convention)
       # @param label [String, nil] button label text

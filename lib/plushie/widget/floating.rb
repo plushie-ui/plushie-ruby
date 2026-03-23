@@ -17,9 +17,13 @@ module Plushie
     # - height (length) -- float height.
     # - a11y (hash) -- accessibility overrides.
     class Floating
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[translate_x translate_y scale width height a11y].freeze
 
-      attr_reader :id, :children, *PROPS
+      # @!parse
+      #   attr_reader :id, :children, :translate_x, :translate_y, :scale, :width, :height, :a11y
+      class_eval { attr_reader :id, :children, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties

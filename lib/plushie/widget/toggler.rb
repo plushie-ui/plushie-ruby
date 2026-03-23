@@ -24,10 +24,14 @@ module Plushie
     # - disabled (boolean) -- whether the toggler is disabled.
     # - a11y (hash) -- accessibility overrides.
     class Toggler
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[is_toggled label spacing width size text_size font line_height
         shaping wrapping text_alignment style disabled a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :is_toggled, :label, :spacing, :width, :size, :text_size, :font, :line_height, :shaping, :wrapping, :text_alignment, :style, :disabled, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param is_toggled [Boolean] whether the toggler is on

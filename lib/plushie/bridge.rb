@@ -14,7 +14,11 @@ module Plushie
   class Bridge
     # Exponential backoff parameters
     BACKOFF_BASE_MS = 100
+    # Maximum backoff delay in milliseconds.
+    # @api private
     BACKOFF_MAX_MS = 1600
+    # Maximum retry attempts before giving up.
+    # @api private
     MAX_RETRIES = 5
 
     # @return [:msgpack, :json] wire format

@@ -22,10 +22,14 @@ module Plushie
     # - code_theme (string) -- syntax highlighting theme for code blocks.
     # - a11y (hash) -- accessibility overrides.
     class Markdown
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[content width text_size h1_size h2_size h3_size code_size
         spacing link_color code_theme a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :content, :width, :text_size, :h1_size, :h2_size, :h3_size, :code_size, :spacing, :link_color, :code_theme, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param content [String] raw markdown text

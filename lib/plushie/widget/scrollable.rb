@@ -32,7 +32,9 @@ module Plushie
         scroller_width anchor on_scroll auto_scroll scrollbar_color
         scroller_color a11y].freeze
 
-      attr_reader :id, :children, *PROPS
+      # @!parse
+      #   attr_reader :id, :children, :width, :height, :direction, :spacing, :scrollbar_width, :scrollbar_margin, :scroller_width, :anchor, :on_scroll, :auto_scroll, :scrollbar_color, :scroller_color, :a11y
+      class_eval { attr_reader :id, :children, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties matching PROPS keys

@@ -26,11 +26,15 @@ module Plushie
     # - event_rate (integer) -- max events per second.
     # - a11y (hash) -- accessibility overrides.
     class MouseArea
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[cursor on_press on_release on_right_press on_right_release
         on_middle_press on_middle_release on_double_click on_enter on_exit
         on_move on_scroll event_rate a11y].freeze
 
-      attr_reader :id, :children, *PROPS
+      # @!parse
+      #   attr_reader :id, :children, :cursor, :on_press, :on_release, :on_right_press, :on_right_release, :on_middle_press, :on_middle_release, :on_double_click, :on_enter, :on_exit, :on_move, :on_scroll, :event_rate, :a11y
+      class_eval { attr_reader :id, :children, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties

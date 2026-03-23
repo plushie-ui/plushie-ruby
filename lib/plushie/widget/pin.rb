@@ -16,9 +16,13 @@ module Plushie
     # - height (length) -- pin container height.
     # - a11y (hash) -- accessibility overrides.
     class Pin
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[x y width height a11y].freeze
 
-      attr_reader :id, :children, *PROPS
+      # @!parse
+      #   attr_reader :id, :children, :x, :y, :width, :height, :a11y
+      class_eval { attr_reader :id, :children, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties

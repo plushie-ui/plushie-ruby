@@ -19,9 +19,13 @@ module Plushie
     # - label (string) -- accessible label.
     # - a11y (hash) -- accessibility overrides.
     class ProgressBar
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[range value width height style vertical label a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :range, :value, :width, :height, :style, :vertical, :label, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param range [Array<Numeric>] [min, max] range

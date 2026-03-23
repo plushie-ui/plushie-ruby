@@ -17,9 +17,13 @@ module Plushie
     # - max_width (number) -- maximum width in pixels.
     # - a11y (hash) -- accessibility overrides.
     class KeyedColumn
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[spacing padding width height max_width a11y].freeze
 
-      attr_reader :id, :children, *PROPS
+      # @!parse
+      #   attr_reader :id, :children, :spacing, :padding, :width, :height, :max_width, :a11y
+      class_eval { attr_reader :id, :children, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties

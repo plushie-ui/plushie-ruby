@@ -15,9 +15,13 @@ module Plushie
     # - style (symbol|hash) -- :default, :weak, or style map.
     # - a11y (hash) -- accessibility overrides.
     class Rule
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[height width direction style a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :height, :width, :direction, :style, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties

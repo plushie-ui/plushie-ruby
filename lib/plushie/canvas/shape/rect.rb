@@ -3,14 +3,20 @@
 module Plushie
   module Canvas
     module Shape
+      # Rectangle shape.
       Rect = ::Data.define(:x, :y, :w, :h, :fill, :stroke, :stroke_width, :opacity, :interactive) do
         def initialize(x:, y:, w:, h:, fill: nil, stroke: nil, stroke_width: nil, opacity: nil, interactive: nil)
           super
         end
 
-        # Backward-compatible hash-style access.
+        # Access shape properties by key.
+        #
+        # @param key [Symbol]
+        # @return [Object]
         def [](key) = to_wire[key]
 
+        # Encode shape for the wire protocol.
+        # @api private
         def to_wire
           h = {type: "rect", x: x, y: y, w: w, h: self.h}
           h[:fill] = fill if fill

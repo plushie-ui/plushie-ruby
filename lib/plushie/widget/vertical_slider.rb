@@ -23,10 +23,14 @@ module Plushie
     # - event_rate (integer) -- max events per second.
     # - a11y (hash) -- accessibility overrides.
     class VerticalSlider
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[range value step shift_step default width height
         rail_color rail_width style label event_rate a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :range, :value, :step, :shift_step, :default, :width, :height, :rail_color, :rail_width, :style, :label, :event_rate, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param range [Array<Numeric>] [min, max] range

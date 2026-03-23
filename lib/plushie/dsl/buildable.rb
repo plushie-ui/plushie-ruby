@@ -1,6 +1,9 @@
 # frozen_string_literal: true
 
 module Plushie
+  # Internal DSL support modules.
+  #
+  # @api private
   module DSL
     # Behaviour for types that participate in the DSL block-form pattern.
     #
@@ -25,6 +28,8 @@ module Plushie
         base.extend(ClassMethods)
       end
 
+      # Class methods added by Buildable.
+      # @api private
       module ClassMethods
         # Override in implementing module.
         # @return [Array<Symbol>] valid field names

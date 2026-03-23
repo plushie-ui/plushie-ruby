@@ -19,10 +19,14 @@ module Plushie
     # - description (string) -- extended accessible description.
     # - a11y (hash) -- accessibility overrides.
     class QrCode
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[data cell_size cell_color background_color error_correction
         alt description a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :data, :cell_size, :cell_color, :background_color, :error_correction, :alt, :description, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param data [String] data to encode

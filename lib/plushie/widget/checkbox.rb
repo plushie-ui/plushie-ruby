@@ -2,11 +2,19 @@
 
 module Plushie
   module Widget
+    # Typed builder for the checkbox widget (Layer 2 API).
+    #
+    # Construct a Checkbox, set properties via fluent +set_*+ methods,
+    # then call {#build} to produce a {Plushie::Node} for the view tree.
     class Checkbox
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[label is_toggled spacing width size text_size font
         line_height shaping wrapping style icon disabled a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :label, :is_toggled, :spacing, :width, :size, :text_size, :font, :line_height, :shaping, :wrapping, :style, :icon, :disabled, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       def initialize(id, label, is_toggled = false, **opts)
         @id = id.to_s
@@ -22,6 +30,9 @@ module Plushie
         end
       end
 
+      # Build a {Plushie::Node} from the current property values.
+      #
+      # @return [Plushie::Node]
       def build
         props = {}
         Build.put_if(props, :label, @label)

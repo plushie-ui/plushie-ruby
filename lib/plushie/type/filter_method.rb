@@ -7,6 +7,8 @@ module Plushie
     # @example
     #   image("pixel_art", src, filter_method: :nearest)
     module FilterMethod
+      # Valid filter methods.
+      # @api private
       VALID = %i[nearest linear].freeze
 
       # @param value [Symbol] :nearest, :linear

@@ -7,6 +7,8 @@ module Plushie
     # @example
     #   text("greeting", "Hello", shaping: :advanced)
     module Shaping
+      # Valid text shaping modes.
+      # @api private
       VALID = %i[basic advanced auto].freeze
 
       # @param value [Symbol] :basic, :advanced, :auto

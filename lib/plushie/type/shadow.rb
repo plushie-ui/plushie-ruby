@@ -18,11 +18,13 @@ module Plushie
     #     end
     #   end
     module Shadow
+      # Immutable spec; use {#with} to create modified copies.
       Spec = Data.define(:color, :offset_x, :offset_y, :blur_radius) do
         def initialize(color: "#000000", offset_x: 0, offset_y: 0, blur_radius: 0)
           super
         end
 
+        # Returns a copy with the given fields updated.
         def with(**changes)
           self.class.new(**to_h.merge(changes))
         end
@@ -33,6 +35,8 @@ module Plushie
         end
       end
 
+      # Recognized field keys for shadow specs.
+      # @api private
       FIELD_KEYS = %i[color offset offset_x offset_y blur_radius].freeze
 
       module_function

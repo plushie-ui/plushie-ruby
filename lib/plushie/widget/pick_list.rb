@@ -28,11 +28,15 @@ module Plushie
     # - on_close (boolean) -- emit close event.
     # - a11y (hash) -- accessibility overrides.
     class PickList
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[options selected placeholder width padding text_size font
         line_height menu_height shaping handle ellipsis menu_style style
         on_open on_close a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :options, :selected, :placeholder, :width, :padding, :text_size, :font, :line_height, :menu_height, :shaping, :handle, :ellipsis, :menu_style, :style, :on_open, :on_close, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param options [Array<String>] available choices

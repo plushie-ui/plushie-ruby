@@ -19,10 +19,14 @@ module Plushie
     # - style (symbol|hash) -- named style or style map.
     # - a11y (hash) -- accessibility overrides.
     class Tooltip
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[tip position gap padding snap_within_viewport delay
         style a11y].freeze
 
-      attr_reader :id, :children, *PROPS
+      # @!parse
+      #   attr_reader :id, :children, :tip, :position, :gap, :padding, :snap_within_viewport, :delay, :style, :a11y
+      class_eval { attr_reader :id, :children, *PROPS }
 
       # @param id [String] widget identifier
       # @param tip [String] tooltip text

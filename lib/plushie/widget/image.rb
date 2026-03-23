@@ -30,7 +30,9 @@ module Plushie
       PROPS = %i[source width height content_fit rotation opacity border_radius
         filter_method expand scale crop alt description decorative a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :source, :width, :height, :content_fit, :rotation, :opacity, :border_radius, :filter_method, :expand, :scale, :crop, :alt, :description, :decorative, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param source [String, nil] image file path or URL

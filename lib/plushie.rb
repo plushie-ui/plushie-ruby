@@ -101,7 +101,23 @@ require_relative "plushie/state"
 require_relative "plushie/key_modifiers"
 require_relative "plushie/dev_server"
 
+# Native desktop GUI framework for Ruby, powered by iced.
+#
+# Plushie implements the Elm architecture (init/update/view) for building
+# desktop applications. The rendering is handled by a precompiled binary
+# that communicates with Ruby over stdin/stdout using MessagePack.
+#
+# @example Run an app
+#   Plushie.run(Counter)
+#
+# @example Start in background
+#   handle = Plushie.start(Counter)
+#   handle.stop
+#
+# @see Plushie::App
+# @see Plushie::Runtime
 module Plushie
+  # Base error class for all Plushie exceptions.
   class Error < StandardError; end
 
   # Global configuration for the Plushie SDK.

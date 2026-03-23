@@ -227,7 +227,7 @@ module Plushie
       #
       # @param id [String] request ID for response correlation
       # @param target [String] "find" or "tree"
-      # @param selector [Hash] selector (e.g. {by: "id", value: "btn1"})
+      # @param selector [Hash] selector (e.g. `{by: "id", value: "btn1"}`)
       # @param format [:msgpack, :json]
       # @return [String]
       def encode_query(id, target, selector = {}, format = :msgpack)

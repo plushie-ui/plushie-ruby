@@ -19,6 +19,7 @@ module Plushie
     # @example Four values
     #   column(padding: [4, 8, 12, 16])
     module Padding
+      # Immutable spec; use `#with` to create modified copies.
       Pad = Data.define(:top, :right, :bottom, :left) do
         def initialize(top: nil, right: nil, bottom: nil, left: nil)
           super
@@ -35,6 +36,8 @@ module Plushie
         end
       end
 
+      # Recognized field keys for padding specs.
+      # @api private
       FIELD_KEYS = %i[top right bottom left].freeze
 
       module_function

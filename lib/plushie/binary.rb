@@ -104,6 +104,8 @@ module Plushie
       File.exist?(path) ? path : nil
     end
 
+    # Map Ruby platform to binary OS name.
+    # @api private
     def os_name
       case RbConfig::CONFIG["host_os"]
       when /linux/i then "linux"
@@ -113,6 +115,8 @@ module Plushie
       end
     end
 
+    # Map Ruby architecture to binary architecture name.
+    # @api private
     def arch_name
       case RbConfig::CONFIG["host_cpu"]
       when /x86_64|amd64/i then "x86_64"
@@ -172,6 +176,8 @@ module Plushie
       name
     end
 
+    # Search PATH for an executable.
+    # @api private
     def which(cmd)
       ENV["PATH"]&.split(File::PATH_SEPARATOR)&.each do |dir|
         path = File.join(dir, cmd)

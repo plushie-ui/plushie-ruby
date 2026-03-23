@@ -19,8 +19,8 @@ module Plushie
   class Subscription
     # An immutable subscription specification.
     #
-    # Created via factory methods on {Subscription} rather than directly.
-    # The runtime uses {#key} to diff subscriptions between cycles,
+    # Created via factory methods on Subscription rather than directly.
+    # The runtime uses `#key` to diff subscriptions between cycles,
     # starting new ones and stopping removed ones automatically.
     #
     # @!attribute [r] type [Symbol] subscription type (:every, :on_key_press, etc.)
@@ -88,7 +88,7 @@ module Plushie
     end
 
     # Subscribe to modifier key state changes.
-    # Delivers {Event::Modifiers}[modifiers: {...}] to update when
+    # Delivers Event::Modifiers with the current modifier state to update when
     # shift, control, alt, or command keys change state.
     # The tag is for subscription management only -- it does NOT appear in the event.
     #

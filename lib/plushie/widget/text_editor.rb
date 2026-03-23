@@ -30,12 +30,16 @@ module Plushie
     # - selection_color (string) -- selection highlight color.
     # - a11y (hash) -- accessibility overrides.
     class TextEditor
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[content placeholder width height min_height max_height font
         size line_height padding wrapping ime_purpose highlight_syntax
         highlight_theme style key_bindings placeholder_color selection_color
         a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :content, :placeholder, :width, :height, :min_height, :max_height, :font, :size, :line_height, :padding, :wrapping, :ime_purpose, :highlight_syntax, :highlight_theme, :style, :key_bindings, :placeholder_color, :selection_color, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties

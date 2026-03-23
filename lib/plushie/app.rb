@@ -38,12 +38,22 @@ module Plushie
       base.include(Aliases)
     end
 
+    # Convenience aliases injected into App classes.
+    # @api private
     module Aliases
+      # Alias for Plushie::Event.
+      # @api private
       Event = Plushie::Event
+      # Alias for Plushie::Command.
+      # @api private
       Command = Plushie::Command
+      # Alias for Plushie::Subscription.
+      # @api private
       Subscription = Plushie::Subscription
     end
 
+    # Default no-op implementations for optional callbacks.
+    # @api private
     module DefaultCallbacks
       # Override to return active subscriptions based on the model.
       # Default: no subscriptions.

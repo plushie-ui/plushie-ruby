@@ -8,6 +8,8 @@ module Plushie
     #   scrollable("content", direction: :vertical)
     #   rule(direction: :horizontal)
     module Direction
+      # Valid direction values.
+      # @api private
       VALID = %i[horizontal vertical both].freeze
 
       # @param value [Symbol] :horizontal, :vertical, :both

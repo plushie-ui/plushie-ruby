@@ -13,9 +13,13 @@ module Plushie
     # - theme (symbol|hash) -- built-in theme atom or custom palette map.
     # - a11y (hash) -- accessibility overrides.
     class Themer
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[theme a11y].freeze
 
-      attr_reader :id, :children, *PROPS
+      # @!parse
+      #   attr_reader :id, :children, :theme, :a11y
+      class_eval { attr_reader :id, :children, *PROPS }
 
       # @param id [String] widget identifier
       # @param theme [Symbol, Hash, nil] theme to apply

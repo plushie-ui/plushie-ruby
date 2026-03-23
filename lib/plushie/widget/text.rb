@@ -2,11 +2,19 @@
 
 module Plushie
   module Widget
+    # Typed builder for the text widget (Layer 2 API).
+    #
+    # Construct a Text, set properties via fluent +set_*+ methods,
+    # then call {#build} to produce a {Plushie::Node} for the view tree.
     class Text
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[content size color font width height line_height align_x align_y
         wrapping ellipsis shaping style a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :content, :size, :color, :font, :width, :height, :line_height, :align_x, :align_y, :wrapping, :ellipsis, :shaping, :style, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       def initialize(id, content = nil, **opts)
         @id = id.to_s
@@ -21,6 +29,9 @@ module Plushie
         end
       end
 
+      # Build a {Plushie::Node} from the current property values.
+      #
+      # @return [Plushie::Node]
       def build
         props = {}
         Build.put_if(props, :content, @content)

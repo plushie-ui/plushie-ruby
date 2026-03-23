@@ -25,7 +25,11 @@ module Plushie
     # @example Assert a full tree snapshot as JSON
     #   assert_tree_snapshot(session.tree, "test/snapshots/counter.json")
     module Snapshot
+      # Default directory for tree snapshot files.
+      # @api private
       SNAPSHOTS_DIR = "test/snapshots"
+      # Default directory for screenshot files.
+      # @api private
       SCREENSHOTS_DIR = "test/screenshots"
 
       # Compare a tree hash from the renderer against a stored golden value.

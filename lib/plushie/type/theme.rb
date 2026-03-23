@@ -13,6 +13,8 @@ module Plushie
     # @example System preference
     #   window("main", theme: :system)
     module Theme
+      # Built-in theme names.
+      # @api private
       BUILTIN = %i[
         light dark
         dracula nord

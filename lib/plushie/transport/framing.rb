@@ -1,12 +1,13 @@
 # frozen_string_literal: true
 
 module Plushie
+  # Wire transport adapters for non-standard connections.
   module Transport
     # Frame encoding/decoding for raw byte stream transports.
     #
     # Used for IoStream adapters (SSH, TCP, WebSocket) where the
     # transport doesn't provide built-in message framing. Not needed
-    # for Erlang Ports (which handle framing via {:packet, 4}) or
+    # for Erlang Ports (which handle framing via `{:packet, 4}`) or
     # the Connection class (which handles framing internally).
     #
     # Two modes:

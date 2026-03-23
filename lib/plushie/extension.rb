@@ -53,14 +53,21 @@ module Plushie
   #   node = gauge.build
   #
   module Extension
+    # Recognized property type names for extensions.
+    # @api private
     KNOWN_PROP_TYPES = %i[
       number string boolean color length padding
       alignment style font atom map any
     ].freeze
 
+    # Property names reserved by the framework.
+    # @api private
     RESERVED_PROP_NAMES = %i[id type children a11y event_rate].freeze
 
+    # Methods added to classes that include Plushie::Extension.
     module ClassMethods
+      # Valid extension kind values.
+      # @api private
       VALID_KINDS = %i[widget native_widget].freeze
 
       # Declares the widget type name.

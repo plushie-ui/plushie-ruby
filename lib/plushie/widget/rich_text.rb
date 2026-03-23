@@ -21,10 +21,14 @@ module Plushie
     # - ellipsis (string) -- text ellipsis mode.
     # - a11y (hash) -- accessibility overrides.
     class RichText
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[spans width height size font color line_height wrapping
         ellipsis a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :spans, :width, :height, :size, :font, :color, :line_height, :wrapping, :ellipsis, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties

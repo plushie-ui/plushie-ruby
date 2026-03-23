@@ -7,6 +7,8 @@ module Plushie
     # @example
     #   image("photo", "/path/to/img.png", content_fit: :cover)
     module ContentFit
+      # Valid content fit modes.
+      # @api private
       VALID = %i[contain cover fill none scale_down].freeze
 
       # @param value [Symbol] :contain, :cover, :fill, :none, :scale_down

@@ -21,10 +21,14 @@ module Plushie
     # - fluid (number) -- fluid mode max cell width in pixels.
     # - a11y (hash) -- accessibility overrides.
     class Grid
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[columns column_count spacing width height column_width
         row_height fluid a11y].freeze
 
-      attr_reader :id, :children, *PROPS
+      # @!parse
+      #   attr_reader :id, :children, :columns, :column_count, :spacing, :width, :height, :column_width, :row_height, :fluid, :a11y
+      class_eval { attr_reader :id, :children, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties

@@ -21,9 +21,13 @@ module Plushie
     # - width (length) -- overlay node width.
     # - a11y (hash) -- accessibility overrides.
     class Overlay
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[position gap offset_x offset_y flip align width a11y].freeze
 
-      attr_reader :id, :children, *PROPS
+      # @!parse
+      #   attr_reader :id, :children, :position, :gap, :offset_x, :offset_y, :flip, :align, :width, :a11y
+      class_eval { attr_reader :id, :children, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties

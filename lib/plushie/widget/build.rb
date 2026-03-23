@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Plushie
+  # Typed widget builder modules (Layer 2 API).
   module Widget
     # Internal helpers for widget builder `build` implementations.
     module Build

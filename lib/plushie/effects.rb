@@ -26,7 +26,11 @@ module Plushie
   module Effects
     # Default timeouts per effect kind (milliseconds).
     TIMEOUT_FILE = 120_000
+    # Default timeout for clipboard operations.
+    # @api private
     TIMEOUT_CLIPBOARD = 5_000
+    # Default timeout for notification operations.
+    # @api private
     TIMEOUT_NOTIFICATION = 5_000
 
     module_function
@@ -36,10 +40,10 @@ module Plushie
     # -------------------------------------------------------------------
 
     # Open-file dialog. Returns a Command.
-    # @param title [String] dialog title
-    # @param directory [String, nil] starting directory
-    # @param filters [Array, nil] filter pairs: [["Label", "*.ext"]]
-    # @param timeout [Integer, nil] override default timeout
+    # @option opts [String] :title dialog title
+    # @option opts [String, nil] :directory starting directory
+    # @option opts [Array, nil] :filters filter pairs: [["Label", "*.ext"]]
+    # @option opts [Integer, nil] :timeout override default timeout
     # @return [Command::Cmd]
     def file_open(**opts) = request(:file_open, **opts)
 
@@ -48,7 +52,7 @@ module Plushie
     def file_open_multiple(**opts) = request(:file_open_multiple, **opts)
 
     # Save-file dialog.
-    # @param default_name [String, nil] suggested filename
+    # @option opts [String, nil] :default_name suggested filename
     # @return [Command::Cmd]
     def file_save(**opts) = request(:file_save, **opts)
 
@@ -107,10 +111,10 @@ module Plushie
     # Show an OS notification.
     # @param title [String]
     # @param body [String]
-    # @param icon [String, nil] icon name
-    # @param timeout [Integer, nil] auto-dismiss in ms
-    # @param urgency [Symbol, nil] :low, :normal, :critical
-    # @param sound [String, nil] sound theme name
+    # @option opts [String, nil] :icon icon name
+    # @option opts [Integer, nil] :timeout auto-dismiss in ms
+    # @option opts [Symbol, nil] :urgency :low, :normal, :critical
+    # @option opts [String, nil] :sound sound theme name
     # @return [Command::Cmd]
     def notification(title, body, **opts)
       payload = {title: title, body: body}

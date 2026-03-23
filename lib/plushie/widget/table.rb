@@ -35,7 +35,9 @@ module Plushie
         header_text_size row_text_size cell_spacing row_spacing
         separator_thickness separator_color a11y].freeze
 
-      attr_reader :id, :children, *PROPS
+      # @!parse
+      #   attr_reader :id, :children, :columns, :rows, :header, :separator, :width, :padding, :sort_by, :sort_order, :header_text_size, :row_text_size, :cell_spacing, :row_spacing, :separator_thickness, :separator_color, :a11y
+      class_eval { attr_reader :id, :children, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties matching PROPS keys

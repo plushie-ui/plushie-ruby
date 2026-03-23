@@ -16,9 +16,13 @@ module Plushie
     # - clip (boolean) -- clip overflowing children.
     # - a11y (hash) -- accessibility overrides.
     class Stack
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[width height clip a11y].freeze
 
-      attr_reader :id, :children, *PROPS
+      # @!parse
+      #   attr_reader :id, :children, :width, :height, :clip, :a11y
+      class_eval { attr_reader :id, :children, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties

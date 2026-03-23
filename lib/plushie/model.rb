@@ -11,12 +11,15 @@ module Plushie
   # Instances are frozen by default (inherited from Data). Attempting
   # to mutate raises FrozenError.
   module Model
+    # Define a new model class with the given attributes.
     def self.define(*fields)
       klass = Data.define(*fields)
       klass.include(Extensions)
       klass
     end
 
+    # Methods mixed into Model classes.
+    # @api private
     module Extensions
       # Return a new instance with the given fields replaced.
       # Unspecified fields carry over from the current instance.

@@ -13,6 +13,8 @@ module Plushie
     # @example Full struct
     #   A11y.from_opts(role: :button, label: "Submit", description: "Send the form")
     module A11y
+      # Recognized field keys for accessibility specs.
+      # @api private
       FIELD_KEYS = %i[
         role label description hidden expanded required level live
         busy invalid modal read_only mnemonic toggled selected value
@@ -20,6 +22,8 @@ module Plushie
         position_in_set size_of_set has_popup
       ].freeze
 
+      # Valid accessibility roles.
+      # @api private
       VALID_ROLES = %i[
         alert alertdialog application article banner button cell
         checkbox columnheader combobox complementary contentinfo
@@ -33,12 +37,14 @@ module Plushie
         tooltip tree treegrid treeitem
       ].freeze
 
+      # Immutable spec; use {#with} to create modified copies.
       Spec = Data.define(*FIELD_KEYS) do
         def initialize(**fields)
           defaults = FIELD_KEYS.each_with_object({}) { |k, h| h[k] = nil }
           super(**defaults.merge(fields))
         end
 
+        # Returns a copy with the given fields updated.
         def with(**changes)
           self.class.new(**to_h.merge(changes))
         end

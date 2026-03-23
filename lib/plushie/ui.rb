@@ -34,15 +34,26 @@ module Plushie
   #
   module UI
     # Thread-local context for nesting DSL calls.
+    #
+    # @api private
     module Context
+      # Return the current context.
+      # @api private
       def self.current = (Thread.current[:_plushie_ctx_stack] || []).last
+
+      # Push a new context.
+      # @api private
       def self.push(children) = (Thread.current[:_plushie_ctx_stack] ||= []).push(children)
 
+      # Pop the top context.
+      # @api private
       def self.pop
         stack = Thread.current[:_plushie_ctx_stack]
         stack&.pop
       end
 
+      # Clear the context stack.
+      # @api private
       def self.clear
         Thread.current[:_plushie_ctx_stack] = nil
       end

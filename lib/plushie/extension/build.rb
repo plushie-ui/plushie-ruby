@@ -11,6 +11,8 @@ module Plushie
     # crate and builds a combined binary. Mirrors the Elixir
     # Mix.Tasks.Plushie.Build logic.
     module Build
+      # Template for generated Rust constructor code.
+      # @api private
       RUST_CONSTRUCTOR_PATTERN = /\A[A-Za-z_][A-Za-z0-9_:]*(\([^)]*\))?\z/
 
       module_function
@@ -248,6 +250,7 @@ module Plushie
         install_extension_binary(binary_src)
       end
 
+      # Generate a Cargo workspace for extension builds.
       # @api private
       def generate_workspace(build_dir, bin_name, extensions, crate_paths)
         cargo = generate_cargo_toml(build_dir, bin_name, extensions, crate_paths)
@@ -259,6 +262,7 @@ module Plushie
         File.write(File.join(src_dir, "main.rs"), main)
       end
 
+      # Install the built extension binary.
       # @api private
       def install_extension_binary(src)
         dest_dir = File.join("_build", "plushie", "bin")
@@ -271,6 +275,7 @@ module Plushie
         dest
       end
 
+      # Compute a relative path between two directories.
       # @api private
       def relative_path(target, from)
         Pathname.new(target).relative_path_from(Pathname.new(from)).to_s

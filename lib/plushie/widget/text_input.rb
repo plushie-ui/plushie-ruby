@@ -21,7 +21,9 @@ module Plushie
         icon on_submit on_paste secure ime_purpose style
         placeholder_color selection_color a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :value, :placeholder, :padding, :width, :size, :font, :line_height, :align_x, :icon, :on_submit, :on_paste, :secure, :ime_purpose, :style, :placeholder_color, :selection_color, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param value [String] initial text value

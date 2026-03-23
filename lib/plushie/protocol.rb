@@ -11,6 +11,8 @@ module Plushie
   #
   # @see ~/projects/plushie/docs/protocol.md
   module Protocol
+    # Current wire protocol version.
+    # @api private
     PROTOCOL_VERSION = 1
 
     autoload :Encode, "plushie/protocol/encode"

@@ -21,6 +21,8 @@ module Plushie
   #   mods.command?  #=> false
   #
   class KeyModifiers
+    # Internal modifier state storage.
+    # @api private
     Mods = ::Data.define(:ctrl, :shift, :alt, :logo, :command)
 
     # Create a new KeyModifiers with the given flags.
@@ -74,15 +76,21 @@ module Plushie
     # @return [Hash]
     def to_h = @mods.to_h
 
+    # Equality comparison.
+    # @api private
     def ==(other)
       other.is_a?(KeyModifiers) && to_h == other.to_h
     end
     alias_method :eql?, :==
 
+    # Hash code for use as Hash key.
+    # @api private
     def hash
       to_h.hash
     end
 
+    # Human-readable representation.
+    # @api private
     def inspect
       flags = to_h.select { |_, v| v }.keys.join(", ")
       "#<Plushie::KeyModifiers #{flags.empty? ? "(none)" : flags}>"

@@ -22,10 +22,14 @@ module Plushie
     # - decorative (boolean) -- hide from assistive technology.
     # - a11y (hash) -- accessibility overrides.
     class Svg
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[source width height content_fit rotation opacity color
         alt description decorative a11y].freeze
 
-      attr_reader :id, *PROPS
+      # @!parse
+      #   attr_reader :id, :source, :width, :height, :content_fit, :rotation, :opacity, :color, :alt, :description, :decorative, :a11y
+      class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier
       # @param source [String] path to SVG file

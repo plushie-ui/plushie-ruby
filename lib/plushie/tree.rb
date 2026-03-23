@@ -96,10 +96,10 @@ module Plushie
     # Diff two normalized trees, producing an array of patch operations.
     #
     # Each op is a Hash with string keys matching the wire protocol:
-    #   { "op" => "replace_node", "path" => [...], "node" => {...} }
-    #   { "op" => "update_props", "path" => [...], "props" => {...} }
-    #   { "op" => "insert_child", "path" => [...], "index" => n, "node" => {...} }
-    #   { "op" => "remove_child", "path" => [...], "index" => n }
+    #   `{ "op" => "replace_node", "path" => [...], "node" => {...} }`
+    #   `{ "op" => "update_props", "path" => [...], "props" => {...} }`
+    #   `{ "op" => "insert_child", "path" => [...], "index" => n, "node" => {...} }`
+    #   `{ "op" => "remove_child", "path" => [...], "index" => n }`
     #
     # @param old_tree [Node, nil] previous normalized tree
     # @param new_tree [Node, nil] current normalized tree

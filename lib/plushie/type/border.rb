@@ -21,11 +21,13 @@ module Plushie
     # @example Per-corner radius
     #   Border.from_opts(width: 1, radius: {top_left: 8, top_right: 8, bottom_right: 0, bottom_left: 0})
     module Border
+      # Immutable spec; use {#with} to create modified copies.
       Spec = Data.define(:color, :width, :radius) do
         def initialize(color: nil, width: 0, radius: 0)
           super
         end
 
+        # Returns a copy with the given fields updated.
         def with(**changes)
           self.class.new(**to_h.merge(changes))
         end
@@ -47,6 +49,8 @@ module Plushie
         end
       end
 
+      # Recognized field keys for border specs.
+      # @api private
       FIELD_KEYS = %i[color width rounded radius].freeze
 
       module_function

@@ -40,6 +40,7 @@ module Plushie
     #   )
     #   button("save", "Save", style: spec)
     module StyleMap
+      # Immutable spec; use {#with} to create modified copies.
       Spec = Data.define(:base, :background, :text_color, :border, :shadow,
         :hovered, :pressed, :disabled, :focused) do
         def initialize(base: nil, background: nil, text_color: nil,
@@ -48,6 +49,7 @@ module Plushie
           super
         end
 
+        # Returns a copy with the given fields updated.
         def with(**changes)
           self.class.new(**to_h.merge(changes))
         end
@@ -81,6 +83,8 @@ module Plushie
         end
       end
 
+      # Recognized field keys for style map specs.
+      # @api private
       FIELD_KEYS = %i[base background text_color border shadow hovered pressed disabled focused].freeze
 
       module_function

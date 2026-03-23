@@ -7,6 +7,8 @@ module Plushie
     # @example
     #   scrollable("list", anchor: :end)
     module Anchor
+      # Valid anchor values.
+      # @api private
       VALID = %i[start end].freeze
 
       # @param value [Symbol] :start, :end

@@ -16,9 +16,13 @@ module Plushie
     # - event_rate (integer) -- max events per second.
     # - a11y (hash) -- accessibility overrides.
     class Sensor
+      # Supported property keys for this widget.
+      # @api private
       PROPS = %i[delay anticipate on_resize event_rate a11y].freeze
 
-      attr_reader :id, :children, *PROPS
+      # @!parse
+      #   attr_reader :id, :children, :delay, :anticipate, :on_resize, :event_rate, :a11y
+      class_eval { attr_reader :id, :children, *PROPS }
 
       # @param id [String] widget identifier
       # @param opts [Hash] optional properties

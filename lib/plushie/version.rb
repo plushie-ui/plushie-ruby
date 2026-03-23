@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 module Plushie
+  # Current version of the plushie gem.
   VERSION = "0.1.0"
 
   # Version of the plushie renderer binary this SDK targets.
