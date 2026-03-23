@@ -201,7 +201,7 @@ module Plushie
     # @param window_id [String]
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.screenshot(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :screenshot, window_id:, tag:})
+    def self.screenshot(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :screenshot, window_id:, tag: tag.to_s})
 
     # @param window_id [String]
     # @param resizable [Boolean]
@@ -256,42 +256,42 @@ module Plushie
     # @param window_id [String]
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.get_window_size(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :get_size, window_id:, tag:})
+    def self.get_window_size(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :get_size, window_id:, tag: tag.to_s})
 
     # @param window_id [String]
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.get_window_position(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :get_position, window_id:, tag:})
+    def self.get_window_position(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :get_position, window_id:, tag: tag.to_s})
 
     # @param window_id [String]
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.is_maximized(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :is_maximized, window_id:, tag:})
+    def self.is_maximized(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :is_maximized, window_id:, tag: tag.to_s})
 
     # @param window_id [String]
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.is_minimized(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :is_minimized, window_id:, tag:})
+    def self.is_minimized(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :is_minimized, window_id:, tag: tag.to_s})
 
     # @param window_id [String]
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.get_mode(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :get_mode, window_id:, tag:})
+    def self.get_mode(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :get_mode, window_id:, tag: tag.to_s})
 
     # @param window_id [String]
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.get_scale_factor(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :get_scale_factor, window_id:, tag:})
+    def self.get_scale_factor(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :get_scale_factor, window_id:, tag: tag.to_s})
 
     # @param window_id [String]
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.raw_id(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :raw_id, window_id:, tag:})
+    def self.raw_id(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :raw_id, window_id:, tag: tag.to_s})
 
     # @param window_id [String]
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.monitor_size(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :monitor_size, window_id:, tag:})
+    def self.monitor_size(window_id, tag) = Cmd.new(type: :window_query, payload: {op: :monitor_size, window_id:, tag: tag.to_s})
 
     # -------------------------------------------------------------------
     # System queries
@@ -299,11 +299,11 @@ module Plushie
 
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.get_system_theme(tag) = Cmd.new(type: :window_query, payload: {op: :get_system_theme, window_id: "_system", tag:})
+    def self.get_system_theme(tag) = Cmd.new(type: :window_query, payload: {op: :get_system_theme, window_id: "_system", tag: tag.to_s})
 
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.get_system_info(tag) = Cmd.new(type: :window_query, payload: {op: :get_system_info, window_id: "_system", tag:})
+    def self.get_system_info(tag) = Cmd.new(type: :window_query, payload: {op: :get_system_info, window_id: "_system", tag: tag.to_s})
 
     # -------------------------------------------------------------------
     # PaneGrid operations

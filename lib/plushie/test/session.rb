@@ -253,8 +253,9 @@ module Plushie
           result = @app.update(@model, event)
           @model, commands = unwrap_result(result)
           process_commands_sync(commands)
-        rescue
+        rescue => e
           @model = saved
+          warn "plushie test: error processing event: #{e.class}: #{e.message}" if $DEBUG
         end
         @tree = normalize_view
       end
@@ -267,8 +268,9 @@ module Plushie
           @model, commands = unwrap_result(result)
           process_commands_sync(commands)
           render_and_snapshot
-        rescue
+        rescue => e
           @model = saved
+          warn "plushie test: error processing event: #{e.class}: #{e.message}" if $DEBUG
         end
       end
 
