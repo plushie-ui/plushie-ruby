@@ -160,6 +160,7 @@ module Plushie
       require "digest"
       require "rubygems/package"
       require "zlib"
+      require "stringio"
 
       dir = wasm_path
       js_path = File.join(dir, "plushie_wasm.js")
@@ -209,8 +210,6 @@ module Plushie
     def wasm_path
       File.join("_build", "plushie", "wasm")
     end
-
-    private_class_method :fetch_url
   end
 end
 

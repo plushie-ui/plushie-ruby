@@ -238,10 +238,9 @@ module Plushie
             process_events_individually(events)
             break
           else
-            # Other messages (events from subscriptions, etc.) -- process them
-            if response.is_a?(Hash) && response[:type] == :event
-              # TODO: handle subscription events during interact
-            end
+            # Subscription events or other messages that arrive during interact
+            # are silently consumed -- test sessions don't fire subscriptions
+            # in mock mode, and headless mode delivers them via interact_step.
           end
         end
       end
