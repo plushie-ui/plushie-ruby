@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require "logger"
-require "set"
 require_relative "runtime/commands"
 require_relative "runtime/subscriptions"
 
@@ -169,7 +168,7 @@ module Plushie
       @model = saved_model
       handle_callback_error("update", e,
         hint: "Add an `else` clause to your update method to handle unmatched events")
-    rescue StandardError => e
+    rescue => e
       @model = saved_model
       handle_callback_error("update", e)
     end
@@ -184,7 +183,7 @@ module Plushie
       encoded = Protocol::Encode.encode_snapshot(wire, @format)
       @bridge.send_encoded(encoded)
       @bridge.remember_snapshot(encoded)
-    rescue StandardError => e
+    rescue => e
       handle_callback_error("view", e)
     end
 
@@ -210,7 +209,7 @@ module Plushie
           @bridge.remember_snapshot(Protocol::Encode.encode_snapshot(wire, @format))
         end
       end
-    rescue StandardError => e
+    rescue => e
       handle_callback_error("view", e)
     end
 

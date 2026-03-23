@@ -127,7 +127,7 @@ module Plushie
           target = selector.start_with?("#") ? selector[1..] : selector
           suggestions = find_similar_ids(target, all_ids)
 
-          msg = +"Widget not found: #{selector}\n"
+          msg = "Widget not found: #{selector}\n"
           msg << "\n  Did you mean: #{suggestions.map { "##{_1}" }.join(", ")}\n" if suggestions.any?
           msg << "\n  Current tree IDs: #{all_ids.join(", ")}"
           raise Plushie::Error, msg
@@ -182,7 +182,7 @@ module Plushie
         @pool.unregister(@session_id)
       rescue => e
         # Swallow errors during cleanup
-        $stderr.puts "plushie test: error during session cleanup: #{e.message}" if $DEBUG
+        warn "plushie test: error during session cleanup: #{e.message}" if $DEBUG
       end
 
       # Extract text content from an element hash.
@@ -252,7 +252,7 @@ module Plushie
           result = @app.update(@model, event)
           @model, commands = unwrap_result(result)
           process_commands_sync(commands)
-        rescue => e
+        rescue
           @model = saved
         end
         @tree = normalize_view
@@ -266,7 +266,7 @@ module Plushie
           @model, commands = unwrap_result(result)
           process_commands_sync(commands)
           render_and_snapshot
-        rescue => e
+        rescue
           @model = saved
         end
       end
@@ -450,7 +450,15 @@ module Plushie
         return b.length if a.empty?
         return a.length if b.empty?
 
-        matrix = Array.new(a.length + 1) { |i| Array.new(b.length + 1) { |j| (i.zero? ? j : (j.zero? ? i : 0)) } }
+        matrix = Array.new(a.length + 1) { |i|
+          Array.new(b.length + 1) { |j|
+            (if i.zero?
+               j
+             else
+               (j.zero? ? i : 0)
+             end)
+          }
+        }
 
         (1..a.length).each do |i|
           (1..b.length).each do |j|

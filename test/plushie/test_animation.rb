@@ -70,7 +70,7 @@ class TestAnimation < Minitest::Test
   end
 
   def test_interpolate_with_proc_easing
-    double_easing = ->(t) { t * 2.0 > 1.0 ? 1.0 : t * 2.0 }
+    double_easing = ->(t) { (t * 2.0 > 1.0) ? 1.0 : t * 2.0 }
     val = A.interpolate(0, 100, 0.25, double_easing)
     assert_in_delta 50.0, val, 1e-10
   end

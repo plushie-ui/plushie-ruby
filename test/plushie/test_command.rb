@@ -19,7 +19,7 @@ class TestCommand < Minitest::Test
   end
 
   def test_stream
-    cmd = C.stream(->(emit) { emit.("chunk") }, :import)
+    cmd = C.stream(->(emit) { emit.call("chunk") }, :import)
     assert_equal :stream, cmd.type
   end
 

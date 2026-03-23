@@ -77,9 +77,9 @@ module Plushie
       },
 
       spring: ->(t) {
-        if t == 0.0
+        if t <= 0.0
           0.0
-        elsif t == 1.0
+        elsif t >= 1.0
           1.0
         else
           c4 = 2.0 * Math::PI / 3.0

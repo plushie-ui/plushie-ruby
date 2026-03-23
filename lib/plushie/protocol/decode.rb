@@ -55,16 +55,16 @@ module Plushie
       # @return [Event::*, Hash, nil]
       def dispatch_message(msg)
         case msg["type"]
-        when "event"              then decode_event(msg)
-        when "hello"              then decode_hello(msg)
-        when "effect_response"    then decode_effect_response(msg)
-        when "query_response"     then decode_query_response(msg)
-        when "op_query_response"  then decode_op_query_response(msg)
-        when "interact_response"  then decode_interact_response(msg)
-        when "interact_step"      then decode_interact_step(msg)
+        when "event" then decode_event(msg)
+        when "hello" then decode_hello(msg)
+        when "effect_response" then decode_effect_response(msg)
+        when "query_response" then decode_query_response(msg)
+        when "op_query_response" then decode_op_query_response(msg)
+        when "interact_response" then decode_interact_response(msg)
+        when "interact_step" then decode_interact_step(msg)
         when "tree_hash_response" then decode_tree_hash_response(msg)
         when "screenshot_response" then decode_screenshot_response(msg)
-        when "reset_response"     then decode_reset_response(msg)
+        when "reset_response" then decode_reset_response(msg)
         else msg
         end
       end
@@ -432,9 +432,9 @@ module Plushie
       # @return [Event::Effect]
       def decode_effect_response(msg)
         result = case msg["status"]
-        when "ok"        then [:ok, msg["result"]]
+        when "ok" then [:ok, msg["result"]]
         when "cancelled" then :cancelled
-        when "error"     then [:error, msg["error"]]
+        when "error" then [:error, msg["error"]]
         else
           # Legacy fallback for older renderers
           if msg["error"]
@@ -589,7 +589,6 @@ module Plushie
         case cursor
         when Hash then [cursor["start"], cursor["end"]]
         when Array then cursor
-        else nil
         end
       end
     end

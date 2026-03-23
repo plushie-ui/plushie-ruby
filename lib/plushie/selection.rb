@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "set"
-
 module Plushie
   # Selection state for lists and tables. Pure data structure supporting
   # single, multi, and range selection modes.

@@ -90,7 +90,7 @@ module Plushie
 
         next if va == vb
 
-        return dir == :asc ? compare_values(va, vb) : compare_values(vb, va)
+        return (dir == :asc) ? compare_values(va, vb) : compare_values(vb, va)
       end
 
       0

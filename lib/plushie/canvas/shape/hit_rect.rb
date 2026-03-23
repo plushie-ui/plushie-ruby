@@ -17,7 +17,7 @@ module Plushie
 
         # @return [Hash] wire-ready hit rect map
         def to_wire
-          {x: x, y: y, w: w, h: self.h}
+          {x: x, y: y, w: w, h: h}
         end
       end
     end

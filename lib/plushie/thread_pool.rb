@@ -70,7 +70,7 @@ module Plushie
           rescue => e
             # Worker exceptions are swallowed to keep the pool alive.
             # The caller is responsible for error handling in their block.
-            $stderr.puts "plushie: thread pool worker error: #{e.class}: #{e.message}" if $DEBUG
+            warn "plushie: thread pool worker error: #{e.class}: #{e.message}" if $DEBUG
           end
         end
       end

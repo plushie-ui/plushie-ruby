@@ -80,7 +80,7 @@ module Plushie
         thread = Thread.new do
           result = callable.call
           queue.push([:async_result, tag, nonce, result])
-        rescue StandardError => e
+        rescue => e
           queue.push([:async_result, tag, nonce, [:error, e]])
         end
         thread.name = "plushie-async-#{tag}"
@@ -98,7 +98,7 @@ module Plushie
         thread = Thread.new do
           result = callable.call(emit)
           queue.push([:async_result, tag, nonce, result])
-        rescue StandardError => e
+        rescue => e
           queue.push([:async_result, tag, nonce, [:error, e]])
         end
         thread.name = "plushie-stream-#{tag}"

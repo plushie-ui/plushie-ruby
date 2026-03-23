@@ -35,7 +35,7 @@ module Plushie
 
           @session
         ensure
-          @session&.stop if @session
+          @session&.stop
         end
 
         private

@@ -31,7 +31,6 @@ module Plushie
         case str
         when "line", "lines" then :line
         when "pixel", "pixels" then :pixel
-        else nil
         end
       end
 
@@ -44,7 +43,6 @@ module Plushie
         when "picked" then :picked
         when "dropped" then :dropped
         when "canceled" then :canceled
-        else nil
         end
       end
 
@@ -59,7 +57,6 @@ module Plushie
         when "bottom" then :bottom
         when "left" then :left
         when "right" then :right
-        else nil
         end
       end
     end

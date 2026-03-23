@@ -38,7 +38,7 @@ class Todo
 
     in Event::Widget[type: :toggle, id: "toggle", scope: [todo_id, *]]
       todos = model.todos.map do |t|
-        t.id == todo_id ? t.with(done: !t.done) : t
+        (t.id == todo_id) ? t.with(done: !t.done) : t
       end
       model.with(todos: todos)
 

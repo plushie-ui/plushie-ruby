@@ -51,7 +51,15 @@ class TestTestHelpers < Minitest::Test
       return b.length if a.empty?
       return a.length if b.empty?
 
-      matrix = Array.new(a.length + 1) { |i| Array.new(b.length + 1) { |j| (i.zero? ? j : (j.zero? ? i : 0)) } }
+      matrix = Array.new(a.length + 1) { |i|
+        Array.new(b.length + 1) { |j|
+          (if i.zero?
+             j
+           else
+             (j.zero? ? i : 0)
+           end)
+        }
+      }
 
       (1..a.length).each do |i|
         (1..b.length).each do |j|

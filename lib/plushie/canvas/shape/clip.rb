@@ -14,7 +14,7 @@ module Plushie
 
         # @return [Hash] wire-ready clip map
         def to_wire
-          {type: "push_clip", x: x, y: y, w: w, h: self.h}
+          {type: "push_clip", x: x, y: y, w: w, h: h}
         end
       end
 

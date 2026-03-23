@@ -258,7 +258,7 @@ module Plushie
         .map { |_, (_, idx)| idx }
 
       remove_ops = removed_indices
-        .sort { |a, b| b <=> a }
+        .sort.reverse
         .map { |idx| {"op" => "remove_child", "path" => path, "index" => idx} }
 
       # Walk new children for updates and inserts

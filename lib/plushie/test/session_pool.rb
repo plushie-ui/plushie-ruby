@@ -140,8 +140,6 @@ module Plushie
         case msg
         when Hash
           msg[:session] || msg["session"]
-        else
-          nil
         end
       end
 
@@ -173,8 +171,6 @@ module Plushie
         case msg
         when Hash
           (msg[:type] || msg["type"])&.to_sym
-        else
-          nil
         end
       end
     end

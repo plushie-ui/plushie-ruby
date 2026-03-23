@@ -168,9 +168,21 @@ module Plushie
       if @iostream_adapter
         @iostream_adapter.stop if @iostream_adapter.respond_to?(:stop)
       else
-        @stdin&.close rescue nil
-        @stdout&.close rescue nil
-        @process_thread&.value rescue nil
+        begin
+          @stdin&.close
+        rescue
+          nil
+        end
+        begin
+          @stdout&.close
+        rescue
+          nil
+        end
+        begin
+          @process_thread&.value
+        rescue
+          nil
+        end
       end
     end
 
