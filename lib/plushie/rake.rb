@@ -6,9 +6,10 @@
 #   require "plushie/rake"
 #
 # Available tasks:
-#   plushie:download  -- download precompiled renderer binary
+#   plushie:download  -- download precompiled renderer binary or WASM
 #   plushie:build     -- build renderer from Rust source
 #   plushie:run       -- run a Plushie app
+#   plushie:connect   -- connect to a renderer via stdio
 #   plushie:inspect   -- print UI tree as JSON
 #   plushie:script    -- run .plushie test scripts
 #   plushie:replay    -- replay a .plushie script with real windows
@@ -18,11 +19,23 @@ require "fileutils"
 require "rake"
 
 namespace :plushie do
-  desc "Download the precompiled plushie renderer binary"
-  task :download do
+  desc "Download precompiled plushie binary or WASM (args: wasm, force)"
+  task :download, [:arg1, :arg2] do |_t, args|
     require "plushie"
-    Plushie::Binary.download!
-    puts "Downloaded plushie binary to #{Plushie::Binary.downloaded_path}"
+
+    flags = [args[:arg1], args[:arg2]].compact
+    want_wasm = flags.include?("wasm")
+    force = flags.include?("force")
+
+    if want_wasm
+      Plushie::Binary.download_wasm!(force: force)
+      puts "WASM files installed to #{Plushie::Binary.wasm_path}"
+    elsif !force && Plushie::Binary.downloaded_path
+      puts "Binary already exists at #{Plushie::Binary.downloaded_path}. Use force to re-download."
+    else
+      Plushie::Binary.download!
+      puts "Downloaded plushie binary to #{Plushie::Binary.downloaded_path}"
+    end
   end
 
   desc "Build the plushie renderer from Rust source"
@@ -72,14 +85,31 @@ namespace :plushie do
     puts "Installed to #{dest}"
   end
 
-  desc "Run a Plushie app (e.g. rake plushie:run[Counter])"
-  task :run, [:app_class] do |_t, args|
+  desc "Run a Plushie app (e.g. rake plushie:run[Counter] or plushie:run[Counter,dev] or plushie:run[Counter,json])"
+  task :run, [:app_class, :opt1, :opt2] do |_t, args|
     unless args[:app_class]
-      abort "Usage: rake plushie:run[AppClass]"
+      abort "Usage: rake plushie:run[AppClass] or plushie:run[AppClass,dev] or plushie:run[AppClass,json]"
+    end
+    require "plushie"
+
+    app_class = Object.const_get(args[:app_class])
+    opts = {}
+
+    flags = [args[:opt1], args[:opt2]].compact
+    opts[:dev] = true if flags.include?("dev")
+    opts[:format] = :json if flags.include?("json")
+
+    Plushie.run(app_class, **opts)
+  end
+
+  desc "Connect to a renderer via stdio (for plushie --exec)"
+  task :connect, [:app_class] do |_t, args|
+    unless args[:app_class]
+      abort "Usage: rake plushie:connect[AppClass]"
     end
     require "plushie"
     app_class = Object.const_get(args[:app_class])
-    Plushie.run(app_class)
+    Plushie.run(app_class, transport: :stdio)
   end
 
   desc "Print the initial UI tree as JSON"
@@ -102,6 +132,7 @@ namespace :plushie do
   desc "Run .plushie test scripts from test/scripts/"
   task :script, [:path] do |_t, args|
     require "plushie"
+    require "plushie/test"
 
     paths = if args[:path]
       [args[:path]]
@@ -126,27 +157,20 @@ namespace :plushie do
         next
       end
 
-      lines = File.readlines(path, chomp: true).reject { |l| l.strip.empty? || l.strip.start_with?("#") }
+      script = Plushie::Test::Script.parse_file(path)
 
-      if lines.empty?
+      if script.instructions.empty?
         puts "  SKIP (empty script)"
         next
       end
 
-      # Script validation: each line should be a recognized directive
-      valid = true
-      lines.each do |line|
-        unless line.match?(/\A\s*(app|click|type|assert_text|assert_model|wait)\s/)
-          warn "  Unknown directive: #{line}"
-          valid = false
-        end
-      end
-
-      if valid
-        puts "  PASS (parsed)"
+      begin
+        runner = Plushie::Test::Script::Runner.new(script)
+        runner.run
+        puts "  PASS"
         passes += 1
-      else
-        warn "  FAIL (parse errors)"
+      rescue => e
+        warn "  FAIL: #{e.message}"
         failures += 1
       end
     end
@@ -162,6 +186,7 @@ namespace :plushie do
     end
 
     require "plushie"
+    require "plushie/test"
 
     path = args[:path]
     unless File.exist?(path)
@@ -170,50 +195,37 @@ namespace :plushie do
 
     puts "Replaying #{path}..."
 
-    lines = File.readlines(path, chomp: true).reject { |l| l.strip.empty? || l.strip.start_with?("#") }
+    script = Plushie::Test::Script.parse_file(path)
 
-    if lines.empty?
+    if script.instructions.empty?
       puts "Empty script, nothing to replay."
       exit 0
     end
 
-    # Parse the app directive
-    app_line = lines.find { |l| l.strip.start_with?("app ") }
-    unless app_line
-      abort "Script must start with an 'app' directive (e.g. 'app Counter')"
+    # Force windowed backend for replay
+    pool = Plushie::Test::SessionPool.new(
+      mode: :windowed,
+      format: :msgpack,
+      max_sessions: 1,
+      binary: Plushie::Binary.path!
+    )
+    pool.start
+
+    begin
+      runner = Plushie::Test::Script::Runner.new(script, pool: pool)
+      runner.run
+      puts "Replay complete."
+    ensure
+      pool.stop
     end
-
-    app_name = app_line.strip.sub(/\Aapp\s+/, "")
-    app_class = Object.const_get(app_name)
-    app = app_class.new
-    model = app.init({})
-    model = model.is_a?(Array) ? model.first : model
-
-    puts "App: #{app_name}"
-    puts "Initial model: #{model.inspect}"
-
-    lines.each do |line|
-      directive, *rest = line.strip.split(/\s+/, 2)
-      case directive
-      when "app"
-        # Already handled
-      when "wait"
-        ms = rest.first&.to_i || 1000
-        puts "  wait #{ms}ms"
-        sleep(ms / 1000.0)
-      when "click", "type", "assert_text", "assert_model"
-        puts "  #{line.strip} (replay not available without renderer)"
-      else
-        puts "  unknown: #{line.strip}"
-      end
-    end
-
-    puts "Replay complete."
   end
 
-  desc "Run all CI checks (standard + test)"
+  desc "Run all CI checks (standard + steep + test)"
   task :preflight do
     sh "bundle exec rake standard"
+    if system("bundle exec steep --version", out: File::NULL, err: File::NULL)
+      sh "bundle exec steep check"
+    end
     sh "bundle exec rake test"
     puts "\nAll checks passed."
   end

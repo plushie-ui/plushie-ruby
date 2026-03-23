@@ -56,8 +56,35 @@ class TestRakeTasks < Minitest::Test
     assert_includes desc, "script"
   end
 
+  def test_connect_task_exists
+    assert Rake::Task.task_defined?("plushie:connect"),
+      "plushie:connect task should be defined"
+  end
+
   def test_replay_task_has_description
     desc = Rake::Task["plushie:replay"].comment
     assert_includes desc, "Replay"
+  end
+
+  def test_connect_task_has_description
+    desc = Rake::Task["plushie:connect"].comment
+    assert_includes desc, "Connect"
+  end
+
+  def test_download_task_accepts_args
+    task = Rake::Task["plushie:download"]
+    assert_includes task.arg_names, :arg1
+    assert_includes task.arg_names, :arg2
+  end
+
+  def test_run_task_accepts_options
+    task = Rake::Task["plushie:run"]
+    assert_includes task.arg_names, :app_class
+    assert_includes task.arg_names, :opt1
+  end
+
+  def test_preflight_task_has_description
+    desc = Rake::Task["plushie:preflight"].comment
+    assert_includes desc, "CI"
   end
 end

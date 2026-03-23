@@ -147,6 +147,70 @@ module Plushie
       end
     end
     private_class_method :fetch_url
+
+    # Download the WASM renderer tarball and extract it.
+    #
+    # @param version [String] binary version (default: BINARY_VERSION)
+    # @param force [Boolean] re-download even if files exist
+    # @return [String] path to the WASM directory
+    def download_wasm!(version: BINARY_VERSION, force: false)
+      require "net/http"
+      require "uri"
+      require "fileutils"
+      require "digest"
+      require "rubygems/package"
+      require "zlib"
+
+      dir = wasm_path
+      js_path = File.join(dir, "plushie_wasm.js")
+      wasm_file = File.join(dir, "plushie_wasm_bg.wasm")
+
+      if !force && File.exist?(js_path) && File.exist?(wasm_file)
+        warn "WASM files already exist in #{dir}. Use force: true to re-download."
+        return dir
+      end
+
+      archive_name = "plushie-wasm.tar.gz"
+      url = "https://github.com/plushie-ui/plushie/releases/download/v#{version}/#{archive_name}"
+      checksum_url = "#{url}.sha256"
+
+      warn "Downloading #{archive_name}..."
+
+      archive_data = fetch_url(url)
+      checksum_data = fetch_url(checksum_url)
+
+      expected_sha = checksum_data.strip.split(/\s+/).first
+      actual_sha = Digest::SHA256.hexdigest(archive_data)
+
+      unless actual_sha == expected_sha
+        raise Error, "checksum mismatch for #{archive_name}: " \
+          "expected #{expected_sha}, got #{actual_sha}"
+      end
+
+      FileUtils.mkdir_p(dir)
+
+      # Extract tar.gz using Ruby built-ins
+      io = StringIO.new(archive_data)
+      Zlib::GzipReader.wrap(io) do |gz|
+        Gem::Package::TarReader.new(gz) do |tar|
+          tar.each do |entry|
+            next unless entry.file?
+            dest = File.join(dir, File.basename(entry.full_name))
+            File.binwrite(dest, entry.read)
+          end
+        end
+      end
+
+      warn "Installed WASM files to #{dir} (SHA-256 verified)"
+      dir
+    end
+
+    # @return [String] path to the WASM output directory
+    def wasm_path
+      File.join("_build", "plushie", "wasm")
+    end
+
+    private_class_method :fetch_url
   end
 end
 
