@@ -111,6 +111,7 @@ augment the inferred semantics.
 
 ### Using the a11y prop
 
+<!-- test: a11y_heading_level, a11y_icon_button_label, a11y_landmark_region, a11y_live_region_polite, a11y_hidden_decorative_image, a11y_labelled_by -- keep this code block in sync with the test -->
 ```ruby
 # Headings
 text("title", "Welcome to MyApp", a11y: {role: :heading, level: 1})
@@ -215,6 +216,7 @@ end
 - `:polite` -- announced after the current speech finishes
 - `:assertive` -- interrupts current speech
 
+<!-- test: a11y_live_region_assertive -- keep this code block in sync with the test -->
 ```ruby
 text("status", model.status_message, a11y: {live: :polite})
 
@@ -246,6 +248,7 @@ end
 
 ### Hiding decorative content
 
+<!-- test: a11y_hidden_decorative_rule -- keep this code block in sync with the test -->
 ```ruby
 rule(a11y: {hidden: true})
 image("hero", "/images/banner.png", a11y: {hidden: true})
@@ -256,6 +259,7 @@ space(a11y: {hidden: true})
 
 Canvas draws arbitrary shapes -- always provide alternative text:
 
+<!-- test: a11y_canvas_with_alt_text -- keep this code block in sync with the test -->
 ```ruby
 canvas("chart", layers: {"data" => chart_shapes},
   a11y: {role: :image, label: "Sales chart: Q1 revenue up 15%, Q2 flat"})
@@ -424,6 +428,7 @@ itself is not textual.
 | `qr_code` | `alt` | String |
 | `canvas` | `alt` | String |
 
+<!-- test: a11y_image_alt_prop, a11y_svg_alt_prop, a11y_canvas_alt_prop -- keep this code block in sync with the test -->
 ```ruby
 image("logo", "/images/logo.png", alt: "Company logo")
 svg("icon", "/icons/search.svg", alt: "Search")

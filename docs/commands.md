@@ -151,6 +151,7 @@ in Event::Widget[type: :click, id: "new_todo"]
 
 ##### Text operations
 
+<!-- test: commands_select_all_construct, commands_move_cursor_to_construct, commands_select_range_construct -- keep this code block in sync with the test -->
 ```ruby
 Command.select_all(widget_id)                        # Select all text
 Command.move_cursor_to_front(widget_id)              # Cursor to start
@@ -168,6 +169,7 @@ in Event::Widget[type: :click, id: "select_word"]
 
 ##### Scroll operations
 
+<!-- test: commands_scroll_to_construct, commands_snap_to_construct, commands_snap_to_end_construct, commands_scroll_by_construct -- keep this code block in sync with the test -->
 ```ruby
 Command.scroll_to(widget_id, offset_y)  # Scroll to absolute vertical position
 Command.snap_to(widget_id, x, y)        # Snap scroll to absolute offset
@@ -188,7 +190,7 @@ Windows are opened declaratively by including window nodes in the view tree.
 There is no `open_window` command. To open a window, add a `window` node to
 the tree returned by `view`. To close one, remove it or use `close_window`.
 
-<!-- test: commands_close_window_construct -- keep this code block in sync with the test -->
+<!-- test: commands_close_window_construct, commands_maximize_window_construct, commands_maximize_window_restore, commands_set_window_mode_construct, commands_set_window_level_construct -- keep this code block in sync with the test -->
 ```ruby
 Command.close_window(window_id)                        # Close a window
 Command.resize_window(window_id, width, height)        # Resize
@@ -245,6 +247,7 @@ These go through the effect/window_op system. Results arrive in `update`
 as `Event::Effect[request_id: window_id, result: [:ok, data]]` where
 `window_id` is the string ID of the window and `data` varies by query type.
 
+<!-- test: commands_get_window_size_construct -- keep this code block in sync with the test -->
 ```ruby
 Command.get_window_size(window_id, tag)
 # Result: Event::Effect[request_id: window_id, result: [:ok, {"width" => w, "height" => h}]]
@@ -295,6 +298,7 @@ of the `data` hash (e.g. `{"width" => _, "height" => _}` for size vs.
 System-level queries use a different transport path. Results arrive as
 dedicated events where the **tag** (stringified) identifies the response.
 
+<!-- test: commands_get_system_theme_construct -- keep this code block in sync with the test -->
 ```ruby
 Command.get_system_theme(tag)
 # Result: Event::System[type: :system_theme, tag: tag_string, data: mode]
@@ -326,6 +330,7 @@ in Event::System[type: :system_theme, tag: "theme_detected", data:]
 In-memory images can be created, updated, and deleted at runtime. The
 `Image` widget references them via `{handle: "name"}` as its source.
 
+<!-- test: commands_create_image_construct, commands_delete_image_construct -- keep this code block in sync with the test -->
 ```ruby
 Command.create_image(handle, data)                     # From PNG/JPEG bytes
 Command.create_image(handle, width, height, pixels)    # From raw RGBA pixels
@@ -367,6 +372,7 @@ in Event::Widget[type: :click, id: "generate_gradient"]
 
 Commands for manipulating panes in a `PaneGrid` widget.
 
+<!-- test: commands_pane_split_construct, commands_pane_close_construct -- keep this code block in sync with the test -->
 ```ruby
 Command.pane_split(widget_id, pane, axis, new_pane_id)  # Split a pane
 Command.pane_close(widget_id, pane)                     # Close a pane
@@ -431,6 +437,7 @@ Push data directly to a native Rust extension widget without triggering the
 view/diff/patch cycle. Used for high-frequency data like terminal output or
 streaming log lines.
 
+<!-- test: commands_extension_command_construct -- keep this code block in sync with the test -->
 ```ruby
 # Single command
 Command.extension_command("term-1", "write", {data: output})
@@ -616,6 +623,7 @@ it.
 
 #### Time
 
+<!-- test: commands_subscription_every_construct -- keep this code block in sync with the test -->
 ```ruby
 Subscription.every(interval_ms, event_tag)
 # Delivers: Event::Timer[tag: event_tag, timestamp: ts]
@@ -623,6 +631,7 @@ Subscription.every(interval_ms, event_tag)
 
 #### Keyboard
 
+<!-- test: commands_subscription_on_key_press_construct -- keep this code block in sync with the test -->
 ```ruby
 Subscription.on_key_press(event_tag)
 # Delivers: Event::Key[type: :press, ...]
@@ -666,6 +675,7 @@ Subscription.on_window_event(event_tag)
 
 #### Mouse
 
+<!-- test: commands_subscription_on_mouse_move_with_max_rate -- keep this code block in sync with the test -->
 ```ruby
 Subscription.on_mouse_move(event_tag)
 # Delivers: Event::Mouse[type: :moved, x: x, y: y]
