@@ -15,32 +15,48 @@ module Plushie
 
       module_function
 
-      # Returns native extension classes from the PLUSHIE_EXTENSIONS env var.
+      # Returns native extension classes from configuration.
       #
-      # The env var is a comma-separated list of class names. Each class must
-      # include Plushie::Extension and be a native_widget.
+      # Reads from (in priority order):
+      # 1. Plushie.configuration.extensions (set via Plushie.configure block)
+      # 2. PLUSHIE_EXTENSIONS env var (comma-separated class names, for CI)
       #
       # @return [Array<Class>] native extension classes
       def configured_extensions
+        # Priority 1: Plushie.configure block
+        from_config = Plushie.configuration.extensions
+        if from_config.is_a?(Array) && from_config.any?
+          return validate_extensions(from_config)
+        end
+
+        # Priority 2: env var (for CI / one-off builds)
         env = ENV["PLUSHIE_EXTENSIONS"]
         return [] unless env && !env.strip.empty?
 
         names = env.split(",").map(&:strip).reject(&:empty?)
-        names.map { |name|
+        classes = names.map { |name|
           begin
-            mod = Object.const_get(name)
+            Object.const_get(name)
           rescue NameError
             raise Error, "Extension class '#{name}' specified in PLUSHIE_EXTENSIONS could not be found. " \
               "Ensure the class is defined and the file is required before running the build."
           end
-          mod.finalize! if mod.respond_to?(:finalize!)
-
-          unless mod.respond_to?(:native?) && mod.native?
-            raise Error, "#{name} is listed in PLUSHIE_EXTENSIONS but is not a native_widget extension"
-          end
-
-          mod
         }
+        validate_extensions(classes)
+      end
+
+      # Validate that each class is a native extension.
+      #
+      # @param classes [Array<Class>]
+      # @return [Array<Class>]
+      def validate_extensions(classes)
+        classes.each do |mod|
+          mod.finalize! if mod.respond_to?(:finalize!)
+          unless mod.respond_to?(:native?) && mod.native?
+            raise Error, "#{mod.name} is configured as an extension but is not a native_widget"
+          end
+        end
+        classes
       end
 
       # Validate no type name collisions between extensions.

@@ -92,7 +92,10 @@ module Plushie
         log_level: @log_level,
         token: @token
       )
-      @bridge.start(settings: @app.settings)
+      settings = @app.settings
+      ext_config = Plushie.configuration.extension_config
+      settings = settings.merge(extension_config: ext_config) if ext_config && !ext_config.empty?
+      @bridge.start(settings: settings)
     end
 
     def start_dev_server

@@ -104,6 +104,47 @@ require_relative "plushie/dev_server"
 module Plushie
   class Error < StandardError; end
 
+  # Global configuration for the Plushie SDK.
+  #
+  # @example
+  #   Plushie.configure do |config|
+  #     config.extensions = [MyGauge, MyChart]
+  #     config.extension_config = {
+  #       "sparkline" => {"max_samples" => 1000},
+  #       "terminal" => {"shell" => "/bin/bash"}
+  #     }
+  #   end
+  #
+  class Configuration
+    # Extension classes to include in custom builds.
+    # @return [Array<Class>]
+    attr_accessor :extensions
+
+    # Runtime configuration map passed to widget extensions via
+    # the Settings wire message. Keyed by extension config_key.
+    # @return [Hash]
+    attr_accessor :extension_config
+
+    def initialize
+      @extensions = []
+      @extension_config = {}
+    end
+  end
+
+  @configuration = Configuration.new
+
+  # @return [Configuration] the global configuration
+  def self.configuration
+    @configuration
+  end
+
+  # Configure the SDK via a block.
+  #
+  # @yield [Configuration]
+  def self.configure
+    yield @configuration
+  end
+
   # Start a Plushie app and block until it exits.
   #
   #   Plushie.run(Counter)
