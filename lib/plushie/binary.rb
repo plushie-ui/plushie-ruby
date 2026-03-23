@@ -231,7 +231,7 @@ module Plushie
         return dir
       end
 
-      archive_name = "plushie-wasm.tar.gz"
+      archive_name = "plushie-renderer-wasm.tar.gz"
       url = "https://github.com/plushie-ui/plushie-renderer/releases/download/v#{version}/#{archive_name}"
       checksum_url = "#{url}.sha256"
 
