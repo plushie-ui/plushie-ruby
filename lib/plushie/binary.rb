@@ -229,8 +229,8 @@ module Plushie
       require "stringio"
 
       dir ||= wasm_path
-      js_path = File.join(dir, "plushie_wasm.js")
-      wasm_file = File.join(dir, "plushie_wasm_bg.wasm")
+      js_path = File.join(dir, "plushie_renderer_wasm.js")
+      wasm_file = File.join(dir, "plushie_renderer_wasm_bg.wasm")
 
       if !force && File.exist?(js_path) && File.exist?(wasm_file)
         warn "WASM files already exist in #{dir}. Use force: true to re-download."
