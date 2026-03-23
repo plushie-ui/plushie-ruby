@@ -44,7 +44,10 @@ Plushie.run(Counter)
 ```
 
 This is one of [8 examples](examples/) included in the repo, from a
-minimal counter to a full widget catalog.
+minimal counter to a full widget catalog. For complete project demos,
+including native Rust extensions, see the
+[plushie-demos](https://github.com/plushie-ui/plushie-demos/tree/main/ruby)
+repository.
 
 ## Getting started
 

@@ -4,8 +4,14 @@ Guide for building custom widget extensions for Plushie. Extensions let you
 render arbitrary Rust-native widgets while keeping your app's state and logic
 in Ruby.
 
-Working demo projects are available at
-[plushie-ui/plushie-demos](https://github.com/plushie-ui/plushie-demos/tree/main/ruby).
+For complete working examples with Rust extensions, see the
+[plushie-demos](https://github.com/plushie-ui/plushie-demos/tree/main/ruby)
+repository:
+
+- [gauge-demo](https://github.com/plushie-ui/plushie-demos/tree/main/ruby/gauge-demo)
+  -- native gauge widget with extension commands (`set_value`, `animate_to`)
+- [sparkline-dashboard](https://github.com/plushie-ui/plushie-demos/tree/main/ruby/sparkline-dashboard)
+  -- render-only canvas sparkline with timer-driven live data
 
 ## Quick start
 
