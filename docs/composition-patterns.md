@@ -512,7 +512,7 @@ class ToggleApp
 
   def update(model, event)
     case event
-    in Event::Widget[type: :canvas_shape_click, id: "toggle", data: {"shape_id" => "switch"}]
+    in Event::Widget[type: :canvas_element_click, id: "toggle", data: {"element_id" => "switch"}]
       model.with(dark_mode: !model.dark_mode)
     else
       model
@@ -580,7 +580,7 @@ class ChartApp
 
   def update(model, event)
     case event
-    in Event::Widget[type: :canvas_shape_click, id: "chart", data: {"shape_id" => id}]
+    in Event::Widget[type: :canvas_element_click, id: "chart", data: {"element_id" => id}]
       model.with(selected: id)
     else
       model
@@ -718,7 +718,7 @@ class ComboApp
       model.with(open: !model.open)
     in Event::Widget[type: :input, id: "combo-filter", value:]
       model.with(filter: value, open: true)
-    in Event::Widget[type: :canvas_shape_click, id: "combo-opts", data: {"shape_id" => /\Aopt-(\d+)\z/}]
+    in Event::Widget[type: :canvas_element_click, id: "combo-opts", data: {"element_id" => /\Aopt-(\d+)\z/}]
       index = $1.to_i
       chosen = filtered_options(model.filter)[index]
       model.with(selected: chosen, open: false, filter: "")

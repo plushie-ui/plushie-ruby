@@ -7,7 +7,7 @@ module Plushie
   # The diff algorithm produces patch operations per the wire protocol
   # spec (replace_node, update_props, insert_child, remove_child).
   #
-  # @see ~/projects/plushie/docs/protocol.md "Patch"
+  # @see ~/projects/plushie-renderer/docs/protocol.md "Patch"
   module Tree
     # -------------------------------------------------------------------
     # Search

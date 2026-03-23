@@ -72,6 +72,16 @@ module Plushie
       # @param y [Numeric]
       def move_to(x, y) = session.move_to(x, y)
 
+      # Click a canvas element by injecting a synthetic canvas_element_click event.
+      # @param canvas_id [String] the canvas widget ID (e.g. "#chart")
+      # @param element_id [String] the element ID within the canvas
+      def click_element(canvas_id, element_id) = session.interact("canvas_element_click", canvas_id, {"element_id" => element_id})
+
+      # Focus a canvas element by sending a focus_element command.
+      # @param canvas_id [String] the canvas widget ID
+      # @param element_id [String] the element ID within the canvas
+      def focus_element(canvas_id, element_id) = session.command(Command.focus_element(canvas_id, element_id))
+
       # -- Queries -------------------------------------------------------------
 
       # Find a widget by selector. Returns the node hash or nil.

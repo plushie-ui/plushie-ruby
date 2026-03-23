@@ -208,27 +208,27 @@ class DocsEventsTest < Minitest::Test
     end
   end
 
-  # -- Canvas shape events --
+  # -- Canvas element events --
 
-  def test_events_canvas_shape_click_match
-    event = E::Widget.new(type: :canvas_shape_click, id: "chart",
-      data: {"shape_id" => "bar-jan", "x" => 10.0, "y" => 20.0})
+  def test_events_canvas_element_click_match
+    event = E::Widget.new(type: :canvas_element_click, id: "chart",
+      data: {"element_id" => "bar-jan", "x" => 10.0, "y" => 20.0})
     case event
-    in E::Widget[type: :canvas_shape_click, id: "chart", data:]
-      assert_equal "bar-jan", data["shape_id"]
+    in E::Widget[type: :canvas_element_click, id: "chart", data:]
+      assert_equal "bar-jan", data["element_id"]
     else
-      flunk "expected canvas_shape_click event to match"
+      flunk "expected canvas_element_click event to match"
     end
   end
 
-  def test_events_canvas_shape_enter_match
-    event = E::Widget.new(type: :canvas_shape_enter, id: "chart",
-      data: {"shape_id" => "bar-jan"})
+  def test_events_canvas_element_enter_match
+    event = E::Widget.new(type: :canvas_element_enter, id: "chart",
+      data: {"element_id" => "bar-jan"})
     case event
-    in E::Widget[type: :canvas_shape_enter, id: "chart", data:]
-      assert_equal "bar-jan", data["shape_id"]
+    in E::Widget[type: :canvas_element_enter, id: "chart", data:]
+      assert_equal "bar-jan", data["element_id"]
     else
-      flunk "expected canvas_shape_enter event to match"
+      flunk "expected canvas_element_enter event to match"
     end
   end
 

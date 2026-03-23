@@ -10,7 +10,7 @@ module Plushie
     # in protocol.md. The canonical reference is:
     # ~/projects/toddy-elixir/lib/plushie/protocol/decode.ex
     #
-    # @see ~/projects/plushie/docs/protocol.md "Outgoing messages"
+    # @see ~/projects/plushie-renderer/docs/protocol.md "Outgoing messages"
     module Decode
       module_function
 
@@ -88,9 +88,9 @@ module Plushie
         when "click", "input", "submit", "toggle", "select",
           "slide", "slide_release", "paste", "option_hovered",
           "open", "close", "key_binding", "sort", "scroll",
-          "canvas_shape_enter", "canvas_shape_leave",
-          "canvas_shape_click", "canvas_shape_drag",
-          "canvas_shape_drag_end", "canvas_shape_focused"
+          "canvas_element_enter", "canvas_element_leave",
+          "canvas_element_click", "canvas_element_drag",
+          "canvas_element_drag_end", "canvas_element_focused"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: family.to_sym, id: id,
@@ -389,6 +389,48 @@ module Plushie
             tag: msg["session"],
             data: data["reason"] || data
           )
+
+        # -- Canvas element/group focus events -> Event::Widget ----------------
+
+        when "canvas_element_blurred"
+          id, scope = split_scoped_id(msg["id"])
+          Event::Widget.new(
+            type: :canvas_element_blurred, id: id,
+            value: nil, scope: scope, data: data
+          )
+
+        when "canvas_focused"
+          id, scope = split_scoped_id(msg["id"])
+          Event::Widget.new(
+            type: :canvas_focused, id: id,
+            value: nil, scope: scope, data: nil
+          )
+
+        when "canvas_blurred"
+          id, scope = split_scoped_id(msg["id"])
+          Event::Widget.new(
+            type: :canvas_blurred, id: id,
+            value: nil, scope: scope, data: nil
+          )
+
+        when "canvas_group_focused"
+          id, scope = split_scoped_id(msg["id"])
+          Event::Widget.new(
+            type: :canvas_group_focused, id: id,
+            value: nil, scope: scope, data: data
+          )
+
+        when "canvas_group_blurred"
+          id, scope = split_scoped_id(msg["id"])
+          Event::Widget.new(
+            type: :canvas_group_blurred, id: id,
+            value: nil, scope: scope, data: data
+          )
+
+        # -- Diagnostic events -> Event::System ---------------------------------
+
+        when "diagnostic"
+          Event::System.new(type: :diagnostic, data: data)
 
         # -- Fallback: extension/unknown events -> Event::Widget --------------
 

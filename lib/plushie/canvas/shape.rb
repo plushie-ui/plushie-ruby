@@ -6,7 +6,6 @@ require_relative "shape/linear_gradient"
 require_relative "shape/shape_style"
 require_relative "shape/drag_bounds"
 require_relative "shape/hit_rect"
-require_relative "shape/interactive"
 require_relative "shape/rect"
 require_relative "shape/circle"
 require_relative "shape/line"
@@ -64,9 +63,42 @@ module Plushie
         CanvasSvg.new(source: source, x: x, y: y, w: w, h: h, **opts)
       end
 
-      # Group of shapes.
-      def group(shapes, **opts)
-        Group.new(shapes: shapes, **opts)
+      # Group of shapes. Accepts an optional id as first positional arg.
+      #
+      # x: and y: kwargs are desugared into a leading Translate in the
+      # transforms array.
+      #
+      # @param id_or_children [String, Array] group id or children array
+      # @param children [Array, nil] children array when id is given
+      def group(id_or_children = nil, children = nil, x: nil, y: nil, transforms: nil, **opts)
+        if id_or_children.is_a?(String)
+          id = id_or_children
+          children ||= []
+        else
+          id = opts.delete(:id)
+          children = id_or_children || children || []
+        end
+
+        xforms = Array(transforms)
+        xforms.unshift(Translate.new(x: x, y: y)) if x || y
+
+        Group.new(
+          children: children,
+          transforms: xforms.empty? ? nil : xforms,
+          id: id,
+          **opts
+        )
+      end
+
+      # Wrap a shape with interactive properties. If the shape is a
+      # Group, merge the interactive fields directly. If it is a leaf
+      # shape, wrap it in a Group as the sole child.
+      def interactive(shape, id, **opts)
+        if shape.is_a?(Group)
+          shape.with(id: id, **opts)
+        else
+          Group.new(children: [shape], id: id, **opts)
+        end
       end
 
       # -- Path commands --------------------------------------------------------
@@ -105,13 +137,7 @@ module Plushie
         LinearGradient.new(from: from, to: to, stops: stops)
       end
 
-      # -- Transform commands ---------------------------------------------------
-
-      # Push (save) the current transform state onto the stack.
-      def push_transform = PushTransform.new
-
-      # Pop (restore) the previously saved transform state from the stack.
-      def pop_transform = PopTransform.new
+      # -- Transform value constructors ----------------------------------------
 
       # Translate the coordinate origin.
       def translate(x, y) = Translate.new(x: x, y: y)
@@ -119,16 +145,22 @@ module Plushie
       # Rotate the coordinate system (angle in radians).
       def rotate(angle) = Rotate.new(angle: angle)
 
-      # Scale the coordinate system.
-      def scale(x, y) = Scale.new(x: x, y: y)
+      # Scale the coordinate system (independent axes).
+      def scale(x, y = nil)
+        if y
+          Scale.new(x: x, y: y)
+        else
+          Scale.new(factor: x)
+        end
+      end
 
-      # -- Clipping commands ----------------------------------------------------
+      # Uniform scale convenience constructor.
+      def scale_uniform(factor) = Scale.new(factor: factor)
 
-      # Push a clipping rectangle onto the clip stack.
-      def push_clip(x, y, w, h) = PushClip.new(x: x, y: y, w: w, h: h)
+      # -- Clipping value constructor ------------------------------------------
 
-      # Pop the most recent clipping rectangle.
-      def pop_clip = PopClip.new
+      # Clipping rectangle value.
+      def clip(x, y, w, h) = Clip.new(x: x, y: y, w: w, h: h)
     end
   end
 end

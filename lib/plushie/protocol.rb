@@ -9,7 +9,7 @@ module Plushie
   # - :json    -- newline-delimited JSON (debugging/observability)
   # - :msgpack -- MessagePack with 4-byte length prefix (default, production)
   #
-  # @see ~/projects/plushie/docs/protocol.md
+  # @see ~/projects/plushie-renderer/docs/protocol.md
   module Protocol
     # Current wire protocol version.
     # @api private

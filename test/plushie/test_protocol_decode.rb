@@ -60,10 +60,10 @@ class TestProtocolDecode < Minitest::Test
     assert_equal 0.5, event.data["relative_y"]
   end
 
-  def test_decode_canvas_shape_click
-    event = D.decode_event({"family" => "canvas_shape_click", "id" => "chart", "data" => {"shape_id" => "bar1"}})
-    assert_equal :canvas_shape_click, event.type
-    assert_equal "bar1", event.data["shape_id"]
+  def test_decode_canvas_element_click
+    event = D.decode_event({"family" => "canvas_element_click", "id" => "chart", "data" => {"element_id" => "bar1"}})
+    assert_equal :canvas_element_click, event.type
+    assert_equal "bar1", event.data["element_id"]
   end
 
   def test_decode_paste

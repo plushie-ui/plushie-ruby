@@ -66,38 +66,6 @@ module Plushie
         def to_wire: () -> Hash[Symbol, untyped]
       end
 
-      class Interactive
-        attr_reader id: String
-        attr_reader on_click: bool?
-        attr_reader on_hover: bool?
-        attr_reader draggable: bool?
-        attr_reader drag_axis: String?
-        attr_reader drag_bounds: DragBounds?
-        attr_reader cursor: String?
-        attr_reader hover_style: ShapeStyle?
-        attr_reader pressed_style: ShapeStyle?
-        attr_reader tooltip: String?
-        attr_reader a11y: untyped
-        attr_reader hit_rect: HitRect?
-
-        def initialize: (
-          id: String,
-          ?on_click: bool?,
-          ?on_hover: bool?,
-          ?draggable: bool?,
-          ?drag_axis: String?,
-          ?drag_bounds: DragBounds?,
-          ?cursor: String?,
-          ?hover_style: ShapeStyle?,
-          ?pressed_style: ShapeStyle?,
-          ?tooltip: String?,
-          ?a11y: untyped,
-          ?hit_rect: HitRect?
-        ) -> void
-        def []: (Symbol key) -> untyped
-        def to_wire: () -> Hash[Symbol, untyped]
-      end
-
       # -- Shape structs --
 
       class Rect
@@ -109,9 +77,8 @@ module Plushie
         attr_reader stroke: untyped
         attr_reader stroke_width: Numeric?
         attr_reader opacity: Numeric?
-        attr_reader interactive: Interactive?
 
-        def initialize: (x: Numeric, y: Numeric, w: Numeric, h: Numeric, ?fill: untyped, ?stroke: untyped, ?stroke_width: Numeric?, ?opacity: Numeric?, ?interactive: Interactive?) -> void
+        def initialize: (x: Numeric, y: Numeric, w: Numeric, h: Numeric, ?fill: untyped, ?stroke: untyped, ?stroke_width: Numeric?, ?opacity: Numeric?) -> void
         def []: (Symbol key) -> untyped
         def to_wire: () -> Hash[Symbol, untyped]
       end
@@ -124,9 +91,8 @@ module Plushie
         attr_reader stroke: untyped
         attr_reader stroke_width: Numeric?
         attr_reader opacity: Numeric?
-        attr_reader interactive: Interactive?
 
-        def initialize: (x: Numeric, y: Numeric, r: Numeric, ?fill: untyped, ?stroke: untyped, ?stroke_width: Numeric?, ?opacity: Numeric?, ?interactive: Interactive?) -> void
+        def initialize: (x: Numeric, y: Numeric, r: Numeric, ?fill: untyped, ?stroke: untyped, ?stroke_width: Numeric?, ?opacity: Numeric?) -> void
         def []: (Symbol key) -> untyped
         def to_wire: () -> Hash[Symbol, untyped]
       end
@@ -139,9 +105,8 @@ module Plushie
         attr_reader stroke: untyped
         attr_reader stroke_width: Numeric?
         attr_reader opacity: Numeric?
-        attr_reader interactive: Interactive?
 
-        def initialize: (x1: Numeric, y1: Numeric, x2: Numeric, y2: Numeric, ?stroke: untyped, ?stroke_width: Numeric?, ?opacity: Numeric?, ?interactive: Interactive?) -> void
+        def initialize: (x1: Numeric, y1: Numeric, x2: Numeric, y2: Numeric, ?stroke: untyped, ?stroke_width: Numeric?, ?opacity: Numeric?) -> void
         def []: (Symbol key) -> untyped
         def to_wire: () -> Hash[Symbol, untyped]
       end
@@ -154,9 +119,8 @@ module Plushie
         attr_reader size: Numeric?
         attr_reader font: untyped
         attr_reader opacity: Numeric?
-        attr_reader interactive: Interactive?
 
-        def initialize: (x: Numeric, y: Numeric, content: String, ?fill: untyped, ?size: Numeric?, ?font: untyped, ?opacity: Numeric?, ?interactive: Interactive?) -> void
+        def initialize: (x: Numeric, y: Numeric, content: String, ?fill: untyped, ?size: Numeric?, ?font: untyped, ?opacity: Numeric?) -> void
         def []: (Symbol key) -> untyped
         def to_wire: () -> Hash[Symbol, untyped]
       end
@@ -167,9 +131,8 @@ module Plushie
         attr_reader stroke: untyped
         attr_reader stroke_width: Numeric?
         attr_reader opacity: Numeric?
-        attr_reader interactive: Interactive?
 
-        def initialize: (commands: Array[Array[untyped]], ?fill: untyped, ?stroke: untyped, ?stroke_width: Numeric?, ?opacity: Numeric?, ?interactive: Interactive?) -> void
+        def initialize: (commands: Array[Array[untyped]], ?fill: untyped, ?stroke: untyped, ?stroke_width: Numeric?, ?opacity: Numeric?) -> void
         def []: (Symbol key) -> untyped
         def to_wire: () -> Hash[Symbol, untyped]
       end
@@ -182,9 +145,8 @@ module Plushie
         attr_reader h: Numeric
         attr_reader rotation: Numeric?
         attr_reader opacity: Numeric?
-        attr_reader interactive: Interactive?
 
-        def initialize: (source: String, x: Numeric, y: Numeric, w: Numeric, h: Numeric, ?rotation: Numeric?, ?opacity: Numeric?, ?interactive: Interactive?) -> void
+        def initialize: (source: String, x: Numeric, y: Numeric, w: Numeric, h: Numeric, ?rotation: Numeric?, ?opacity: Numeric?) -> void
         def []: (Symbol key) -> untyped
         def to_wire: () -> Hash[Symbol, untyped]
       end
@@ -195,38 +157,59 @@ module Plushie
         attr_reader y: Numeric
         attr_reader w: Numeric
         attr_reader h: Numeric
-        attr_reader interactive: Interactive?
 
-        def initialize: (source: String, x: Numeric, y: Numeric, w: Numeric, h: Numeric, ?interactive: Interactive?) -> void
+        def initialize: (source: String, x: Numeric, y: Numeric, w: Numeric, h: Numeric) -> void
         def []: (Symbol key) -> untyped
         def to_wire: () -> Hash[Symbol, untyped]
       end
 
       class Group
-        attr_reader shapes: Array[untyped]
-        attr_reader x: Numeric
-        attr_reader y: Numeric
-        attr_reader transform: untyped
-        attr_reader clip: untyped
+        attr_reader children: Array[untyped]
+        attr_reader transforms: Array[untyped]?
+        attr_reader clip: Clip?
         attr_reader opacity: Numeric?
-        attr_reader interactive: Interactive?
+        attr_reader id: String?
+        attr_reader on_click: bool?
+        attr_reader on_hover: bool?
+        attr_reader draggable: bool?
+        attr_reader drag_axis: String?
+        attr_reader drag_bounds: DragBounds?
+        attr_reader cursor: String?
+        attr_reader hit_rect: HitRect?
+        attr_reader tooltip: String?
+        attr_reader hover_style: ShapeStyle?
+        attr_reader pressed_style: ShapeStyle?
+        attr_reader focus_style: ShapeStyle?
+        attr_reader show_focus_ring: bool?
+        attr_reader focusable: bool?
+        attr_reader a11y: untyped
 
-        def initialize: (shapes: Array[untyped], ?x: Numeric, ?y: Numeric, ?transform: untyped, ?clip: untyped, ?opacity: Numeric?, ?interactive: Interactive?) -> void
+        def initialize: (
+          children: Array[untyped],
+          ?transforms: Array[untyped]?,
+          ?clip: Clip?,
+          ?opacity: Numeric?,
+          ?id: String?,
+          ?on_click: bool?,
+          ?on_hover: bool?,
+          ?draggable: bool?,
+          ?drag_axis: String?,
+          ?drag_bounds: DragBounds?,
+          ?cursor: String?,
+          ?hit_rect: HitRect?,
+          ?tooltip: String?,
+          ?hover_style: ShapeStyle?,
+          ?pressed_style: ShapeStyle?,
+          ?focus_style: ShapeStyle?,
+          ?show_focus_ring: bool?,
+          ?focusable: bool?,
+          ?a11y: untyped
+        ) -> void
         def []: (Symbol key) -> untyped
         def to_wire: () -> Hash[Symbol, untyped]
       end
 
-      # -- Transform commands --
-
-      class PushTransform
-        def initialize: () -> void
-        def to_wire: () -> Hash[Symbol, untyped]
-      end
-
-      class PopTransform
-        def initialize: () -> void
-        def to_wire: () -> Hash[Symbol, untyped]
-      end
+      # -- Transform value types --
 
       class Translate
         attr_reader x: Numeric
@@ -244,27 +227,23 @@ module Plushie
       end
 
       class Scale
-        attr_reader x: Numeric
-        attr_reader y: Numeric
+        attr_reader x: Numeric?
+        attr_reader y: Numeric?
+        attr_reader factor: Numeric?
 
-        def initialize: (x: Numeric, y: Numeric) -> void
+        def initialize: (?x: Numeric?, ?y: Numeric?, ?factor: Numeric?) -> void
         def to_wire: () -> Hash[Symbol, untyped]
       end
 
-      # -- Clipping commands --
+      # -- Clipping value type --
 
-      class PushClip
+      class Clip
         attr_reader x: Numeric
         attr_reader y: Numeric
         attr_reader w: Numeric
         attr_reader h: Numeric
 
         def initialize: (x: Numeric, y: Numeric, w: Numeric, h: Numeric) -> void
-        def to_wire: () -> Hash[Symbol, untyped]
-      end
-
-      class PopClip
-        def initialize: () -> void
         def to_wire: () -> Hash[Symbol, untyped]
       end
 
@@ -284,7 +263,9 @@ module Plushie
 
       def self.canvas_svg: (String source, Numeric x, Numeric y, Numeric w, Numeric h, **untyped opts) -> CanvasSvg
 
-      def self.group: (Array[untyped] shapes, **untyped opts) -> Group
+      def self.group: (?String | Array[untyped] | nil id_or_children, ?Array[untyped]? children, ?x: Numeric?, ?y: Numeric?, ?transforms: Array[untyped]?, **untyped opts) -> Group
+
+      def self.interactive: (untyped shape, String id, **untyped opts) -> Group
 
       # Path commands
       def self.move_to: (Numeric x, Numeric y) -> Array[untyped]
@@ -304,21 +285,17 @@ module Plushie
 
       def self.linear_gradient: (Array[Numeric] from, Array[Numeric] to, Array[Array[untyped]] stops) -> LinearGradient
 
-      # Transform commands
-      def self.push_transform: () -> PushTransform
-
-      def self.pop_transform: () -> PopTransform
-
+      # Transform value constructors
       def self.translate: (Numeric x, Numeric y) -> Translate
 
       def self.rotate: (Numeric angle) -> Rotate
 
-      def self.scale: (Numeric x, Numeric y) -> Scale
+      def self.scale: (Numeric x, ?Numeric? y) -> Scale
 
-      # Clipping commands
-      def self.push_clip: (Numeric x, Numeric y, Numeric w, Numeric h) -> PushClip
+      def self.scale_uniform: (Numeric factor) -> Scale
 
-      def self.pop_clip: () -> PopClip
+      # Clipping value constructor
+      def self.clip: (Numeric x, Numeric y, Numeric w, Numeric h) -> Clip
     end
   end
 end

@@ -50,23 +50,23 @@ class RatePlushie
   def update(model, event)
     case event
     # Star rating interactions
-    in Event::Widget[type: :canvas_shape_click, id: "stars", data:]
+    in Event::Widget[type: :canvas_element_click, id: "stars", data:]
       n = parse_star_index(data)
       n ? model.with(rating: n + 1) : model
 
-    in Event::Widget[type: :canvas_shape_enter, id: "stars", data:]
+    in Event::Widget[type: :canvas_element_enter, id: "stars", data:]
       n = parse_star_index(data)
       n ? model.with(hover_star: n + 1) : model
 
-    in Event::Widget[type: :canvas_shape_leave, id: "stars"]
+    in Event::Widget[type: :canvas_element_leave, id: "stars"]
       model.with(hover_star: nil)
 
-    in Event::Widget[type: :canvas_shape_focused, id: "stars", data:]
+    in Event::Widget[type: :canvas_element_focused, id: "stars", data:]
       n = parse_star_index(data)
       n ? model.with(focused_star: n) : model
 
     # Theme toggle
-    in Event::Widget[type: :canvas_shape_click, id: "theme-toggle"]
+    in Event::Widget[type: :canvas_element_click, id: "theme-toggle"]
       target = (model.toggle_target == 0.0) ? 1.0 : 0.0
       model.with(toggle_target: target)
 
@@ -124,10 +124,10 @@ class RatePlushie
   private
 
   def parse_star_index(data)
-    shape_id = data && data["shape_id"]
-    return nil unless shape_id.is_a?(String) && shape_id.start_with?("star-")
+    element_id = data && data["element_id"]
+    return nil unless element_id.is_a?(String) && element_id.start_with?("star-")
 
-    shape_id.delete_prefix("star-").to_i
+    element_id.delete_prefix("star-").to_i
   end
 
   def submit_review(model)
@@ -231,17 +231,17 @@ class RatePlushie
           preview = !readonly && !hover.nil? && i < hover && i >= rating
           is_focused = !readonly && focused == i
 
-          interactive_wire = unless readonly
-            Plushie::Canvas::Shape::Interactive.new(
-              id: "star-#{i}",
+          group_opts = {x: star_cx, y: star_cy}
+          unless readonly
+            group_opts.merge!(
               on_click: true,
               on_hover: true,
               cursor: "pointer",
               a11y: {role: :button, label: "#{i + 1} star#{"s" unless i == 0}"}
-            ).to_wire
+            )
           end
 
-          canvas_group(x: star_cx, y: star_cy, interactive: interactive_wire) do
+          canvas_group(readonly ? nil : "star-#{i}", **group_opts) do
             if is_focused
               canvas_circle(0, 0, focus_r,
                 stroke: Plushie::Canvas::Shape.stroke("#3b82f6", 2 * scale))
@@ -293,15 +293,11 @@ class RatePlushie
 
     canvas(id, width: TRACK_W, height: TRACK_H) do
       layer("toggle") do
-        interactive_wire = Plushie::Canvas::Shape::Interactive.new(
-          id: "switch",
+        canvas_group("switch",
           on_click: true,
           cursor: "pointer",
           hit_rect: Plushie::Canvas::Shape::HitRect.new(x: 0, y: 0, w: TRACK_W, h: TRACK_H),
-          a11y: {role: :switch, label: "Dark humor"}
-        ).to_wire
-
-        canvas_group(interactive: interactive_wire) do
+          a11y: {role: :switch, label: "Dark humor"}) do
           # Track (rounded rect via path since canvas_rect has no radius)
           r = TRACK_H / 2.0
           canvas_path([
@@ -315,19 +311,18 @@ class RatePlushie
           # Thumb circle
           canvas_circle(thumb_x, TRACK_H / 2.0, THUMB_R, fill: "#ffffff")
 
-          # Face with transform (push, translate, rotate, shapes, pop)
-          _plushie_add_canvas_shape(Plushie::Canvas::Shape::PushTransform.new)
-          _plushie_add_canvas_shape(Plushie::Canvas::Shape::Translate.new(x: thumb_x, y: TRACK_H / 2.0))
-          _plushie_add_canvas_shape(Plushie::Canvas::Shape::Rotate.new(angle: rotation))
-
-          # Left eye
-          canvas_circle(-3.5, -3, 2, fill: face_color)
-          # Right eye
-          canvas_circle(3.5, -3, 2, fill: face_color)
-          # Mouth (smile path)
-          canvas_path(smile_path, stroke: Plushie::Canvas::Shape.stroke(face_color, 2))
-
-          _plushie_add_canvas_shape(Plushie::Canvas::Shape::PopTransform.new)
+          # Face -- nested group with transforms instead of push/pop
+          canvas_group(transforms: [
+            Plushie::Canvas::Shape.translate(thumb_x, TRACK_H / 2.0),
+            Plushie::Canvas::Shape.rotate(rotation)
+          ]) do
+            # Left eye
+            canvas_circle(-3.5, -3, 2, fill: face_color)
+            # Right eye
+            canvas_circle(3.5, -3, 2, fill: face_color)
+            # Mouth (smile path)
+            canvas_path(smile_path, stroke: Plushie::Canvas::Shape.stroke(face_color, 2))
+          end
         end
       end
     end

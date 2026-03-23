@@ -4,8 +4,8 @@ module Plushie
   module Canvas
     module Shape
       # Text drawn on a canvas.
-      CanvasText = ::Data.define(:x, :y, :content, :fill, :size, :font, :opacity, :interactive) do
-        def initialize(x:, y:, content:, fill: nil, size: nil, font: nil, opacity: nil, interactive: nil)
+      CanvasText = ::Data.define(:x, :y, :content, :fill, :size, :font, :opacity) do
+        def initialize(x:, y:, content:, fill: nil, size: nil, font: nil, opacity: nil)
           super
         end
 
@@ -23,7 +23,6 @@ module Plushie
           h[:size] = size if size
           h[:font] = font if font
           h[:opacity] = opacity if opacity
-          h[:interactive] = interactive if interactive
           h
         end
       end

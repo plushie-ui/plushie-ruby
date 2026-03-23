@@ -11,7 +11,7 @@ module Plushie
     # string for json). The session field defaults to "" and is injected
     # by the Connection or SessionPool when multiplexing.
     #
-    # @see ~/projects/plushie/docs/protocol.md "Incoming messages"
+    # @see ~/projects/plushie-renderer/docs/protocol.md "Incoming messages"
     module Encode
       module_function
 

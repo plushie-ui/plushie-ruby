@@ -4,8 +4,8 @@ module Plushie
   module Canvas
     module Shape
       # Line shape.
-      Line = ::Data.define(:x1, :y1, :x2, :y2, :stroke, :stroke_width, :opacity, :interactive) do
-        def initialize(x1:, y1:, x2:, y2:, stroke: nil, stroke_width: nil, opacity: nil, interactive: nil)
+      Line = ::Data.define(:x1, :y1, :x2, :y2, :stroke, :stroke_width, :opacity) do
+        def initialize(x1:, y1:, x2:, y2:, stroke: nil, stroke_width: nil, opacity: nil)
           super
         end
 
@@ -22,7 +22,6 @@ module Plushie
           h[:stroke] = stroke if stroke
           h[:stroke_width] = stroke_width if stroke_width
           h[:opacity] = opacity if opacity
-          h[:interactive] = interactive if interactive
           h
         end
       end

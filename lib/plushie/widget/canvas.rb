@@ -9,9 +9,9 @@ module Plushie
     # collection of shapes. Use {#add_layer} to append layers, or
     # set flat +shapes+ for simple cases.
     #
-    # PROPS: layers, shapes, width, height, background, interactive,
+    # PROPS: layers, shapes, width, height, background,
     # on_press, on_release, on_move, on_scroll, alt, description,
-    # event_rate, a11y.
+    # role, arrow_mode, event_rate, a11y.
     #
     # @example Layer-based usage
     #   Canvas.new("drawing", width: 400, height: 300)
@@ -25,12 +25,12 @@ module Plushie
     #     .build
     class Canvas
       # Supported property keys for the canvas widget.
-      PROPS = %i[layers shapes width height background interactive
+      PROPS = %i[layers shapes width height background
         on_press on_release on_move on_scroll alt description
-        event_rate a11y].freeze
+        role arrow_mode event_rate a11y].freeze
 
       # @!parse
-      #   attr_reader :id, :layers, :shapes, :width, :height, :background, :interactive, :on_press, :on_release, :on_move, :on_scroll, :alt, :description, :event_rate, :a11y
+      #   attr_reader :id, :layers, :shapes, :width, :height, :background, :on_press, :on_release, :on_move, :on_scroll, :alt, :description, :role, :arrow_mode, :event_rate, :a11y
       class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier

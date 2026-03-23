@@ -7,8 +7,8 @@ module Plushie
       #
       # @example
       #   CanvasSvg.new(source: "icon.svg", x: 10, y: 20, w: 32, h: 32)
-      CanvasSvg = ::Data.define(:source, :x, :y, :w, :h, :interactive) do
-        def initialize(source:, x:, y:, w:, h:, interactive: nil)
+      CanvasSvg = ::Data.define(:source, :x, :y, :w, :h) do
+        def initialize(source:, x:, y:, w:, h:)
           super
         end
 
@@ -17,9 +17,7 @@ module Plushie
 
         # @return [Hash] wire-ready shape map
         def to_wire
-          h = {type: "svg", source: source, x: x, y: y, w: w, h: self.h}
-          h[:interactive] = interactive.respond_to?(:to_wire) ? interactive.to_wire : interactive if interactive
-          h
+          {type: "svg", source: source, x: x, y: y, w: w, h: h}
         end
       end
     end

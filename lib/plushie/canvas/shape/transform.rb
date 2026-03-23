@@ -3,28 +3,6 @@
 module Plushie
   module Canvas
     module Shape
-      # Pushes the current transform state onto the stack.
-      #
-      # @example
-      #   PushTransform.new
-      PushTransform = ::Data.define do
-        # @return [Hash] wire-ready transform map
-        def to_wire
-          {type: "push_transform"}
-        end
-      end
-
-      # Pops the previously saved transform state from the stack.
-      #
-      # @example
-      #   PopTransform.new
-      PopTransform = ::Data.define do
-        # @return [Hash] wire-ready transform map
-        def to_wire
-          {type: "pop_transform"}
-        end
-      end
-
       # Translates the canvas coordinate origin.
       #
       # @example
@@ -57,16 +35,24 @@ module Plushie
 
       # Scales the canvas coordinate system.
       #
-      # @example
-      #   Scale.new(x: 2.0, y: 2.0)
-      Scale = ::Data.define(:x, :y) do
-        def initialize(x:, y:)
+      # Use x/y for independent axis scaling, or factor for uniform scaling.
+      #
+      # @example Independent
+      #   Scale.new(x: 2.0, y: 0.5)
+      # @example Uniform
+      #   Scale.new(factor: 2.0)
+      Scale = ::Data.define(:x, :y, :factor) do
+        def initialize(x: nil, y: nil, factor: nil)
           super
         end
 
         # @return [Hash] wire-ready transform map
         def to_wire
-          {type: "scale", x: x, y: y}
+          h = {type: "scale"}
+          h[:x] = x if x
+          h[:y] = y if y
+          h[:factor] = factor if factor
+          h
         end
       end
     end

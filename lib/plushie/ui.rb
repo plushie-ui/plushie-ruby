@@ -658,20 +658,24 @@ module Plushie
     # Group of shapes inside a canvas or layer block.
     #
     # Groups can apply shared transforms and clipping to their children.
+    # Interactive fields (id, on_click, cursor, etc.) live at the top
+    # level of the group. x:/y: kwargs are desugared into a leading
+    # translate in the transforms array.
     #
-    # @param opts [Hash] group options (:transform, :clip, :opacity, etc.)
+    # @param id [String, nil] optional group id for interactive hit testing
+    # @param opts [Hash] group options (:transforms, :clip, :opacity, etc.)
     # @yield shapes to include in the group
     # @return [Hash] the group shape descriptor
     # @example
     #   canvas("grouped", width: 200, height: 200) do
     #     layer("main") do
-    #       canvas_group(transform: { translate: [50, 50] }) do
+    #       canvas_group(transforms: [Canvas::Shape.translate(50, 50)]) do
     #         canvas_rect(0, 0, 100, 100, fill: "#0f0")
     #         canvas_circle(50, 50, 30, fill: "#00f")
     #       end
     #     end
     #   end
-    def canvas_group(**opts, &block)
+    def canvas_group(id = nil, x: nil, y: nil, transforms: nil, **opts, &block)
       shape_list = []
       old = Thread.current[:_plushie_canvas_shapes]
       Thread.current[:_plushie_canvas_shapes] = shape_list
@@ -680,7 +684,14 @@ module Plushie
       ensure
         Thread.current[:_plushie_canvas_shapes] = old
       end
-      shape = {type: "group", shapes: shape_list}.merge(opts)
+
+      xforms = Array(transforms)
+      xforms.unshift(Canvas::Shape.translate(x, y)) if x || y
+
+      shape = {type: "group", children: shape_list}
+      shape[:transforms] = xforms.map { |t| t.respond_to?(:to_wire) ? t.to_wire : t } unless xforms.empty?
+      shape[:id] = id if id
+      shape.merge!(opts)
       _plushie_add_canvas_shape(shape)
       shape
     end

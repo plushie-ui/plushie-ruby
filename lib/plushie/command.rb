@@ -306,6 +306,16 @@ module Plushie
     def self.get_system_info(tag) = Cmd.new(type: :window_query, payload: {op: :get_system_info, window_id: "_system", tag: tag.to_s})
 
     # -------------------------------------------------------------------
+    # Canvas operations
+    # -------------------------------------------------------------------
+
+    # Focus a specific element within a canvas widget.
+    # @param canvas_id [String]
+    # @param element_id [String]
+    # @return [Cmd]
+    def self.focus_element(canvas_id, element_id) = Cmd.new(type: :widget_op, payload: {op: "focus_element", target: canvas_id, element_id: element_id})
+
+    # -------------------------------------------------------------------
     # PaneGrid operations
     # -------------------------------------------------------------------
 

@@ -98,7 +98,7 @@ class TestCanvasShapes < Minitest::Test
     assert_equal "group", wire[:type]
     assert_in_delta 0.5, wire[:opacity]
     # Nested shapes are converted via to_wire
-    assert_equal "rect", wire[:shapes].first[:type]
+    assert_equal "rect", wire[:children].first[:type]
   end
 
   # -- Canvas image ----------------------------------------------------------
@@ -143,7 +143,6 @@ class TestCanvasShapes < Minitest::Test
     assert_instance_of S::CanvasSvg, shape
     assert_equal "icon.svg", shape.source
     assert_equal 32, shape.w
-    assert_nil shape.interactive
   end
 
   def test_canvas_svg_to_wire
@@ -151,7 +150,6 @@ class TestCanvasShapes < Minitest::Test
     assert_equal "svg", wire[:type]
     assert_equal "icon.svg", wire[:source]
     assert_equal 10, wire[:x]
-    refute wire.key?(:interactive)
   end
 
   # -- Stroke ----------------------------------------------------------------
@@ -289,56 +287,42 @@ class TestCanvasShapes < Minitest::Test
     assert_equal({x: 5, y: 10, w: 80, h: 40}, wire)
   end
 
-  # -- Interactive -----------------------------------------------------------
+  # -- Group interactive fields -----------------------------------------------
 
-  def test_interactive_struct
-    i = S::Interactive.new(id: "btn", on_click: true, cursor: "pointer")
-    assert_instance_of S::Interactive, i
-    assert_equal "btn", i.id
-    assert_equal true, i.on_click
-    assert_equal "pointer", i.cursor
-    assert_nil i.draggable
+  def test_group_interactive_fields
+    g = S.group("btn", [S.rect(0, 0, 10, 10)], on_click: true, cursor: "pointer")
+    assert_instance_of S::Group, g
+    assert_equal "btn", g.id
+    assert_equal true, g.on_click
+    assert_equal "pointer", g.cursor
+    assert_nil g.draggable
   end
 
-  def test_interactive_to_wire
-    i = S::Interactive.new(id: "btn", on_click: true)
-    wire = i.to_wire
+  def test_group_interactive_to_wire
+    g = S.group("btn", [S.rect(0, 0, 10, 10)], on_click: true)
+    wire = g.to_wire
     assert_equal "btn", wire[:id]
     assert_equal true, wire[:on_click]
     refute wire.key?(:draggable)
     refute wire.key?(:cursor)
   end
 
-  def test_interactive_nested_structs_to_wire
+  def test_group_interactive_nested_structs_to_wire
     bounds = S::DragBounds.new(min_x: 0, max_x: 200)
     style = S::ShapeStyle.new(fill: "red")
     hr = S::HitRect.new(x: 0, y: 0, w: 50, h: 50)
-    i = S::Interactive.new(
-      id: "drag",
+    g = S.group("drag", [S.rect(0, 0, 10, 10)],
       draggable: true,
       drag_bounds: bounds,
       hover_style: style,
-      hit_rect: hr
-    )
-    wire = i.to_wire
+      hit_rect: hr)
+    wire = g.to_wire
     assert_equal({min_x: 0, max_x: 200}, wire[:drag_bounds])
     assert_equal({fill: "red"}, wire[:hover_style])
     assert_equal({x: 0, y: 0, w: 50, h: 50}, wire[:hit_rect])
   end
 
-  # -- Transform commands ----------------------------------------------------
-
-  def test_push_transform
-    t = S.push_transform
-    assert_instance_of S::PushTransform, t
-    assert_equal({type: "push_transform"}, t.to_wire)
-  end
-
-  def test_pop_transform
-    t = S.pop_transform
-    assert_instance_of S::PopTransform, t
-    assert_equal({type: "pop_transform"}, t.to_wire)
-  end
+  # -- Transform value constructors ------------------------------------------
 
   def test_translate
     t = S.translate(100, 50)
@@ -365,22 +349,31 @@ class TestCanvasShapes < Minitest::Test
     assert_equal({type: "scale", x: 2.0, y: 0.5}, s.to_wire)
   end
 
-  # -- Clipping commands -----------------------------------------------------
+  def test_scale_uniform
+    s = S.scale(2.0)
+    assert_instance_of S::Scale, s
+    assert_in_delta 2.0, s.factor
+    assert_nil s.x
+    assert_equal({type: "scale", factor: 2.0}, s.to_wire)
+  end
 
-  def test_push_clip
-    c = S.push_clip(10, 20, 100, 80)
-    assert_instance_of S::PushClip, c
+  def test_scale_uniform_constructor
+    s = S.scale_uniform(3.0)
+    assert_instance_of S::Scale, s
+    assert_in_delta 3.0, s.factor
+    assert_equal({type: "scale", factor: 3.0}, s.to_wire)
+  end
+
+  # -- Clipping value constructor --------------------------------------------
+
+  def test_clip
+    c = S.clip(10, 20, 100, 80)
+    assert_instance_of S::Clip, c
     assert_equal 10, c.x
     assert_equal 20, c.y
     assert_equal 100, c.w
     assert_equal 80, c.h
-    assert_equal({type: "push_clip", x: 10, y: 20, w: 100, h: 80}, c.to_wire)
-  end
-
-  def test_pop_clip
-    c = S.pop_clip
-    assert_instance_of S::PopClip, c
-    assert_equal({type: "pop_clip"}, c.to_wire)
+    assert_equal({type: "clip", x: 10, y: 20, w: 100, h: 80}, c.to_wire)
   end
 
   # -- Path commands ---------------------------------------------------------
@@ -424,14 +417,11 @@ class TestCanvasShapes < Minitest::Test
     assert S::ShapeStyle.new.frozen?
     assert S::DragBounds.new.frozen?
     assert S::HitRect.new(x: 0, y: 0, w: 1, h: 1).frozen?
-    assert S::Interactive.new(id: "x").frozen?
-    assert S.push_transform.frozen?
-    assert S.pop_transform.frozen?
     assert S.translate(0, 0).frozen?
     assert S.rotate(0).frozen?
     assert S.scale(1, 1).frozen?
-    assert S.push_clip(0, 0, 1, 1).frozen?
-    assert S.pop_clip.frozen?
+    assert S.scale_uniform(2.0).frozen?
+    assert S.clip(0, 0, 1, 1).frozen?
     assert S.canvas_image("x", 0, 0, 1, 1).frozen?
     assert S.canvas_svg("x", 0, 0, 1, 1).frozen?
   end

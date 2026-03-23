@@ -4,8 +4,8 @@ module Plushie
   module Canvas
     module Shape
       # Path shape built from segments.
-      Path = ::Data.define(:commands, :fill, :stroke, :stroke_width, :opacity, :interactive) do
-        def initialize(commands:, fill: nil, stroke: nil, stroke_width: nil, opacity: nil, interactive: nil)
+      Path = ::Data.define(:commands, :fill, :stroke, :stroke_width, :opacity) do
+        def initialize(commands:, fill: nil, stroke: nil, stroke_width: nil, opacity: nil)
           super
         end
 
@@ -23,7 +23,6 @@ module Plushie
           h[:stroke] = stroke if stroke
           h[:stroke_width] = stroke_width if stroke_width
           h[:opacity] = opacity if opacity
-          h[:interactive] = interactive if interactive
           h
         end
       end

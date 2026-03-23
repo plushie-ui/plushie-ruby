@@ -21,7 +21,7 @@ module Plushie
   #     end
   #   end
   #
-  # @see ~/projects/plushie/docs/protocol.md "Effect"
+  # @see ~/projects/plushie-renderer/docs/protocol.md "Effect"
   # @see ~/projects/toddy-elixir/lib/plushie/effects.ex
   module Effects
     # Default timeouts per effect kind (milliseconds).

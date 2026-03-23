@@ -88,6 +88,9 @@ module Plushie
     def self.list_images: (Symbol tag) -> Cmd
     def self.clear_images: () -> Cmd
 
+    # Canvas element focus
+    def self.focus_element: (String canvas_id, String element_id) -> Cmd
+
     # Widget queries
     def self.tree_hash: (Symbol tag) -> Cmd
     def self.find_focused: (Symbol tag) -> Cmd
