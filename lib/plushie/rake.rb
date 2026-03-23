@@ -38,7 +38,7 @@ namespace :plushie do
     end
   end
 
-  desc "Build the plushie renderer from Rust source"
+  desc "Build the plushie renderer from Rust source (with extensions if configured)"
   task :build, [:profile] do |_t, args|
     require "plushie"
 
@@ -50,39 +50,49 @@ namespace :plushie do
       abort "cargo not found. Install Rust via https://rustup.rs"
     end
 
-    # Resolve source directory
-    source_dir = ENV["PLUSHIE_SOURCE_PATH"]
-    unless source_dir && File.directory?(source_dir)
-      abort "Plushie Rust source not found. Set PLUSHIE_SOURCE_PATH to the plushie repo checkout."
+    # Check for configured extensions
+    extensions = Plushie::Extension::Build.configured_extensions
+
+    if extensions.any?
+      require "plushie/extension/build"
+      Plushie::Extension::Build.build_with_extensions(
+        extensions, release: release
+      )
+    else
+      # Stock build: requires source checkout
+      source_dir = ENV["PLUSHIE_SOURCE_PATH"]
+      unless source_dir && File.directory?(source_dir)
+        abort "Plushie Rust source not found. Set PLUSHIE_SOURCE_PATH to the plushie repo checkout."
+      end
+
+      cmd_args = ["cargo", "build", "-p", "plushie"]
+      cmd_args << "--release" if release
+
+      label = release ? " (release)" : ""
+      puts "Building plushie#{label}..."
+
+      unless system(*cmd_args, chdir: source_dir)
+        abort "cargo build failed"
+      end
+
+      puts "Build succeeded."
+
+      # Install binary to _build/plushie/bin/
+      profile_dir = release ? "release" : "debug"
+      src = File.join(source_dir, "target", profile_dir, "plushie")
+
+      unless File.exist?(src)
+        abort "Build succeeded but binary not found at #{src}"
+      end
+
+      dest_dir = File.join("_build", "plushie", "bin")
+      FileUtils.mkdir_p(dest_dir)
+      dest = File.join(dest_dir, Plushie::Binary.binary_name)
+      FileUtils.cp(src, dest)
+      File.chmod(0o755, dest)
+
+      puts "Installed to #{dest}"
     end
-
-    cmd_args = ["cargo", "build", "-p", "plushie"]
-    cmd_args << "--release" if release
-
-    label = release ? " (release)" : ""
-    puts "Building plushie#{label}..."
-
-    unless system(*cmd_args, chdir: source_dir)
-      abort "cargo build failed"
-    end
-
-    puts "Build succeeded."
-
-    # Install binary to _build/plushie/bin/
-    profile_dir = release ? "release" : "debug"
-    src = File.join(source_dir, "target", profile_dir, "plushie")
-
-    unless File.exist?(src)
-      abort "Build succeeded but binary not found at #{src}"
-    end
-
-    dest_dir = File.join("_build", "plushie", "bin")
-    FileUtils.mkdir_p(dest_dir)
-    dest = File.join(dest_dir, Plushie::Binary.binary_name)
-    FileUtils.cp(src, dest)
-    File.chmod(0o755, dest)
-
-    puts "Installed to #{dest}"
   end
 
   desc "Run a Plushie app (e.g. rake plushie:run[Counter] or plushie:run[Counter,dev] or plushie:run[Counter,json])"

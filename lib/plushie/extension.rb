@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Plushie
-  # Module for declaring pure Ruby composite widget extensions.
+  # Module for declaring widget extensions (pure Ruby or native Rust).
   #
   # Include in a class to declare a widget with typed props and a render
   # method that composes existing widgets. The Extension module generates:
@@ -10,6 +10,13 @@ module Plushie
   # - +set_<prop>(value)+ setter methods for each prop (returns a dup)
   # - +build+ method that calls +render+ and returns a {Plushie::Node}
   # - +type_names+ and +prop_names+ class methods
+  #
+  # Two kinds of extensions are supported:
+  #
+  # - +:widget+ (default) -- pure Ruby composite. Implements +render+ to
+  #   compose existing widgets. No Rust, no binary rebuild.
+  # - +:native_widget+ -- Rust-backed. Requires +rust_crate+ and
+  #   +rust_constructor+ declarations. Built via +rake plushie:build+.
   #
   # @example Defining a composite gauge widget
   #   class MyGauge
@@ -23,6 +30,21 @@ module Plushie
   #     def render(id, props)
   #       Plushie::Widget::ProgressBar.new(id, {0, props[:max]}, props[:value]).build
   #     end
+  #   end
+  #
+  # @example Native Rust widget
+  #   class SparklineExtension
+  #     include Plushie::Extension
+  #
+  #     widget :sparkline, kind: :native_widget
+  #     rust_crate "native/sparkline"
+  #     rust_constructor "sparkline::SparklineExtension::new()"
+  #
+  #     prop :data, :any, default: []
+  #     prop :color, :color, default: :blue
+  #     prop :stroke_width, :number, default: 2
+  #
+  #     command :push_data, values: :any
   #   end
   #
   # @example Using the generated API
@@ -39,19 +61,75 @@ module Plushie
     RESERVED_PROP_NAMES = %i[id type children a11y event_rate].freeze
 
     module ClassMethods
+      VALID_KINDS = %i[widget native_widget].freeze
+
       # Declares the widget type name.
       #
       # @param type_name [Symbol] the wire type name for this widget
       # @param opts [Hash] options
+      # @option opts [Symbol] :kind (:widget) either +:widget+ or +:native_widget+
       # @option opts [Boolean] :container (false) whether this widget accepts children
       # @return [void]
       #
-      # @example
+      # @example Pure Ruby widget
       #   widget :gauge
-      #   widget :labeled_input, container: true
+      # @example Native Rust widget
+      #   widget :sparkline, kind: :native_widget
       def widget(type_name, **opts)
+        kind = opts.fetch(:kind, :widget)
+        unless VALID_KINDS.include?(kind)
+          raise ArgumentError,
+            "unsupported widget kind #{kind.inspect}. Supported: #{VALID_KINDS.inspect}"
+        end
+
         @_extension_widget = type_name
+        @_extension_kind = kind
         @_extension_container = opts.fetch(:container, false)
+      end
+
+      # Declares the relative path to the Rust crate directory.
+      # Required for +:native_widget+ extensions.
+      #
+      # @param path [String] relative path from the project root to the crate
+      # @return [void]
+      #
+      # @example
+      #   rust_crate "native/sparkline"
+      def rust_crate(path)
+        @_extension_native_crate = path.to_s
+      end
+
+      # Declares the Rust constructor expression used in the generated main.rs.
+      # Required for +:native_widget+ extensions.
+      #
+      # @param expr [String] a valid Rust expression (e.g. "MyExt::new()")
+      # @return [void]
+      #
+      # @example
+      #   rust_constructor "sparkline::SparklineExtension::new()"
+      def rust_constructor(expr)
+        @_extension_rust_constructor = expr.to_s
+      end
+
+      # Returns the native crate path declared via +rust_crate+.
+      #
+      # @return [String, nil]
+      def native_crate
+        @_extension_native_crate
+      end
+
+      # Returns the Rust constructor expression declared via +rust_constructor+.
+      #
+      # @return [String, nil]
+      def rust_constructor_expr
+        @_extension_rust_constructor
+      end
+
+      # Whether this is a native (Rust-backed) extension.
+      #
+      # @return [Boolean]
+      def native?
+        @_extension_kind == :native_widget
       end
 
       # Declares a typed prop with optional default.
@@ -150,6 +228,17 @@ module Plushie
         unless @_extension_widget
           raise ArgumentError, "missing `widget :type_name` declaration in #{name}"
         end
+
+        if @_extension_kind == :native_widget
+          unless @_extension_native_crate
+            raise ArgumentError,
+              "native_widget #{name} requires a `rust_crate` declaration"
+          end
+          unless @_extension_rust_constructor
+            raise ArgumentError,
+              "native_widget #{name} requires a `rust_constructor` declaration"
+          end
+        end
       end
 
       def _generate_initialize!
@@ -230,9 +319,12 @@ module Plushie
     def self.included(base)
       base.extend(ClassMethods)
       base.instance_variable_set(:@_extension_widget, nil)
+      base.instance_variable_set(:@_extension_kind, :widget)
       base.instance_variable_set(:@_extension_props, [])
       base.instance_variable_set(:@_extension_commands, [])
       base.instance_variable_set(:@_extension_container, false)
+      base.instance_variable_set(:@_extension_native_crate, nil)
+      base.instance_variable_set(:@_extension_rust_constructor, nil)
       base.instance_variable_set(:@_finalized, false)
       finalize_on_new(base)
     end
