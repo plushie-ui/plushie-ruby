@@ -153,7 +153,7 @@ class RatePlushie
       padding: 24, width: :fill,
       border: {width: 1, color: t[:card_border], rounded: 12},
       background: t[:card_bg]) do
-      column(spacing: 20) do
+      column(spacing: 20, width: :fill) do
         text("prompt", "How would you rate Plushie?", size: 14, color: t[:text_secondary])
 
         StarRating.render("stars", model.rating,
@@ -172,9 +172,9 @@ class RatePlushie
   def review_form(model, _t)
     column("review-form", spacing: 12, width: :fill) do
       text_input("review-name", model.review_name,
-        placeholder: "Your name", a11y: {label: "Your name"})
+        placeholder: "Your name", width: :fill, a11y: {label: "Your name"})
       text_editor("review-comment", model.review_comment,
-        placeholder: "Write your review...", height: 80,
+        placeholder: "Write your review...", width: :fill, height: 80,
         a11y: {label: "Review text"})
       button("submit-review", "Submit Review")
     end
