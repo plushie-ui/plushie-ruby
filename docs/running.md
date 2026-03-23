@@ -113,7 +113,9 @@ subscriptions and windows.
 
 The host retries up to 5 times (100ms, 200ms, 400ms, 800ms, 1.6s).
 If all retries fail, it logs troubleshooting steps and the plushie
-runtime stops. The rest of your application is unaffected.
+runtime stops. The rest of your application is unaffected. A
+successful connection resets the retry counter, so intermittent
+crashes get a fresh budget each time.
 
 ### Exceptions in your code
 
@@ -153,6 +155,10 @@ it keeps running and waits for a new renderer to connect.
 Over a network, continuous events like mouse moves, scroll, and
 slider drags can overwhelm the connection. Rate limiting tells the
 renderer to buffer these and deliver at a controlled frequency.
+Discrete events like clicks and key presses are never rate-limited.
+
+Rate limiting is useful locally too -- a dashboard doesn't need
+1000 mouse move updates per second even on a fast machine.
 
 ### Global default
 
@@ -197,7 +203,9 @@ slider("seek", [0, model.duration], model.position, event_rate: 60)
 | SSH | -- | 1-5ms | 20-150ms |
 
 On a LAN, animations are smooth and interactions feel instant. Over a
-WAN (50ms+), user interactions have a visible round-trip delay.
+WAN (50ms+), user interactions have a visible round-trip delay. Design
+for this by keeping UI responsive to local input (hover effects, focus
+states) and accepting that model updates lag by the round-trip time.
 
 ## Custom transports
 

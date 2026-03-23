@@ -264,7 +264,13 @@ canvas("chart", layers: {"data" => chart_shapes},
 ### Interactive canvas shapes
 
 When a canvas contains shapes with the `interactive` field, each shape
-becomes a separate accessible node.
+becomes a separate accessible node. The canvas widget itself is the
+container; individual shapes are focusable children. Tab and Arrow keys
+navigate between shapes. Enter/Space activates the focused shape.
+
+This is how you build accessible custom widgets from canvas primitives.
+Without interactive shapes, a canvas is a single opaque "image" node to
+screen readers.
 
 ```ruby
 canvas("color-picker", width: 200, height: 100,
@@ -285,17 +291,156 @@ canvas("color-picker", width: 200, height: 100,
 
 Screen reader: "Red, radio button, 1 of 5, selected."
 
+The `position_in_set` and `size_of_set` fields tell screen readers
+where each shape sits in the group. Without them, the reader announces
+each shape individually with no positional context.
+
+### Custom widgets with state
+
+When building custom widgets with canvas or other primitives, use `toggled`,
+`selected`, `value`, and `orientation` to expose their state to AT users.
+Without these, screen readers have no way to know the state of a custom
+control drawn with raw shapes.
+
+```ruby
+# Custom toggle switch built with canvas
+canvas("dark-mode-switch", layers: [...],
+  a11y: {
+    role: :switch,
+    label: "Dark mode",
+    toggled: model.dark_mode
+  })
+
+# Custom gauge showing percentage
+canvas("cpu-gauge", layers: [...],
+  a11y: {
+    role: :meter,
+    label: "CPU usage",
+    value: "#{model.cpu_percent}%",
+    orientation: :horizontal
+  })
+```
+
+`toggled` and `selected` are booleans. Use `toggled` for on/off controls
+(switches, checkboxes) and `selected` for selection state (list items, tabs).
+`value` is a string describing the current value in human-readable form.
+`orientation` tells AT users whether a control is horizontal or vertical,
+which affects how they navigate it.
+
+### Set position and popup hints
+
+Use `position_in_set` / `size_of_set` when building composite widgets
+from primitives (custom lists, tab bars, radio groups). Without these,
+screen readers cannot announce position context like "Item 3 of 7".
+
+```ruby
+# Radio group with position context
+container("colors", a11y: {role: :group, label: "Favorite color"}) do
+  colors.each_with_index do |color, idx|
+    radio("color_#{color}", color, model.selected_color,
+      a11y: {
+        position_in_set: idx + 1,
+        size_of_set: colors.length
+      })
+  end
+end
+
+# Custom tab bar
+row do
+  model.tabs.each_with_index do |tab, idx|
+    button("tab_#{tab.id}", tab.label,
+      a11y: {
+        role: :tab,
+        selected: tab.id == model.active_tab,
+        position_in_set: idx + 1,
+        size_of_set: model.tabs.length
+      })
+  end
+end
+```
+
+Use `has_popup` to tell screen readers that activating a widget opens
+a popup of a specific type:
+
+```ruby
+# Dropdown button
+button("menu_btn", "Options",
+  a11y: {has_popup: "menu", expanded: model.menu_open})
+
+# Combo box with listbox popup
+text_input("search", model.query,
+  a11y: {has_popup: "listbox", expanded: model.suggestions_visible})
+```
+
+Use `disabled` to override the disabled state for AT when a widget
+is visually disabled via custom styling but doesn't use the standard
+`disabled` prop:
+
+```ruby
+button("submit", "Submit",
+  a11y: {disabled: !model.form_valid})
+```
+
+### Expanded/collapsed state
+
+For disclosure widgets, toggleable panels, and dropdown menus:
+
+```ruby
+def view(model)
+  column do
+    button("toggle_details",
+      model.show_details ? "Hide details" : "Show details",
+      a11y: {expanded: model.show_details})
+
+    if model.show_details
+      container("details", a11y: {role: :region, label: "Details"}) do
+        # detail content
+      end
+    end
+  end
+end
+```
+
+The `expanded` field tells AT whether the control is currently
+expanded or collapsed, so screen readers can announce "Show details,
+button, collapsed" or "Hide details, button, expanded".
+
 ## Widget-specific accessibility props
 
+Some widgets accept accessibility props directly as top-level fields,
+outside the `a11y` hash. The Rust renderer reads these and maps them
+to the appropriate accesskit node properties. They are simpler to use
+than the full `a11y` hash for common cases.
+
 ### alt
+
+An accessible label string for visual content widgets where the content
+itself is not textual.
+
+| Widget | Prop | Type |
+|---|---|---|
+| `image` | `alt` | String |
+| `svg` | `alt` | String |
+| `qr_code` | `alt` | String |
+| `canvas` | `alt` | String |
 
 ```ruby
 image("logo", "/images/logo.png", alt: "Company logo")
 svg("icon", "/icons/search.svg", alt: "Search")
+qr_code("invite", invite_url, alt: "QR code for invite link")
 canvas("chart", layers: layers, alt: "Revenue chart")
 ```
 
 ### label
+
+An accessible label string for interactive widgets that don't have a
+visible text label prop.
+
+| Widget | Prop | Type |
+|---|---|---|
+| `slider` | `label` | String |
+| `vertical_slider` | `label` | String |
+| `progress_bar` | `label` | String |
 
 ```ruby
 slider("volume", [0, 100], model.volume, label: "Volume")
@@ -303,6 +448,15 @@ progress_bar("upload", [0, 100], model.progress, label: "Upload progress")
 ```
 
 ### decorative
+
+A boolean that hides visual content from assistive technology entirely.
+Use this for images and SVGs that are purely decorative and convey no
+information.
+
+| Widget | Prop | Type |
+|---|---|---|
+| `image` | `decorative` | Boolean |
+| `svg` | `decorative` | Boolean |
 
 ```ruby
 image("divider", "/images/decorative-line.png", decorative: true)
