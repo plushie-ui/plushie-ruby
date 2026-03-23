@@ -166,12 +166,12 @@ module Plushie
 
     # @return [String] GitHub release download URL
     def release_url(version)
-      "https://github.com/plushie-ui/plushie/releases/download/v#{version}/#{binary_name}"
+      "https://github.com/plushie-ui/plushie-renderer/releases/download/v#{version}/#{binary_name}"
     end
 
     # @return [String] platform-specific binary filename
     def binary_name
-      name = "plushie-#{os_name}-#{arch_name}"
+      name = "plushie-renderer-#{os_name}-#{arch_name}"
       name += ".exe" if Gem.win_platform?
       name
     end
@@ -232,7 +232,7 @@ module Plushie
       end
 
       archive_name = "plushie-wasm.tar.gz"
-      url = "https://github.com/plushie-ui/plushie/releases/download/v#{version}/#{archive_name}"
+      url = "https://github.com/plushie-ui/plushie-renderer/releases/download/v#{version}/#{archive_name}"
       checksum_url = "#{url}.sha256"
 
       warn "Downloading #{archive_name}..."
