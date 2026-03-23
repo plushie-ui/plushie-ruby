@@ -5,47 +5,101 @@ require "fileutils"
 module Plushie
   # Resolves the path to the plushie renderer binary.
   #
-  # Resolution order:
-  # 1. PLUSHIE_BINARY_PATH environment variable
-  # 2. Downloaded binary in _build/plushie/bin/
-  # 3. System PATH
+  # Resolution order (explicit config raises if file missing; implicit
+  # discovery silently tries the next option):
+  #
+  # 1. PLUSHIE_BINARY_PATH environment variable (explicit)
+  # 2. Plushie.configuration.binary_path (explicit)
+  # 3. Custom extension build in _build/plushie/custom/target/ (implicit)
+  # 4. Downloaded binary in _build/plushie/bin/ (implicit)
+  # 5. System PATH (implicit)
   #
   module Binary
     module_function
 
+    # Resolve and return the binary path, or raise with helpful instructions.
+    #
+    # @return [String] path to the plushie binary
+    # @raise [Plushie::Error] if no binary found
     def path!
       path = resolve
-      raise Error, "plushie binary not found. Run: rake plushie:download" unless path
+      unless path
+        raise Error, <<~MSG.chomp
+          plushie binary not found.
+
+          To download a precompiled binary:
+            rake plushie:download
+
+          To build from source:
+            rake plushie:build
+
+          To use an existing binary:
+            export PLUSHIE_BINARY_PATH=/path/to/plushie
+        MSG
+      end
       raise Error, "plushie binary not executable: #{path}" unless File.executable?(path)
       path
     end
 
+    # Resolve the binary path, or return nil.
+    #
+    # @return [String, nil]
     def path
       resolve
     end
 
+    # Full resolution chain.
+    #
+    # @return [String, nil]
     def resolve
-      # 1. Explicit env var
+      # 1. Explicit env var (raises if set but missing)
       if (env_path = ENV["PLUSHIE_BINARY_PATH"])
         return env_path if File.exist?(env_path)
         raise Error, "PLUSHIE_BINARY_PATH set but file not found: #{env_path}"
       end
 
-      # 2. Downloaded binary
+      # 2. Explicit config (raises if set but missing)
+      if (config_path = Plushie.configuration.binary_path)
+        return config_path if File.exist?(config_path)
+        raise Error, "Plushie.configuration.binary_path set to #{config_path.inspect} but file not found"
+      end
+
+      # 3. Custom extension build
+      custom = custom_build_path
+      return custom if custom
+
+      # 4. Downloaded binary
       downloaded = downloaded_path
-      return downloaded if downloaded && File.exist?(downloaded)
+      return downloaded if downloaded
 
-      # 3. System PATH
-      system_path = which("plushie")
-      return system_path if system_path
+      # 5. System PATH
+      which("plushie")
+    end
 
+    # Path to a custom extension build binary.
+    # Checks both release and debug profiles.
+    #
+    # @return [String, nil]
+    def custom_build_path
+      build_dir = File.join("_build", "plushie", "custom", "target")
+      return nil unless File.directory?(build_dir)
+
+      bin_name = Plushie.configuration.build_name
+      ext = Gem.win_platform? ? ".exe" : ""
+
+      %w[release debug].each do |profile|
+        path = File.join(build_dir, profile, "#{bin_name}#{ext}")
+        return path if File.exist?(path)
+      end
       nil
     end
 
+    # Path to the downloaded precompiled binary.
+    #
+    # @return [String, nil]
     def downloaded_path
       dir = File.join("_build", "plushie", "bin")
-      name = "plushie-#{os_name}-#{arch_name}"
-      name += ".exe" if Gem.win_platform?
+      name = binary_name
       path = File.join(dir, name)
       File.exist?(path) ? path : nil
     end

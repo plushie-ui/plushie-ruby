@@ -53,7 +53,9 @@ module Plushie
 
     # @return [Symbol] :mock, :headless, or :windowed
     def self.backend
-      ENV.fetch("PLUSHIE_TEST_BACKEND", "mock").to_sym
+      env = ENV["PLUSHIE_TEST_BACKEND"]
+      return env.to_sym if env && !env.empty?
+      Plushie.configuration.test_backend || :mock
     end
 
     private_class_method def self.create_pool

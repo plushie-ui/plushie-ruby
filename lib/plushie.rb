@@ -106,16 +106,38 @@ module Plushie
 
   # Global configuration for the Plushie SDK.
   #
-  # @example
+  # @example Basic setup
+  #   Plushie.configure do |config|
+  #     config.binary_path = "/opt/plushie/bin/plushie"
+  #     config.source_path = "~/projects/plushie"
+  #   end
+  #
+  # @example With extensions
   #   Plushie.configure do |config|
   #     config.extensions = [MyGauge, MyChart]
+  #     config.build_name = "my-dashboard-plushie"
   #     config.extension_config = {
-  #       "sparkline" => {"max_samples" => 1000},
-  #       "terminal" => {"shell" => "/bin/bash"}
+  #       "sparkline" => {"max_samples" => 1000}
   #     }
   #   end
   #
   class Configuration
+    # Explicit path to the plushie binary. Overrides all resolution.
+    # Equivalent to PLUSHIE_BINARY_PATH env var.
+    # @return [String, nil]
+    attr_accessor :binary_path
+
+    # Path to the plushie Rust source checkout. Used by `rake plushie:build`.
+    # Equivalent to PLUSHIE_SOURCE_PATH env var.
+    # @return [String, nil]
+    attr_accessor :source_path
+
+    # Custom binary name for extension builds.
+    # Defaults to "plushie-custom". Used as the Cargo binary target name
+    # and the installed filename.
+    # @return [String]
+    attr_accessor :build_name
+
     # Extension classes to include in custom builds.
     # @return [Array<Class>]
     attr_accessor :extensions
@@ -125,9 +147,18 @@ module Plushie
     # @return [Hash]
     attr_accessor :extension_config
 
+    # Test backend (:mock, :headless, :windowed).
+    # Equivalent to PLUSHIE_TEST_BACKEND env var.
+    # @return [Symbol, nil]
+    attr_accessor :test_backend
+
     def initialize
+      @binary_path = nil
+      @source_path = nil
+      @build_name = "plushie-custom"
       @extensions = []
       @extension_config = {}
+      @test_backend = nil
     end
   end
 

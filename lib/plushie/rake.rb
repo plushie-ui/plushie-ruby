@@ -60,9 +60,10 @@ namespace :plushie do
       )
     else
       # Stock build: requires source checkout
-      source_dir = ENV["PLUSHIE_SOURCE_PATH"]
+      source_dir = ENV["PLUSHIE_SOURCE_PATH"] || Plushie.configuration.source_path
       unless source_dir && File.directory?(source_dir)
-        abort "Plushie Rust source not found. Set PLUSHIE_SOURCE_PATH to the plushie repo checkout."
+        abort "Plushie Rust source not found. Set PLUSHIE_SOURCE_PATH env var " \
+          "or Plushie.configuration.source_path to the plushie repo checkout."
       end
 
       cmd_args = ["cargo", "build", "-p", "plushie"]

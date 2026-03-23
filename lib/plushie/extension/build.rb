@@ -141,7 +141,7 @@ module Plushie
       # @param crate_paths [Hash{Class => String}] resolved crate paths
       # @return [String] Cargo.toml content
       def generate_cargo_toml(build_dir, bin_name, extensions, crate_paths)
-        source_path = ENV["PLUSHIE_SOURCE_PATH"]
+        source_path = ENV["PLUSHIE_SOURCE_PATH"] || Plushie.configuration.source_path
 
         core_dep, bin_dep = if source_path && File.directory?(source_path)
           core_rel = relative_path(File.join(source_path, "plushie-core"), build_dir)
@@ -216,7 +216,7 @@ module Plushie
         build_dir = File.join("_build", "plushie", "custom")
         FileUtils.mkdir_p(build_dir)
 
-        bin_name = ENV.fetch("PLUSHIE_BUILD_NAME", "plushie-custom")
+        bin_name = ENV["PLUSHIE_BUILD_NAME"] || Plushie.configuration.build_name
         crate_paths = resolve_crate_paths(extensions)
 
         check_collisions!(extensions)
