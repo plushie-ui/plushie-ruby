@@ -272,6 +272,31 @@ pid = Plushie.start(MyApp, name: :my_app)
 bundle exec ruby lib/my_app.rb
 ```
 
+## Error recovery
+
+The runtime rescues `StandardError` in both `update` and `view`:
+
+- **update error**: the exception is logged, the previous model is
+  preserved, and the event is discarded. The app continues processing
+  the next event as if nothing happened.
+- **view error**: the exception is logged, and the previous rendered
+  tree stays on screen. The model has already been updated, so the
+  next successful view call will reflect the current state.
+
+After 100 consecutive errors, log output is suppressed with periodic
+reminders to avoid flooding. `NoMatchingPatternError` gets a special
+message suggesting an `else` clause in your `case` expression.
+
+Extension panics (Rust side) are caught by the renderer's
+`catch_unwind`. The extension is marked "poisoned" and subsequent
+renders show a red error placeholder. Other extensions and widgets
+continue working. Removing the widget from the tree and re-adding
+it clears the poisoned state.
+
+See the
+[crash-lab demo](https://github.com/plushie-ui/plushie-demos/tree/main/ruby/crash-lab)
+for a working example of all three failure modes and their recovery.
+
 ## Testing
 
 Apps can be tested without a renderer:
