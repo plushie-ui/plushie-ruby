@@ -27,13 +27,13 @@ module ThemeToggle
     rotation = eased * Math::PI
     face_color = (progress < 0.5) ? "#665500" : "#4c1d95"
 
-    canvas(id, width: TRACK_W, height: TRACK_H) do
+    canvas(id, width: TRACK_W, height: TRACK_H, alt: "Theme toggle") do
       layer("toggle") do
         canvas_group("switch",
           on_click: true,
           cursor: "pointer",
           hit_rect: Plushie::Canvas::Shape::HitRect.new(x: 0, y: 0, w: TRACK_W, h: TRACK_H),
-          a11y: {role: :switch, label: "Dark humor"}) do
+          a11y: {role: :switch, label: "Dark humor", toggled: progress >= 0.5}) do
           # Track (rounded rect via path since canvas_rect has no radius)
           r = TRACK_H / 2.0
           canvas_path([

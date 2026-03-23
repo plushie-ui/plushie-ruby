@@ -9,7 +9,8 @@ require "plushie"
 # Pass readonly: true for a display-only version.
 #
 #   StarRating.render("my-rating", model.rating,
-#     hover: model.hover_star, theme_progress: p)
+#     hover: model.hover_star, focused: model.focused_star,
+#     theme_progress: p)
 #
 #   StarRating.render("review-stars", 4, readonly: true, scale: 0.5)
 #
@@ -30,35 +31,47 @@ module StarRating
     gap = (2 * scale).round
     display = hover || rating
     width = STAR_COUNT * size + (STAR_COUNT - 1) * gap
-    focus_r = outer_r + 3 * scale
 
     commands = star_commands(outer_r, inner_r)
 
-    canvas(id, width: width, height: size) do
+    canvas_opts = {width: width, height: size}
+    if readonly
+      canvas_opts[:alt] = "#{rating} out of #{STAR_COUNT} stars"
+      canvas_opts[:role] = "img"
+    else
+      canvas_opts[:role] = "radiogroup"
+      canvas_opts[:arrow_mode] = "wrap"
+    end
+
+    canvas(id, **canvas_opts) do
       layer("stars") do
         STAR_COUNT.times do |i|
           star_cx = i * (size + gap) + size / 2
           star_cy = size / 2
           filled = i < display
           preview = !readonly && !hover.nil? && i < hover && i >= rating
-          is_focused = !readonly && focused == i
 
-          group_opts = {x: star_cx, y: star_cy}
-          unless readonly
-            group_opts.merge!(
+          if readonly
+            canvas_group(x: star_cx, y: star_cy) do
+              canvas_path(commands, fill: star_color(filled, preview, theme_progress))
+            end
+          else
+            canvas_group("star-#{i}",
+              x: star_cx, y: star_cy,
               on_click: true,
               on_hover: true,
               cursor: "pointer",
-              a11y: {role: :button, label: "#{i + 1} star#{"s" unless i == 0}"}
-            )
-          end
-
-          canvas_group(readonly ? nil : "star-#{i}", **group_opts) do
-            if is_focused
-              canvas_circle(0, 0, focus_r,
-                stroke: Plushie::Canvas::Shape.stroke("#3b82f6", 2 * scale))
+              focus_style: {stroke: "#3b82f6", stroke_width: 2 * scale},
+              show_focus_ring: false,
+              a11y: {
+                role: :radio,
+                label: "#{i + 1} star#{"s" unless i == 0}",
+                selected: rating >= i + 1,
+                position_in_set: i + 1,
+                size_of_set: STAR_COUNT
+              }) do
+              canvas_path(commands, fill: star_color(filled, preview, theme_progress))
             end
-            canvas_path(commands, fill: star_color(filled, preview, theme_progress))
           end
         end
       end
