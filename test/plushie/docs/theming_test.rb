@@ -6,6 +6,7 @@ class DocsThemingTest < Minitest::Test
   # Helper that includes the DSL for building trees in tests
   class Builder
     include Plushie::UI
+
     public(*Plushie::UI.private_instance_methods(false))
   end
 

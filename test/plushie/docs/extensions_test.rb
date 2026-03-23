@@ -136,6 +136,7 @@ class DocsExtensionsTest < Minitest::Test
     assert_raises(ArgumentError) do
       Class.new do
         include Plushie::Extension
+
         widget :bad
         prop :value, :unknown_type
       end
@@ -148,6 +149,7 @@ class DocsExtensionsTest < Minitest::Test
     assert_raises(ArgumentError) do
       Class.new do
         include Plushie::Extension
+
         widget :bad
         prop :id, :string
       end

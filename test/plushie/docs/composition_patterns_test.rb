@@ -241,15 +241,15 @@ class DocsCompositionPatternsTest < Minitest::Test
 
           if model.show_modal
             container("overlay", width: :fill, height: :fill,
-                      background: "#00000088", center: true) do
+              background: "#00000088", center: true) do
               container("dialog", max_width: 400, padding: 24,
-                        background: "#ffffff",
-                        border: Plushie::Type::Border::Spec.new(color: "#dddddd", width: 1, radius: 8),
-                        shadow: Plushie::Type::Shadow::Spec.new(color: "#00000040", offset_x: 0, offset_y: 4, blur_radius: 16)) do
+                background: "#ffffff",
+                border: Plushie::Type::Border::Spec.new(color: "#dddddd", width: 1, radius: 8),
+                shadow: Plushie::Type::Shadow::Spec.new(color: "#00000040", offset_x: 0, offset_y: 4, blur_radius: 16)) do
                 column(spacing: 16) do
                   text("dialog_title", "Confirm action", size: 18, color: "#1a1a1a")
                   text("dialog_body", "Are you sure you want to proceed?",
-                       color: "#555555", wrapping: :word)
+                    color: "#555555", wrapping: :word)
 
                   row(spacing: 8, align_x: :end) do
                     button("cancel", "Cancel", style: :secondary)
@@ -342,7 +342,7 @@ class DocsCompositionPatternsTest < Minitest::Test
       shadow = Plushie::Type::Shadow::Spec.new(color: "#00000020", offset_x: 0, offset_y: 2, blur_radius: 8)
 
       container(id, width: :fill, padding: 16, background: "#ffffff",
-                border: border, shadow: shadow) do
+        border: border, shadow: shadow) do
         column(spacing: 8) do
           text("card_title", title, size: 16, color: "#1a1a1a")
           rule

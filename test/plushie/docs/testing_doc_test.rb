@@ -46,7 +46,7 @@ class DocsTestingDocTest < Minitest::Test
 
           button("add_todo", "Add")
 
-          text("todo_count", "#{model.todos.length} item#{model.todos.length == 1 ? "" : "s"}")
+          text("todo_count", "#{model.todos.length} item#{"s" unless model.todos.length == 1}")
 
           column("list", spacing: 4) do
             model.todos.each_with_index do |todo, i|
