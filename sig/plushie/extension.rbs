@@ -1,0 +1,40 @@
+module Plushie
+  module Extension
+    KNOWN_PROP_TYPES: Array[Symbol]
+    RESERVED_PROP_NAMES: Array[Symbol]
+
+    module ClassMethods
+      VALID_KINDS: Array[Symbol]
+
+      def widget: (Symbol type_name, **untyped opts) -> void
+
+      def rust_crate: (String path) -> void
+
+      def rust_constructor: (String expr) -> void
+
+      def native_crate: () -> String?
+
+      def rust_constructor_expr: () -> String?
+
+      def native?: () -> bool
+
+      def prop: (Symbol name, Symbol type, **untyped opts) -> void
+
+      def command: (Symbol name, **Symbol params) -> void
+
+      def type_names: () -> Array[Symbol]
+
+      def prop_names: () -> Array[Symbol]
+
+      def extension_props: () -> Array[Hash[Symbol, untyped]]
+
+      def container?: () -> bool
+
+      def finalize!: () -> void
+    end
+
+    def self.finalize_on_new: (Class base) -> void
+
+    def self.included: (Class base) -> void
+  end
+end

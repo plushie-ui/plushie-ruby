@@ -1,0 +1,13 @@
+module Plushie
+  module Transport
+    module Framing
+      def self.encode_packet: (String data) -> String
+
+      def self.decode_packets: (String buffer) -> [Array[String], String]
+
+      def self.encode_line: (String data) -> String
+
+      def self.decode_lines: (String buffer) -> [Array[String], String]
+    end
+  end
+end

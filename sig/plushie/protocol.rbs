@@ -1,0 +1,82 @@
+module Plushie
+  module Protocol
+    PROTOCOL_VERSION: Integer
+
+    module Encode
+      def self.encode: (Hash[Symbol, untyped] map, ?Symbol format) -> String
+
+      # Settings
+      def self.encode_settings: (Hash[Symbol, untyped] settings, ?Symbol format) -> String
+
+      # Tree updates
+      def self.encode_snapshot: (Hash[String, untyped] tree, ?Symbol format) -> String
+      def self.encode_patch: (Array[Hash[String, untyped]] ops, ?Symbol format) -> String
+
+      # Subscriptions
+      def self.encode_subscribe: (String | Symbol kind, String | Symbol tag, ?Symbol format, ?max_rate: Integer?) -> String
+      def self.encode_unsubscribe: (String | Symbol kind, ?Symbol format) -> String
+
+      # Widget operations
+      def self.encode_widget_op: (String | Symbol op, Hash[Symbol, untyped] payload, ?Symbol format) -> String
+
+      # Window operations
+      def self.encode_window_op: (String | Symbol op, String window_id, Hash[Symbol, untyped] settings, ?Symbol format) -> String
+
+      # Effects
+      def self.encode_effect: (String id, String kind, Hash[Symbol, untyped] payload, ?Symbol format) -> String
+
+      # Image operations
+      def self.encode_image_op: (String op, Hash[Symbol, untyped] payload, ?Symbol format) -> String
+
+      # Extension commands
+      def self.encode_extension_command: (String node_id, String op, Hash[Symbol, untyped] payload, ?Symbol format) -> String
+      def self.encode_extension_commands: (Array[Hash[Symbol, untyped]] commands, ?Symbol format) -> String
+
+      # Queries
+      def self.encode_query: (String id, String target, ?Hash[Symbol, untyped] selector, ?Symbol format) -> String
+
+      # Interactions
+      def self.encode_interact: (String id, String action, ?Hash[Symbol, untyped]? selector, ?Hash[Symbol, untyped] payload, ?Symbol format) -> String
+
+      # Structural testing
+      def self.encode_tree_hash: (String id, String name, ?Symbol format) -> String
+      def self.encode_screenshot: (String id, String name, ?Integer width, ?Integer height, ?Symbol format) -> String
+
+      # Session management
+      def self.encode_reset: (String id, ?Symbol format) -> String
+
+      # Animation
+      def self.encode_advance_frame: (Integer timestamp, ?Symbol format) -> String
+
+      # Helpers
+      def self.stringify_keys: (untyped obj) -> untyped
+      def self.encode_binary: (String data, Symbol format) -> String
+      def self.encode_binary_field: (Hash[Symbol, untyped] payload, Symbol key, Symbol format) -> Hash[Symbol, untyped]
+    end
+
+    module Decode
+      def self.decode: (String data, ?Symbol format) -> Hash[String, untyped]
+      def self.decode_message: (String data, ?Symbol format) -> (untyped | nil)
+      def self.dispatch_message: (Hash[String, untyped] msg) -> (untyped | nil)
+
+      # Event decoding
+      def self.decode_event: (Hash[String, untyped] msg) -> untyped
+
+      # Response decoders
+      def self.decode_hello: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def self.decode_effect_response: (Hash[String, untyped] msg) -> Event::Effect
+      def self.decode_query_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def self.decode_op_query_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def self.decode_interact_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def self.decode_interact_step: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def self.decode_tree_hash_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def self.decode_screenshot_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def self.decode_reset_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+
+      # Helpers
+      def self.split_scoped_id: (String? full_id) -> [String, Array[String]]
+      def self.parse_modifiers: (Hash[String, untyped]? mods) -> Hash[Symbol, bool]
+      def self.parse_ime_cursor: (Hash[String, untyped] | Array[Integer] | nil cursor) -> [Integer, Integer]?
+    end
+  end
+end

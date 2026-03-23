@@ -1,0 +1,5 @@
+module Plushie
+  module Encode
+    def self.encode_value: (untyped value) -> untyped
+  end
+end

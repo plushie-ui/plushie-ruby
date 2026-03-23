@@ -1,0 +1,23 @@
+module Plushie
+  class State
+    class Container
+      attr_reader data: Hash[Symbol, untyped]
+      attr_reader revision: Integer
+      attr_reader transaction: Hash[Symbol, untyped]?
+
+      def initialize: (data: Hash[Symbol, untyped], revision: Integer, transaction: Hash[Symbol, untyped]?) -> void
+
+      def with: (**untyped changes) -> Container
+    end
+
+    def self.new: (**untyped data) -> Container
+    def self.from_hash: (Hash[Symbol, untyped] data) -> Container
+    def self.get: (Container state, Array[Symbol] path) -> untyped
+    def self.put: (Container state, Array[Symbol] path, untyped value) -> Container
+    def self.update: (Container state, Array[Symbol] path) { (untyped) -> untyped } -> Container
+    def self.revision: (Container state) -> Integer
+    def self.begin_transaction: (Container state) -> (Container | [Symbol, Symbol])
+    def self.commit_transaction: (Container state) -> Container
+    def self.rollback_transaction: (Container state) -> Container
+  end
+end

@@ -1,0 +1,114 @@
+module Plushie
+  class Runtime
+    include Commands
+    include Subscriptions
+
+    @app: untyped
+    @transport: Symbol | Array[untyped]
+    @format: Symbol
+    @daemon: bool
+    @binary: String?
+    @log_level: Symbol
+    @token: String?
+    @dev: bool
+    @dev_dirs: Array[String]?
+    @event_queue: Thread::Queue
+    @model: untyped
+    @previous_tree: Node?
+    @bridge: Bridge?
+    @dev_server: DevServer?
+    @running: bool
+    @async_tasks: Hash[Symbol, Hash[Symbol, untyped]]
+    @pending_effects: Hash[String, Thread]
+    @pending_timers: Hash[untyped, Thread]
+    @subscriptions: Hash[untyped, Hash[Symbol, untyped]]
+    @subscription_keys: Array[untyped]
+    @consecutive_errors: Integer
+    @logger: Logger
+    @loop_thread: Thread?
+
+    def initialize: (
+      app: untyped,
+      ?transport: Symbol | Array[untyped],
+      ?format: Symbol,
+      ?daemon: bool,
+      ?binary: String?,
+      ?log_level: Symbol,
+      ?token: String?,
+      ?dev: bool,
+      ?dev_dirs: Array[String]?
+    ) -> void
+
+    def run: () -> void
+    def start: () -> Runtime
+    def stop: () -> void
+
+    private
+
+    # Lifecycle
+    def start_bridge: () -> void
+    def start_dev_server: () -> void
+    def initialize_app: () -> void
+
+    # Event loop
+    def event_loop: () -> void
+
+    # Event dispatch
+    def dispatch_event: (untyped event) -> void
+
+    # Rendering
+    def render_and_snapshot: () -> void
+    def render_and_patch: () -> void
+
+    # Result validation
+    def unwrap_result: (untyped result) -> [untyped, Command::Cmd]
+
+    # Async handling
+    def handle_async_result: (Symbol tag, Integer nonce, untyped result) -> void
+    def handle_stream_value: (Symbol tag, Integer nonce, untyped value) -> void
+
+    # Effect handling
+    def handle_effect_timeout: (String id) -> void
+
+    # Renderer exit
+    def handle_renderer_exit: (untyped reason) -> void
+
+    # Error handling
+    def handle_callback_error: (String callback_name, Exception error, ?hint: String?) -> void
+
+    # Shutdown
+    def shutdown: () -> void
+
+    module Commands
+      private
+
+      def execute_commands: (Command::Cmd? cmd) -> void
+      def execute_async: (Proc callable, Symbol tag) -> void
+      def execute_stream: (Proc callable, Symbol tag) -> void
+      def cancel_task: (Symbol tag) -> void
+      def execute_done: (untyped value, Proc mapper) -> void
+      def execute_send_after: (Integer delay_ms, untyped event) -> void
+      def execute_effect: (Hash[Symbol, untyped] payload) -> void
+      def send_widget_op: (Symbol op, Hash[Symbol, untyped] payload) -> void
+      def send_window_op: (Hash[Symbol, untyped] payload) -> void
+      def send_window_query: (Hash[Symbol, untyped] payload) -> void
+      def send_image_op: (Hash[Symbol, untyped] payload) -> void
+      def send_extension_command: (Hash[Symbol, untyped] payload) -> void
+      def send_extension_commands: (Array[Hash[Symbol, untyped]] commands) -> void
+      def send_advance_frame: (Integer timestamp) -> void
+    end
+
+    module Subscriptions
+      private
+
+      def sync_subscriptions: () -> void
+      def diff_subscriptions: (Hash[untyped, Subscription::Sub] new_by_key, Array[untyped] new_sorted_keys) -> void
+      def start_subscription: (Subscription::Sub spec) -> Hash[Symbol, untyped]
+      def stop_subscription: (untyped key) -> void
+      def start_timer_subscription: (Subscription::Sub spec) -> Hash[Symbol, untyped]
+      def start_renderer_subscription: (Subscription::Sub spec) -> Hash[Symbol, untyped]
+      def update_max_rates: (Hash[untyped, Subscription::Sub] new_by_key) -> void
+      def check_max_rate: (untyped key, Subscription::Sub spec) -> void
+    end
+  end
+end

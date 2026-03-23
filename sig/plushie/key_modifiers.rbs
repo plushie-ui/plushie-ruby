@@ -1,0 +1,30 @@
+module Plushie
+  class KeyModifiers
+    class Mods
+      attr_reader ctrl: bool
+      attr_reader shift: bool
+      attr_reader alt: bool
+      attr_reader logo: bool
+      attr_reader command: bool
+
+      def initialize: (ctrl: bool, shift: bool, alt: bool, logo: bool, command: bool) -> void
+    end
+
+    @mods: Mods
+
+    def initialize: (?ctrl: bool, ?shift: bool, ?alt: bool, ?logo: bool, ?command: bool) -> void
+
+    def self.from_hash: (Hash[Symbol, untyped] hash) -> KeyModifiers
+
+    def ctrl?: () -> bool
+    def shift?: () -> bool
+    def alt?: () -> bool
+    def logo?: () -> bool
+    def command?: () -> bool
+    def to_h: () -> Hash[Symbol, bool]
+    def ==: (untyped other) -> bool
+    alias eql? ==
+    def hash: () -> Integer
+    def inspect: () -> String
+  end
+end

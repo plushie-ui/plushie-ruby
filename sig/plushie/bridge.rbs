@@ -1,0 +1,43 @@
+module Plushie
+  class Bridge
+    BACKOFF_BASE_MS: Integer
+    BACKOFF_MAX_MS: Integer
+    MAX_RETRIES: Integer
+
+    attr_reader format: Symbol
+    attr_reader hello: Hash[Symbol, untyped]?
+
+    @event_queue: Thread::Queue
+    @binary: String?
+    @transport: Symbol | Array[untyped]
+    @log_level: Symbol
+    @token: String?
+    @connection: Connection?
+    @retry_count: Integer
+    @settings: Hash[Symbol, untyped]
+    @last_snapshot: String?
+    @logger: Logger
+
+    def initialize: (
+      event_queue: Thread::Queue,
+      ?format: Symbol,
+      ?binary: String?,
+      ?transport: Symbol | Array[untyped],
+      ?log_level: Symbol,
+      ?token: String?
+    ) -> void
+
+    def start: (?settings: Hash[Symbol, untyped]) -> void
+    def send_encoded: (String data) -> void
+    def remember_snapshot: (String snapshot_data) -> void
+    def stop: () -> void
+
+    private
+
+    def connect!: () -> void
+    def start_forwarder: (Thread::Queue conn_queue) -> Thread
+    def attempt_restart: () -> void
+    def resend_state: () -> void
+    def handle_connect_failure: (Exception error) -> void
+  end
+end

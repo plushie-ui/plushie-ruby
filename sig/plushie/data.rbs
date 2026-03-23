@@ -1,0 +1,13 @@
+module Plushie
+  module DataQuery
+    def self.query: (
+      Array[Hash[Symbol, untyped]] records,
+      ?filter: Proc?,
+      ?search: [Array[Symbol], String]?,
+      ?sort: [Symbol, Symbol] | Array[[Symbol, Symbol]]?,
+      ?group: Symbol?,
+      ?page: Integer,
+      ?page_size: Integer
+    ) -> Hash[Symbol, untyped]
+  end
+end

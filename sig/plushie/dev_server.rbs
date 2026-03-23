@@ -1,0 +1,15 @@
+module Plushie
+  class DevServer
+    def initialize: (event_queue: Thread::Queue, ?dirs: Array[String]?, ?debounce_ms: Integer) -> void
+
+    def start: () -> void
+
+    def stop: () -> void
+
+    private
+
+    def schedule_reload: (Array[String] files) -> void
+
+    def perform_reload: (Array[String] files) -> void
+  end
+end

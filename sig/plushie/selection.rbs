@@ -1,0 +1,23 @@
+module Plushie
+  class Selection
+    class State
+      attr_reader mode: Symbol
+      attr_reader selected: Set[untyped]
+      attr_reader anchor: untyped
+      attr_reader order: Array[untyped]
+
+      def initialize: (mode: Symbol, selected: Set[untyped], anchor: untyped, order: Array[untyped]) -> void
+
+      def with: (**untyped changes) -> State
+    end
+
+    def self.new: (?mode: Symbol, ?order: Array[untyped]) -> State
+    def self.select: (State sel, untyped id, ?extend: bool) -> State
+    def self.toggle: (State sel, untyped id) -> State
+    def self.deselect: (State sel, untyped id) -> State
+    def self.clear: (State sel) -> State
+    def self.range_select: (State sel, untyped id) -> State
+    def self.selected: (State sel) -> Set[untyped]
+    def self.selected?: (State sel, untyped id) -> bool
+  end
+end

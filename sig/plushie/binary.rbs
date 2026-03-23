@@ -1,0 +1,21 @@
+module Plushie
+  module Binary
+    def self.path!: () -> String
+    def self.path: () -> String?
+    def self.resolve: () -> String?
+    def self.custom_build_path: () -> String?
+    def self.downloaded_path: () -> String?
+    def self.os_name: () -> String
+    def self.arch_name: () -> String
+    def self.download!: (?version: String) -> String
+    def self.release_url: (String version) -> String
+    def self.binary_name: () -> String
+    def self.which: (String cmd) -> String?
+    def self.download_wasm!: (?version: String, ?force: bool) -> String
+    def self.wasm_path: () -> String
+
+    private
+
+    def self.fetch_url: (String url) -> String
+  end
+end

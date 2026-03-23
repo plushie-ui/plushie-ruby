@@ -1,0 +1,73 @@
+module Plushie
+  module UI
+    module Context
+      def self.current: () -> Array[Node]?
+      def self.push: (Array[Node] children) -> Array[Array[Node]]
+      def self.pop: () -> Array[Node]?
+      def self.clear: () -> nil
+    end
+
+    # Windows
+    private def window: (String id, **untyped props) ?{ () -> void } -> Node
+
+    # Layout containers
+    private def column: (?String? id, **untyped props) ?{ () -> void } -> Node
+    private def row: (?String? id, **untyped props) ?{ () -> void } -> Node
+    private def container: (String id, **untyped props) ?{ () -> void } -> Node
+    private def stack: (?String? id, **untyped props) ?{ () -> void } -> Node
+    private def scrollable: (String id, **untyped props) ?{ () -> void } -> Node
+    private def responsive: (String id, **untyped props) ?{ () -> void } -> Node
+
+    # Leaf widgets
+    private def text: (String id_or_content, ?String? content, **untyped props) -> Node
+    private def button: (String id, ?String? label, **untyped props) -> Node
+    private def text_input: (String id, ?String value, **untyped props) -> Node
+    private def text_editor: (String id, ?String content, **untyped props) -> Node
+    private def checkbox: (String id, ?bool checked, **untyped props) -> Node
+    private def toggler: (String id, ?bool active, **untyped props) -> Node
+    private def slider: (String id, [Numeric, Numeric] range, Numeric value, **untyped props) -> Node
+    private def vertical_slider: (String id, [Numeric, Numeric] range, Numeric value, **untyped props) -> Node
+    private def pick_list: (String id, Array[String] options, ?String? selected, **untyped props) -> Node
+    private def combo_box: (String id, Array[String] options, ?String value, **untyped props) -> Node
+    private def radio: (String id, Array[String] options, ?String? selected, **untyped props) -> Node
+    private def progress_bar: (String id, [Numeric, Numeric] range, Numeric value, **untyped props) -> Node
+    private def image: (String id, String source, **untyped props) -> Node
+    private def svg: (String id, String data, **untyped props) -> Node
+    private def markdown: (String id, String content, **untyped props) -> Node
+    private def space: (?String? id, **untyped props) -> Node
+    private def rule: (?String? id, **untyped props) -> Node
+    private def qr_code: (String id, String data, **untyped props) -> Node
+    private def tooltip: (String id, String content, **untyped props) ?{ () -> void } -> Node
+    private def rich_text: (String id, Array[Hash[Symbol, untyped]] spans, **untyped props) -> Node
+
+    # Additional containers
+    private def grid: (?String? id, **untyped props) ?{ () -> void } -> Node
+    private def keyed_column: (?String? id, **untyped props) ?{ () -> void } -> Node
+    private def pin: (?String? id, **untyped props) ?{ () -> void } -> Node
+    private def floating: (?String? id, **untyped props) ?{ () -> void } -> Node
+    private def mouse_area: (String id, **untyped props) ?{ () -> void } -> Node
+    private def sensor: (String id, **untyped props) ?{ () -> void } -> Node
+    private def themer: (?String? id, **untyped props) ?{ () -> void } -> Node
+    private def pane_grid: (String id, **untyped props) ?{ () -> void } -> Node
+    private def overlay: (?String? id, **untyped props) ?{ () -> void } -> Node
+    private def table: (String id, **untyped props) ?{ () -> void } -> Node
+
+    # Canvas DSL
+    private def canvas: (String id, **untyped props) ?{ () -> void } -> Node
+    private def layer: (String name) { () -> void } -> void
+    private def canvas_group: (**untyped opts) { () -> void } -> Hash[Symbol, untyped]
+    private def canvas_rect: (Numeric x, Numeric y, Numeric w, Numeric h, **untyped opts) -> Hash[Symbol, untyped]
+    private def canvas_circle: (Numeric x, Numeric y, Numeric r, **untyped opts) -> Hash[Symbol, untyped]
+    private def canvas_line: (Numeric x1, Numeric y1, Numeric x2, Numeric y2, **untyped opts) -> Hash[Symbol, untyped]
+    private def canvas_text: (Numeric x, Numeric y, String content, **untyped opts) -> Hash[Symbol, untyped]
+    private def canvas_path: (Array[untyped] | String commands, **untyped opts) -> Hash[Symbol, untyped]
+    private def canvas_image: (String source, Numeric x, Numeric y, Numeric w, Numeric h, **untyped opts) -> Hash[Symbol, untyped]
+    private def canvas_svg: (String source, Numeric x, Numeric y, Numeric w, Numeric h, **untyped opts) -> Hash[Symbol, untyped]
+
+    # Internals
+    private def _plushie_container: (String type, String id, Hash[Symbol, untyped] props) ?{ () -> void } -> Node
+    private def _plushie_leaf: (String type, String id, Hash[Symbol, untyped] props) -> Node
+    private def _plushie_auto_id: () -> String
+    private def _plushie_add_canvas_shape: (Hash[Symbol, untyped] shape) -> void
+  end
+end

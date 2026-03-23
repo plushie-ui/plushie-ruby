@@ -1,0 +1,19 @@
+module Plushie
+  class Route
+    class State
+      attr_reader stack: Array[[untyped, Hash[Symbol, untyped]]]
+
+      def initialize: (stack: Array[[untyped, Hash[Symbol, untyped]]]) -> void
+
+      def with: (**untyped changes) -> State
+    end
+
+    def self.new: (untyped initial_path, **untyped params) -> State
+    def self.push: (State route, untyped path, **untyped params) -> State
+    def self.pop: (State route) -> State
+    def self.current: (State route) -> untyped
+    def self.params: (State route) -> Hash[Symbol, untyped]
+    def self.can_go_back?: (State route) -> bool
+    def self.history: (State route) -> Array[untyped]
+  end
+end

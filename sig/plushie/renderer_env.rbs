@@ -1,0 +1,11 @@
+module Plushie
+  module RendererEnv
+    ALLOWED_VARS: Array[String]
+    ALLOWED_PREFIXES: Array[String]
+    RUST_LOG_LEVELS: Hash[Symbol, String]
+
+    def self.build: (?log_level: Symbol) -> Hash[String, String?]
+
+    def self.allowed?: (String name) -> bool
+  end
+end

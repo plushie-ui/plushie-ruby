@@ -1,0 +1,19 @@
+module Plushie
+  class ThreadPool
+    attr_reader size: Integer
+
+    def initialize: (?size: Integer?) -> void
+
+    def post: () { () -> void } -> void
+
+    def shutdown: (?timeout: Numeric) -> void
+
+    def shutdown?: () -> bool
+
+    private
+
+    def spawn_worker: () -> Thread
+
+    def default_size: () -> Integer
+  end
+end

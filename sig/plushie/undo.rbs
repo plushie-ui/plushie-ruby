@@ -1,0 +1,35 @@
+module Plushie
+  class Undo
+    class State
+      attr_reader current: untyped
+      attr_reader undo_stack: Array[Entry]
+      attr_reader redo_stack: Array[Entry]
+
+      def initialize: (current: untyped, undo_stack: Array[Entry], redo_stack: Array[Entry]) -> void
+
+      def with: (**untyped changes) -> State
+    end
+
+    class Entry
+      attr_reader apply_fn: Proc
+      attr_reader undo_fn: Proc
+      attr_reader label: String?
+      attr_reader coalesce: untyped
+      attr_reader timestamp: Integer
+
+      def initialize: (apply_fn: Proc, undo_fn: Proc, label: String?, coalesce: untyped, timestamp: Integer) -> void
+
+      def with: (**untyped changes) -> Entry
+    end
+
+    def self.timestamp: () -> Integer
+    def self.new: (untyped model) -> State
+    def self.apply: (State u, Hash[Symbol, untyped] command) -> State
+    def self.undo: (State u) -> State
+    def self.redo: (State u) -> State
+    def self.current: (State u) -> untyped
+    def self.can_undo?: (State u) -> bool
+    def self.can_redo?: (State u) -> bool
+    def self.history: (State u) -> Array[String?]
+  end
+end

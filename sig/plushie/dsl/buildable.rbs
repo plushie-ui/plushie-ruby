@@ -1,0 +1,13 @@
+module Plushie
+  module DSL
+    module Buildable
+      def self.included: (Module base) -> void
+
+      module ClassMethods
+        def field_keys: () -> Array[Symbol]
+
+        def field_types: () -> Hash[Symbol, Module]
+      end
+    end
+  end
+end

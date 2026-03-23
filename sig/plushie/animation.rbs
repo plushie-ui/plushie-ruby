@@ -1,0 +1,38 @@
+module Plushie
+  class Animation
+    class State
+      attr_reader from: Numeric
+      attr_reader to: Numeric
+      attr_reader duration: Integer
+      attr_reader started_at: Integer?
+      attr_reader easing: Symbol | Proc
+      attr_reader value: Numeric
+
+      def initialize: (from: Numeric, to: Numeric, duration: Integer, started_at: Integer?, easing: Symbol | Proc, value: Numeric) -> void
+
+      def with: (**untyped changes) -> State
+    end
+
+    EASINGS: Hash[Symbol, ^(Float) -> Float]
+
+    # Easing functions
+    def self.linear: (Float t) -> Float
+    def self.ease_in: (Float t) -> Float
+    def self.ease_out: (Float t) -> Float
+    def self.ease_in_out: (Float t) -> Float
+    def self.ease_in_quad: (Float t) -> Float
+    def self.ease_out_quad: (Float t) -> Float
+    def self.ease_in_out_quad: (Float t) -> Float
+    def self.spring: (Float t) -> Float
+
+    # Interpolation
+    def self.interpolate: (Numeric from, Numeric to, Numeric t, ?Symbol | Proc easing) -> Float
+
+    # Lifecycle
+    def self.new: (Numeric from, Numeric to, Integer duration_ms, ?easing: Symbol | Proc) -> State
+    def self.start: (State anim, Integer timestamp) -> State
+    def self.advance: (State anim, Integer timestamp) -> [Numeric, State | Symbol]
+    def self.finished?: (State anim) -> bool
+    def self.value: (State anim) -> Numeric
+  end
+end
