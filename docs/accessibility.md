@@ -1,0 +1,330 @@
+# Accessibility
+
+Plushie provides built-in accessibility support via
+[accesskit](https://github.com/AccessKit/accesskit), a cross-platform
+accessibility toolkit. The default renderer build includes accessibility,
+activating native platform APIs automatically: VoiceOver on macOS,
+AT-SPI/Orca on Linux, and UI Automation/NVDA/JAWS on Windows.
+
+Screen reader users, keyboard-only users, and other AT users interact with
+the same widgets and receive the same events as mouse users. No special
+event handling is needed in your `update` -- AT actions produce the same
+`Event::Widget[type: :click, id: id]`, `Event::Widget[type: :input, ...]`
+events as direct interaction.
+
+## How it works
+
+Iced's fork provides native accessibility support. Three pieces work together:
+
+1. **iced widgets report `Accessible` metadata** -- each widget declares
+   its role, label, and state to the accessibility system automatically.
+
+2. **TreeBuilder assembles the accesskit tree** -- iced walks the widget
+   tree during `operate()`, collecting metadata and building an accesskit
+   `TreeUpdate`.
+
+3. **AT actions become native iced events** -- when an AT triggers an action,
+   iced translates it to a native event. The renderer maps it to a standard
+   plushie event and sends it to Ruby over the wire protocol.
+
+## Auto-inference
+
+Most widgets get correct accessibility semantics without any annotation.
+
+### Role mapping
+
+| Widget type | Role | Notes |
+|---|---|---|
+| `button` | Button | |
+| `text`, `rich_text` | Label | |
+| `text_input` | TextInput | |
+| `text_editor` | MultilineTextInput | |
+| `checkbox` | CheckBox | |
+| `toggler` | Switch | |
+| `radio` | RadioButton | |
+| `slider`, `vertical_slider` | Slider | |
+| `pick_list`, `combo_box` | ComboBox | |
+| `progress_bar` | ProgressIndicator | |
+| `scrollable` | ScrollView | |
+| `container`, `column`, `row`, `stack` | GenericContainer | |
+| `window` | Window | |
+| `image`, `svg`, `qr_code` | Image | |
+| `canvas` | Canvas | |
+| `table` | Table | |
+| `markdown` | Document | |
+
+### Labels
+
+Labels are extracted from the prop that makes sense for each widget type:
+
+| Widget type | Label source |
+|---|---|
+| `button`, `checkbox`, `toggler`, `radio` | `label` prop |
+| `text`, `rich_text` | `content` prop |
+| `image`, `svg` | `alt` prop |
+| `text_input` | `placeholder` prop (as description) |
+
+### State
+
+Widget state is extracted from existing props automatically:
+
+| State | Source | Widgets |
+|---|---|---|
+| Disabled | `disabled: true` | Any widget |
+| Toggled | `checked` prop | `checkbox` |
+| Toggled | `is_toggled` prop | `toggler` |
+| Numeric value | `value` prop | `slider`, `progress_bar` |
+
+## The a11y prop
+
+Every widget accepts an `a11y` prop -- a hash of fields that override or
+augment the inferred semantics.
+
+### Fields
+
+| Field | Type | Description |
+|---|---|---|
+| `role` | Symbol | Override the inferred role |
+| `label` | String | Accessible name |
+| `description` | String | Longer description |
+| `live` | `:off`, `:polite`, `:assertive` | Live region |
+| `hidden` | Boolean | Exclude from accessibility tree |
+| `expanded` | Boolean | Expanded/collapsed state |
+| `required` | Boolean | Mark form field as required |
+| `level` | Integer | Heading level (1-6) |
+| `busy` | Boolean | Loading/processing state |
+| `invalid` | Boolean | Form validation failure |
+| `modal` | Boolean | Dialog is modal |
+| `read_only` | Boolean | Can be read but not edited |
+| `mnemonic` | String | Alt+letter keyboard shortcut |
+| `toggled` | Boolean | Toggled/checked state |
+| `selected` | Boolean | Selected state |
+| `value` | String | Current value as string |
+| `orientation` | `:horizontal`, `:vertical` | Orientation hint |
+| `labelled_by` | String | ID of labelling widget |
+| `described_by` | String | ID of describing widget |
+| `error_message` | String | ID of error message widget |
+| `disabled` | Boolean | Override disabled state for AT |
+| `position_in_set` | Integer | 1-based position in a set |
+| `size_of_set` | Integer | Total items in the set |
+| `has_popup` | String | Popup type: `"listbox"`, `"menu"`, `"dialog"` |
+
+### Using the a11y prop
+
+```ruby
+# Headings
+text("title", "Welcome to MyApp", a11y: {role: :heading, level: 1})
+
+# Icon buttons that need a label for screen readers
+button("close", "X", a11y: {label: "Close dialog"})
+
+# Landmark regions
+container("search_results", a11y: {role: :region, label: "Search results"}) do
+  # ...
+end
+
+# Live regions -- AT announces changes automatically
+text("save_status", "#{model.saved_count} items saved", a11y: {live: :polite})
+
+# Decorative elements hidden from AT
+rule(a11y: {hidden: true})
+image("divider", "/images/decorative-line.png", a11y: {hidden: true})
+
+# Disclosure / expandable sections
+container("details", a11y: {expanded: model.expanded, role: :group, label: "Advanced options"}) do
+  if model.expanded
+    # ...
+  end
+end
+
+# Required form fields
+text_input("email", model.email, a11y: {required: true, label: "Email address"})
+```
+
+### Available roles
+
+**Interactive:**
+`:button`, `:checkbox`, `:combo_box`, `:link`, `:menu_item`, `:radio`,
+`:slider`, `:switch`, `:tab`, `:text_input`, `:text_editor`, `:tree_item`
+
+**Structure:**
+`:generic_container`, `:group`, `:heading`, `:label`, `:list`, `:list_item`,
+`:row`, `:cell`, `:column_header`, `:row_header`, `:table`, `:tree`
+
+**Landmarks:**
+`:navigation`, `:region`, `:search`
+
+**Status:**
+`:alert`, `:alert_dialog`, `:dialog`, `:status`, `:timer`, `:meter`,
+`:progress_indicator`
+
+**Other:**
+`:document`, `:image`, `:menu`, `:menu_bar`, `:scroll_view`, `:separator`,
+`:tab_list`, `:tab_panel`, `:toolbar`, `:tooltip`, `:window`
+
+## Patterns and best practices
+
+### Every interactive widget needs a name
+
+```ruby
+# Good -- label is auto-inferred
+button("save", "Save document")
+
+# Good -- explicit a11y label for terse visual text
+button("close", "X", a11y: {label: "Close dialog"})
+
+# Bad -- screen reader just announces "button"
+button("do_thing", "")
+```
+
+### Use headings to create structure
+
+```ruby
+def view(model)
+  window("main", title: "MyApp") do
+    column do
+      text("page_title", "Dashboard", a11y: {role: :heading, level: 1})
+      text("h_recent", "Recent activity", a11y: {role: :heading, level: 2})
+      # ... activity list ...
+      text("h_actions", "Quick actions", a11y: {role: :heading, level: 2})
+      # ... action buttons ...
+    end
+  end
+end
+```
+
+### Use landmarks for page regions
+
+```ruby
+column do
+  container("nav", a11y: {role: :navigation, label: "Main navigation"}) do
+    row do
+      button("home", "Home")
+      button("settings", "Settings")
+    end
+  end
+
+  container("main_content", a11y: {role: :region, label: "Main content"}) do
+    # ...
+  end
+end
+```
+
+### Live regions for dynamic content
+
+- `:polite` -- announced after the current speech finishes
+- `:assertive` -- interrupts current speech
+
+```ruby
+text("status", model.status_message, a11y: {live: :polite})
+
+if model.error
+  text("error", model.error, a11y: {live: :assertive, role: :alert})
+end
+```
+
+### Forms
+
+```ruby
+column(spacing: 12) do
+  column(spacing: 4) do
+    text("email-label", "Email")
+    text("email-help", "We'll send a confirmation link")
+    text_input("email", model.email,
+      a11y: {
+        labelled_by: "email-label",
+        described_by: "email-help",
+        error_message: "email-error"
+      })
+    if model.email_error
+      text("email-error", model.email_error,
+        a11y: {role: :alert, live: :assertive})
+    end
+  end
+end
+```
+
+### Hiding decorative content
+
+```ruby
+rule(a11y: {hidden: true})
+image("hero", "/images/banner.png", a11y: {hidden: true})
+space(a11y: {hidden: true})
+```
+
+### Canvas widgets
+
+Canvas draws arbitrary shapes -- always provide alternative text:
+
+```ruby
+canvas("chart", layers: {"data" => chart_shapes},
+  a11y: {role: :image, label: "Sales chart: Q1 revenue up 15%, Q2 flat"})
+```
+
+### Interactive canvas shapes
+
+When a canvas contains shapes with the `interactive` field, each shape
+becomes a separate accessible node.
+
+```ruby
+canvas("color-picker", width: 200, height: 100,
+  layers: {"options" => colors.each_with_index.map { |color, i|
+    Plushie::Canvas::Shape.rect(0, i * 32, 200, 32, fill: color.hex)
+      .interactive(
+        id: "color-#{i}",
+        on_click: true,
+        a11y: {
+          role: :radio,
+          label: color.name,
+          selected: color == model.selected,
+          position_in_set: i + 1,
+          size_of_set: colors.length
+        })
+  }})
+```
+
+Screen reader: "Red, radio button, 1 of 5, selected."
+
+## Widget-specific accessibility props
+
+### alt
+
+```ruby
+image("logo", "/images/logo.png", alt: "Company logo")
+svg("icon", "/icons/search.svg", alt: "Search")
+canvas("chart", layers: layers, alt: "Revenue chart")
+```
+
+### label
+
+```ruby
+slider("volume", [0, 100], model.volume, label: "Volume")
+progress_bar("upload", [0, 100], model.progress, label: "Upload progress")
+```
+
+### decorative
+
+```ruby
+image("divider", "/images/decorative-line.png", decorative: true)
+svg("flourish", "/icons/flourish.svg", decorative: true)
+```
+
+## Testing accessibility
+
+```ruby
+def test_heading_has_correct_role
+  assert_role("#page_title", "heading")
+end
+
+def test_email_field_is_required
+  assert_a11y("#email", {"required" => true, "label" => "Email address"})
+end
+```
+
+## Platform support
+
+| Platform | AT | API | Status |
+|---|---|---|---|
+| Linux | Orca | AT-SPI2 | Supported |
+| macOS | VoiceOver | NSAccessibility | Supported |
+| Windows | NVDA, JAWS, Narrator | UI Automation | Supported |
