@@ -4,6 +4,9 @@ Guide for building custom widget extensions for Plushie. Extensions let you
 render arbitrary Rust-native widgets while keeping your app's state and logic
 in Ruby.
 
+Working demo projects are available at
+[plushie-ui/plushie-demos](https://github.com/plushie-ui/plushie-demos/tree/main/ruby).
+
 ## Quick start
 
 An extension has two halves:
@@ -182,9 +185,9 @@ impl WidgetExtension for HexViewExtension {
     fn type_names(&self) -> &[&str] { &["hex_view"] }
     fn config_key(&self) -> &str { "hex_view" }
 
-    fn render<'a>(&self, node: &'a TreeNode, env: &WidgetEnv<'a>) -> Element<'a, Message> {
+    fn render<'a>(&self, node: &'a TreeNode, _env: &WidgetEnv<'a>) -> Element<'a, Message> {
         // Compose standard iced widgets from node props
-        let data = prop_str(node, "data").unwrap_or_default();
+        let data = prop_str(node.props(), "data").unwrap_or_default();
         // ... build column/row/text layout ...
         container(content).into()
     }
@@ -279,10 +282,10 @@ fn prepare(&mut self, node: &TreeNode, caches: &mut ExtensionCaches, theme: &The
     // Initialize or sync per-node state.
     // First arg is the namespace (typically config_key()), second is the node ID.
     let state = caches.get_or_insert::<SparklineState>(self.config_key(), &node.id, || {
-        SparklineState::new(prop_usize(node, "capacity").unwrap_or(100))
+        SparklineState::new(prop_usize(node.props(), "capacity").unwrap_or(100))
     });
     // Update from props if needed
-    state.color = prop_color(node, "color");
+    state.color = prop_color(node.props(), "color");
 }
 
 fn handle_command(
@@ -361,7 +364,7 @@ class SparklineExtension
   rust_crate "native/sparkline"
   rust_constructor "sparkline::SparklineExtension::new()"
 
-  prop :data, [:list, :number], default: [], doc: "Y values to plot"
+  prop :data, :any, default: [], doc: "Y values to plot"
   prop :color, :color, default: "#4CAF50", doc: "Line stroke color"
   prop :stroke_width, :number, default: 2.0, doc: "Line thickness"
   prop :fill, :boolean, default: false, doc: "Fill area under the line"
@@ -374,6 +377,7 @@ end
 
 ```rust
 // native/sparkline/src/lib.rs
+use plushie_core::iced;
 use plushie_core::prelude::*;
 
 pub struct SparklineExtension;
@@ -389,38 +393,25 @@ impl WidgetExtension for SparklineExtension {
     fn render<'a>(
         &self,
         node: &'a TreeNode,
-        env: &WidgetEnv<'a>,
+        _env: &WidgetEnv<'a>,
     ) -> Element<'a, Message> {
-        let data = node.prop("data")
+        let props = node.props();
+
+        let data: Vec<f64> = props
+            .and_then(|p| p.get("data"))
             .and_then(|v| v.as_array())
-            .map(|arr| arr.iter().filter_map(|v| v.as_f64()).collect::<Vec<_>>())
+            .map(|arr| arr.iter().filter_map(|v| v.as_f64()).collect())
             .unwrap_or_default();
 
-        let color_hex = prop_str(node, "color").unwrap_or("#4CAF50");
-        let stroke_width = prop_f32(node, "stroke_width").unwrap_or(2.0);
-        let fill = prop_bool(node, "fill").unwrap_or(false);
+        let stroke_width = prop_f32(props, "stroke_width").unwrap_or(2.0);
+        let fill = prop_bool(props, "fill").unwrap_or(false);
+        let color = prop_color(props, "color")
+            .unwrap_or(Color::from_rgb(0.298, 0.686, 0.314));
 
-        let color = parse_color(color_hex);
-
-        // Use iced's Canvas widget for custom drawing
-        Canvas::new(SparklineDraw { data, color, stroke_width, fill })
+        canvas::Canvas::new(SparklineDraw { data, color, stroke_width, fill })
             .width(Length::Fill)
             .height(Length::Fixed(60.0))
             .into()
-    }
-
-    fn handle_command(
-        &self,
-        node: &TreeNode,
-        op: &str,
-        payload: &PropMap,
-        caches: &mut ExtensionCaches,
-    ) -> Vec<OutgoingEvent> {
-        // The "push" command from Ruby appends to the data array.
-        // The next render cycle picks up the new data from the tree.
-        // No cache update needed here -- the Runtime re-renders the
-        // view and sends a new tree with the updated data.
-        vec![]
     }
 }
 
@@ -437,16 +428,16 @@ impl<Message> canvas::Program<Message> for SparklineDraw {
     fn draw(
         &self,
         _state: &(),
-        renderer: &Renderer,
+        renderer: &iced::Renderer,
         _theme: &Theme,
-        bounds: Rectangle,
-        _cursor: mouse::Cursor,
+        bounds: iced::Rectangle,
+        _cursor: iced::mouse::Cursor,
     ) -> Vec<canvas::Geometry> {
         if self.data.len() < 2 {
             return vec![];
         }
 
-        let frame = &mut canvas::Frame::new(renderer, bounds.size());
+        let mut frame = canvas::Frame::new(renderer, bounds.size());
         let w = bounds.width;
         let h = bounds.height;
 
@@ -569,6 +560,198 @@ Plushie.run(Dashboard)
 This example demonstrates the complete lifecycle: Ruby declares the widget
 and manages state, Rust handles the custom canvas rendering, and the wire
 protocol carries prop updates between them.
+
+
+## Complete worked example: Gauge (Tier C)
+
+A temperature gauge that demonstrates extension commands, `ExtensionCaches`,
+and the optimistic update pattern. Unlike the sparkline (which is Tier A,
+render-only), the gauge uses `prepare`, `handle_command`, and per-node
+Rust-side state.
+
+### Ruby side
+
+```ruby
+# lib/gauge_extension.rb
+class GaugeExtension
+  include Plushie::Extension
+
+  widget :gauge, kind: :native_widget
+  rust_crate "native/gauge"
+  rust_constructor "gauge::GaugeExtension::new()"
+
+  prop :value, :number, default: 0
+  prop :min, :number, default: 0
+  prop :max, :number, default: 100
+  prop :color, :color, default: "#3498db"
+  prop :label, :string, default: ""
+  prop :width, :length, default: 200
+  prop :height, :length, default: 200
+
+  command :set_value, value: :number
+  command :animate_to, value: :number
+end
+```
+
+### Rust side
+
+```rust
+// native/gauge/src/lib.rs
+use plushie_core::iced;
+use plushie_core::prelude::*;
+
+pub struct GaugeExtension;
+
+impl GaugeExtension {
+    pub fn new() -> Self { Self }
+}
+
+/// Per-node state stored in ExtensionCaches.
+struct GaugeState {
+    rust_value: f32,
+}
+
+impl WidgetExtension for GaugeExtension {
+    fn type_names(&self) -> &[&str] { &["gauge"] }
+    fn config_key(&self) -> &str { "gauge" }
+
+    fn new_instance(&self) -> Box<dyn WidgetExtension> {
+        Box::new(GaugeExtension::new())
+    }
+
+    fn prepare(
+        &mut self,
+        node: &TreeNode,
+        caches: &mut ExtensionCaches,
+        _theme: &Theme,
+    ) {
+        let value = prop_f32(node.props(), "value").unwrap_or(0.0);
+        let state = caches.get_or_insert::<GaugeState>(
+            self.config_key(), &node.id,
+            || GaugeState { rust_value: value },
+        );
+        state.rust_value = value;
+    }
+
+    fn render<'a>(
+        &self,
+        node: &'a TreeNode,
+        _env: &WidgetEnv<'a>,
+    ) -> Element<'a, Message> {
+        let props = node.props();
+        let value = prop_f32(props, "value").unwrap_or(0.0);
+        let min = prop_f32(props, "min").unwrap_or(0.0);
+        let max = prop_f32(props, "max").unwrap_or(100.0);
+        let color = prop_color(props, "color")
+            .unwrap_or(Color::from_rgb(0.2, 0.5, 0.8));
+        let label = prop_str(props, "label").unwrap_or_default();
+        let w = prop_length(props, "width", Length::Fixed(200.0));
+        let h = prop_length(props, "height", Length::Fixed(200.0));
+
+        let pct = ((value - min) / (max - min)).clamp(0.0, 1.0);
+        let display = format!("{:.0}%", pct * 100.0);
+
+        container(
+            iced::widget::column![
+                text(label).size(16),
+                text(display).size(32).color(color),
+            ]
+            .align_x(iced::alignment::Horizontal::Center),
+        )
+        .width(w)
+        .height(h)
+        .center(iced::Length::Fill)
+        .into()
+    }
+
+    fn handle_command(
+        &mut self,
+        node_id: &str,
+        op: &str,
+        payload: &Value,
+        caches: &mut ExtensionCaches,
+    ) -> Vec<OutgoingEvent> {
+        match op {
+            "set_value" | "animate_to" => {
+                if let Some(state) =
+                    caches.get_mut::<GaugeState>(self.config_key(), node_id)
+                {
+                    if let Some(v) =
+                        payload.get("value").and_then(|v| v.as_f64())
+                    {
+                        state.rust_value = v as f32;
+                    }
+                }
+                // No event emitted -- the Ruby side updates the model
+                // optimistically. Echoing back would race with rapid clicks.
+                vec![]
+            }
+            _ => vec![],
+        }
+    }
+}
+```
+
+### Using it in your app
+
+```ruby
+class TemperatureMonitor
+  include Plushie::App
+
+  Model = Plushie::Model.define(:temperature, :target_temp, :history)
+
+  def init(_opts)
+    Model.new(temperature: 20, target_temp: 20, history: [20])
+  end
+
+  def update(model, event)
+    case event
+    in Event::Widget[type: :click, id: "high"]
+      # Optimistic update: change model AND send extension command.
+      # The model updates immediately for responsive UI; the command
+      # syncs the Rust extension's internal state.
+      [
+        model.with(temperature: 90, target_temp: 90,
+          history: (model.history + [90]).last(50)),
+        Command.extension_command("temp", "set_value", {value: 90})
+      ]
+
+    in Event::Widget[type: :slide, id: "target"]
+      target = event.data["value"]
+      [
+        model.with(target_temp: target),
+        Command.extension_command("temp", "animate_to", {value: target})
+      ]
+
+    else
+      model
+    end
+  end
+
+  def view(model)
+    window("main", title: "Temperature Gauge") do
+      column("root", padding: 24, spacing: 16, align_x: "center") do
+        text("title", "Temperature Monitor", size: 24)
+
+        _plushie_leaf("gauge", "temp",
+          value: model.temperature, min: 0, max: 100,
+          color: status_color(model.temperature),
+          label: "#{model.temperature.round}\u00B0C",
+          width: 200, height: 200)
+
+        slider("target", [0, 100], model.target_temp)
+      end
+    end
+  end
+end
+```
+
+The key difference from the sparkline: button handlers return
+`[model, command]` pairs. `Command.extension_command` sends a message
+directly to the Rust extension's `handle_command` method, bypassing
+the tree diff cycle. The model updates immediately (optimistic), and
+the command keeps Rust-side state in sync.
+
 
 ## Message::Event construction
 
