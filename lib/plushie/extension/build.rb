@@ -198,6 +198,7 @@ module Plushie
           // Do not edit manually.
 
           use plushie_core::app::PlushieAppBuilder;
+          use plushie_core::iced;
 
           fn main() -> iced::Result {
               let builder = PlushieAppBuilder::new()
@@ -278,7 +279,8 @@ module Plushie
       # Compute a relative path between two directories.
       # @api private
       def relative_path(target, from)
-        Pathname.new(target).relative_path_from(Pathname.new(from)).to_s
+        Pathname.new(File.expand_path(target))
+          .relative_path_from(Pathname.new(File.expand_path(from))).to_s
       end
     end
   end
