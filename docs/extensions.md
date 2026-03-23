@@ -344,6 +344,232 @@ alignment types. The prelude also re-exports `CoalesceHint`,
 `prop_*` helper functions.
 
 
+## Complete worked example: Sparkline
+
+A sparkline widget that renders a line chart from a series of values.
+This shows both the Ruby declaration and the Rust implementation
+side-by-side.
+
+### Ruby side
+
+```ruby
+# lib/sparkline_extension.rb
+class SparklineExtension
+  include Plushie::Extension
+
+  widget :sparkline, kind: :native_widget
+  rust_crate "native/sparkline"
+  rust_constructor "sparkline::SparklineExtension::new()"
+
+  prop :data, [:list, :number], default: [], doc: "Y values to plot"
+  prop :color, :color, default: "#4CAF50", doc: "Line stroke color"
+  prop :stroke_width, :number, default: 2.0, doc: "Line thickness"
+  prop :fill, :boolean, default: false, doc: "Fill area under the line"
+
+  command :push, value: :number
+end
+```
+
+### Rust side
+
+```rust
+// native/sparkline/src/lib.rs
+use plushie_core::prelude::*;
+
+pub struct SparklineExtension;
+
+impl SparklineExtension {
+    pub fn new() -> Self { Self }
+}
+
+impl WidgetExtension for SparklineExtension {
+    fn type_names(&self) -> &[&str] { &["sparkline"] }
+    fn config_key(&self) -> &str { "sparkline" }
+
+    fn render<'a>(
+        &self,
+        node: &'a TreeNode,
+        env: &WidgetEnv<'a>,
+    ) -> Element<'a, Message> {
+        let data = node.prop("data")
+            .and_then(|v| v.as_array())
+            .map(|arr| arr.iter().filter_map(|v| v.as_f64()).collect::<Vec<_>>())
+            .unwrap_or_default();
+
+        let color_hex = prop_str(node, "color").unwrap_or("#4CAF50");
+        let stroke_width = prop_f32(node, "stroke_width").unwrap_or(2.0);
+        let fill = prop_bool(node, "fill").unwrap_or(false);
+
+        let color = parse_color(color_hex);
+
+        // Use iced's Canvas widget for custom drawing
+        Canvas::new(SparklineDraw { data, color, stroke_width, fill })
+            .width(Length::Fill)
+            .height(Length::Fixed(60.0))
+            .into()
+    }
+
+    fn handle_command(
+        &self,
+        node: &TreeNode,
+        op: &str,
+        payload: &PropMap,
+        caches: &mut ExtensionCaches,
+    ) -> Vec<OutgoingEvent> {
+        // The "push" command from Ruby appends to the data array.
+        // The next render cycle picks up the new data from the tree.
+        // No cache update needed here -- the Runtime re-renders the
+        // view and sends a new tree with the updated data.
+        vec![]
+    }
+}
+
+struct SparklineDraw {
+    data: Vec<f64>,
+    color: Color,
+    stroke_width: f32,
+    fill: bool,
+}
+
+impl<Message> canvas::Program<Message> for SparklineDraw {
+    type State = ();
+
+    fn draw(
+        &self,
+        _state: &(),
+        renderer: &Renderer,
+        _theme: &Theme,
+        bounds: Rectangle,
+        _cursor: mouse::Cursor,
+    ) -> Vec<canvas::Geometry> {
+        if self.data.len() < 2 {
+            return vec![];
+        }
+
+        let frame = &mut canvas::Frame::new(renderer, bounds.size());
+        let w = bounds.width;
+        let h = bounds.height;
+
+        let min = self.data.iter().cloned().fold(f64::INFINITY, f64::min);
+        let max = self.data.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
+        let range = (max - min).max(1.0);
+
+        let step = w / (self.data.len() - 1) as f32;
+
+        // Build the line path
+        let mut builder = canvas::path::Builder::new();
+        for (i, &val) in self.data.iter().enumerate() {
+            let x = i as f32 * step;
+            let y = h - ((val - min) / range) as f32 * h;
+            if i == 0 {
+                builder.move_to(Point::new(x, y));
+            } else {
+                builder.line_to(Point::new(x, y));
+            }
+        }
+        let path = builder.build();
+
+        // Draw the line
+        frame.stroke(
+            &path,
+            canvas::Stroke::default()
+                .with_color(self.color)
+                .with_width(self.stroke_width),
+        );
+
+        // Optional: fill under the line
+        if self.fill {
+            let mut fill_builder = canvas::path::Builder::new();
+            for (i, &val) in self.data.iter().enumerate() {
+                let x = i as f32 * step;
+                let y = h - ((val - min) / range) as f32 * h;
+                if i == 0 {
+                    fill_builder.move_to(Point::new(x, y));
+                } else {
+                    fill_builder.line_to(Point::new(x, y));
+                }
+            }
+            fill_builder.line_to(Point::new(w, h));
+            fill_builder.line_to(Point::new(0.0, h));
+            fill_builder.close();
+            let fill_path = fill_builder.build();
+
+            let mut fill_color = self.color;
+            fill_color.a = 0.15;
+            frame.fill(&fill_path, fill_color);
+        }
+
+        vec![frame.into_geometry()]
+    }
+}
+```
+
+### Cargo.toml
+
+```toml
+# native/sparkline/Cargo.toml
+[package]
+name = "sparkline"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+plushie-core = "0.4.1"
+```
+
+### Using it in your app
+
+```ruby
+# Configure the extension
+Plushie.configure do |config|
+  config.extensions = [SparklineExtension]
+end
+
+# Build the custom binary
+# $ bundle exec rake plushie:build
+
+class Dashboard
+  include Plushie::App
+
+  Model = Plushie::Model.define(:samples)
+
+  def init(_opts) = Model.new(samples: [10, 20, 15, 30, 25, 35, 28])
+
+  def update(model, event)
+    case event
+    in Event::Timer[tag: :sample]
+      new_val = rand(50)
+      model.with(samples: (model.samples + [new_val]).last(100))
+    else
+      model
+    end
+  end
+
+  def subscribe(_model)
+    [Subscription.every(1000, :sample)]
+  end
+
+  def view(model)
+    window("main", title: "Dashboard") do
+      column(padding: 16, spacing: 8) do
+        text("title", "Live Sparkline", size: 18)
+
+        # Use the extension widget via its type name in the tree
+        _plushie_leaf("sparkline", "cpu_spark",
+          data: model.samples, color: "#4CAF50",
+          stroke_width: 2.0, fill: true)
+      end
+    end
+  end
+end
+
+Plushie.run(Dashboard)
+```
+
+This example demonstrates the complete lifecycle: Ruby declares the widget
+and manages state, Rust handles the custom canvas rendering, and the wire
+protocol carries prop updates between them.
+
 ## Message::Event construction
 
 Extensions that implement custom `iced::advanced::Widget` types need to
