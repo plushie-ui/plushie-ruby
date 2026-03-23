@@ -64,4 +64,23 @@ class TestTree < Minitest::Test
     assert_kind_of Array, normalized
     assert_equal 1, normalized.length
   end
+
+  def test_normalize_scopes_a11y_references
+    tree = container("form") do
+      text("label_node", "Name:")
+      text_input("name_input", "", a11y: {labelled_by: "label_node"})
+    end
+    normalized = Plushie::Tree.normalize(tree).first
+    input = Plushie::Tree.find(normalized, "form/name_input")
+    refute_nil input
+    a11y = input.props["a11y"] || input.props[:a11y]
+    # labelled_by should be scoped to "form/label_node"
+    assert_equal "form/label_node", a11y["labelled_by"] || a11y[:labelled_by]
+  end
+
+  def test_normalize_detects_canvas_shapes_in_widget_tree
+    shape = Plushie::Canvas::Shape.rect(0, 0, 10, 10)
+    tree = Plushie::Node.new(id: "root", type: "column", children: [shape])
+    assert_raises(ArgumentError) { Plushie::Tree.normalize(tree) }
+  end
 end

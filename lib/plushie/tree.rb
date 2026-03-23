@@ -152,8 +152,8 @@ module Plushie
         if a11y.is_a?(Hash)
           %w[labelled_by described_by error_message].each do |ref_key|
             ref = a11y[ref_key] || a11y[ref_key.to_sym]
-            if ref.is_a?(String) && !ref.include?("/") && !child_scope.empty?
-              a11y = a11y.merge(ref_key => "#{child_scope}/#{ref}")
+            if ref.is_a?(String) && !ref.include?("/") && !scope.empty?
+              a11y = a11y.merge(ref_key => "#{scope}/#{ref}")
             end
           end
           props = props.merge("a11y" => a11y)
