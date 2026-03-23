@@ -5,12 +5,13 @@ require "securerandom"
 module Plushie
   module Test
     # Test session driving the Elm loop against a pooled renderer.
-    #
     # Each test gets its own Session with isolated model state.
-    # Interactions are sent via the renderer's interact protocol;
-    # events are fed through the app's update cycle.
     #
-    # @see ~/projects/toddy-elixir/lib/plushie/test/backend/mock_renderer.ex
+    # Interactions (click, type_text, toggle, etc.) are sent via the
+    # renderer's interact protocol; resulting events are fed through
+    # the app's update cycle so the model stays in sync.
+    #
+    # See the Elixir SDK's mock renderer backend for reference.
     class Session
       # @return [Object] current app model
       attr_reader :model

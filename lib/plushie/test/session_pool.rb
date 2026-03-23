@@ -6,12 +6,13 @@ module Plushie
   module Test
     # Shared renderer process for concurrent test sessions.
     #
-    # Owns a single `plushie --mock --max-sessions N` process and
+    # Owns a single +plushie --mock --max-sessions N+ process and
     # multiplexes messages from multiple test sessions over it.
-    # Each session gets a unique session ID; responses are demuxed
-    # by the `session` field and forwarded to the owning queue.
+    # Each session gets a unique session ID (e.g. "test_1", "test_2");
+    # responses are demuxed by the +session+ field and forwarded to
+    # the owning queue.
     #
-    # @see ~/projects/toddy-elixir/lib/plushie/test/session_pool.ex
+    # See the Elixir SDK's SessionPool for reference.
     class SessionPool
       # @return [:msgpack, :json]
       attr_reader :format

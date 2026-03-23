@@ -2,11 +2,30 @@
 
 module Plushie
   module Widget
+    # Typed builder for the button widget (Layer 2 API).
+    #
+    # Construct a Button, set properties via fluent +set_*+ methods,
+    # then call {#build} to produce a {Plushie::Node} for the view tree.
+    # Each +set_*+ method returns a shallow copy, so the original is
+    # never mutated -- safe for reuse across renders.
+    #
+    # PROPS holds the list of supported property keys:
+    # label, width, height, padding, clip, style, disabled, a11y.
+    #
+    # @example Basic usage
+    #   Button.new("save", "Save").set_style(:primary).build
+    #
+    # @example With padding and disabled state
+    #   Button.new("cancel", "Cancel", padding: 8, disabled: true).build
     class Button
+      # Supported property keys for the button widget.
       PROPS = %i[label width height padding clip style disabled a11y].freeze
 
       attr_reader :id, *PROPS
 
+      # @param id [String] widget identifier (first arg by convention)
+      # @param label [String, nil] button label text
+      # @param opts [Hash] optional properties matching PROPS keys
       def initialize(id, label = nil, **opts)
         @id = id.to_s
         @label = label
@@ -20,6 +39,9 @@ module Plushie
         end
       end
 
+      # Build a {Plushie::Node} from the current property values.
+      #
+      # @return [Plushie::Node]
       def build
         props = {}
         Build.put_if(props, :label, @label)

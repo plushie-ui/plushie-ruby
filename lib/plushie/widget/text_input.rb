@@ -2,13 +2,30 @@
 
 module Plushie
   module Widget
+    # Typed builder for the single-line text input widget (Layer 2 API).
+    #
+    # Construct a TextInput, configure via fluent +set_*+ methods,
+    # then call {#build} to produce a {Plushie::Node}.
+    #
+    # PROPS: value, placeholder, padding, width, size, font,
+    # line_height, align_x, icon, on_submit, on_paste, secure,
+    # ime_purpose, style, placeholder_color, selection_color, a11y.
+    #
+    # @example
+    #   TextInput.new("email", "", placeholder: "you@example.com")
+    #     .set_size(16)
+    #     .build
     class TextInput
+      # Supported property keys for the text input widget.
       PROPS = %i[value placeholder padding width size font line_height align_x
         icon on_submit on_paste secure ime_purpose style
         placeholder_color selection_color a11y].freeze
 
       attr_reader :id, *PROPS
 
+      # @param id [String] widget identifier
+      # @param value [String] initial text value
+      # @param opts [Hash] optional properties matching PROPS keys
       def initialize(id, value = "", **opts)
         @id = id.to_s
         @value = value
@@ -22,6 +39,9 @@ module Plushie
         end
       end
 
+      # Build a {Plushie::Node} from the current property values.
+      #
+      # @return [Plushie::Node]
       def build
         props = {}
         PROPS.each do |key|
