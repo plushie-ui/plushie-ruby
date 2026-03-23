@@ -145,6 +145,17 @@ Plushie follows the Elm architecture. Your app implements four callbacks:
 All testing goes through the renderer binary. No Ruby-side mocks.
 The mock backend runs at millisecond speed.
 
+Add `require "plushie/test"` to your test helper:
+
+```ruby
+# test/test_helper.rb
+require "plushie"
+require "plushie/test"
+require "minitest/autorun"
+```
+
+Then write tests:
+
 ```ruby
 class CounterTest < Plushie::Test::Case
   app Counter

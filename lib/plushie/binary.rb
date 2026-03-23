@@ -15,7 +15,7 @@ module Plushie
 
     def path!
       path = resolve
-      raise Error, "plushie binary not found. Run: plushie download" unless path
+      raise Error, "plushie binary not found. Run: rake plushie:download" unless path
       raise Error, "plushie binary not executable: #{path}" unless File.executable?(path)
       path
     end

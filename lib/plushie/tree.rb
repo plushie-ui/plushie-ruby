@@ -84,8 +84,9 @@ module Plushie
     # @param tree [Node, Array<Node>]
     # @return [Array<Node>] normalized tree (always an array)
     def self.normalize(tree)
+      return [Node.new(id: "root", type: "container")] if tree.nil?
       trees = tree.is_a?(Array) ? tree : [tree]
-      trees.map { |node| normalize_node(node, "") }
+      trees.compact.map { |node| normalize_node(node, "") }
     end
 
     # -------------------------------------------------------------------
