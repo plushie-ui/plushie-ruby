@@ -466,9 +466,12 @@ module Plushie
 
     def handle_interact_step(response)
       events = extract_interact_events(response)
-      events.each { |ev| dispatch_event(ev) }
-      # Send current snapshot back so the renderer can continue
+      # Process events WITHOUT rendering after each one.
+      # Matches Elixir's apply_event which defers view/render.
+      events.each { |ev| apply_event(ev) }
+      # Render once and send a single snapshot (headless protocol).
       render_and_snapshot
+      sync_subscriptions
     end
 
     def handle_interact_response(response)
@@ -477,6 +480,31 @@ module Plushie
       pending = @pending_interact
       @pending_interact = nil
       pending[:result_queue]&.push({events: events})
+    end
+
+    # Process an event through update + commands WITHOUT rendering.
+    # Used by interact_step to batch events before a single render.
+    # Matches Elixir's apply_event (runtime.ex lines 972-987).
+    def apply_event(event)
+      # Route through canvas widget handlers
+      unless @canvas_widgets.empty?
+        routed_event, @canvas_widgets = CanvasWidget.dispatch_through_widgets(@canvas_widgets, event)
+        return if routed_event.nil?
+        event = routed_event
+      end
+
+      saved_model = @model
+      result = @app.update(@model, event)
+      @model, commands = unwrap_result(result)
+      @consecutive_errors = 0
+      execute_commands(commands)
+    rescue NoMatchingPatternError => e
+      @model = saved_model
+      handle_callback_error("update", e,
+        hint: "Add an `else` clause to your update method to handle unmatched events")
+    rescue => e
+      @model = saved_model
+      handle_callback_error("update", e)
     end
 
     def extract_interact_events(response)
