@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "logger"
+require "securerandom"
 require_relative "runtime/commands"
 require_relative "runtime/subscriptions"
 
@@ -54,6 +55,7 @@ module Plushie
       @diagnostics_mutex = Mutex.new
       @pending_stub_acks = {}  # kind -> Queue (for sync ack round-trip)
       @pending_await_async = {} # tag -> Queue (for sync await)
+      @pending_interact = nil   # {id:, result_queue:} for current interact
 
       @logger = Logger.new($stderr, level: :warn, progname: "plushie")
     end
@@ -123,6 +125,27 @@ module Plushie
         @diagnostics.clear
         result
       end
+    end
+
+    # Simulate a user interaction with a widget.
+    #
+    # Sends an interact message through the bridge and blocks until the
+    # renderer responds. Used by scripting and automation -- the test
+    # session has its own interact that runs synchronously within the
+    # test process.
+    #
+    # @param action [String] interaction type ("click", "type_text", etc.)
+    # @param selector [Hash, nil] target widget selector ({by: "id", value: "btn"})
+    # @param payload [Hash] action-specific parameters
+    # @param timeout [Numeric] max wait in seconds
+    # @return [Array<Object>] events produced by the interaction
+    def interact(action, selector = nil, payload = {}, timeout: 5)
+      result_queue = Thread::Queue.new
+      @event_queue.push([:interact, action, selector, payload, result_queue])
+      result = result_queue.pop(timeout: timeout)
+      raise Plushie::Error, "interact timed out for #{action}" if result.nil?
+      raise Plushie::Error, result[:error] if result.is_a?(Hash) && result[:error]
+      result.is_a?(Hash) ? result.fetch(:events, []) : []
     end
 
     # Waits for an async task with the given tag to complete.
@@ -210,6 +233,8 @@ module Plushie
         in [:unregister_effect_stub, kind, ack_queue]
           @bridge.send_unregister_effect_stub(kind)
           @pending_stub_acks[kind] = ack_queue
+        in [:interact, action, selector, payload, result_queue]
+          handle_interact_request(action, selector, payload, result_queue)
         in [:await_async, tag, ack_queue]
           if @async_tasks.key?(tag)
             @pending_await_async[tag] = ack_queue
@@ -232,6 +257,18 @@ module Plushie
         ack_queue = @pending_stub_acks.delete(event[:kind])
         ack_queue&.push(:ok)
         return
+      end
+
+      # Intercept interact_step / interact_response for pending interact
+      if event.is_a?(Hash) && @pending_interact
+        event_type = (event[:type] || event["type"])&.to_sym
+        if event_type == :interact_step
+          handle_interact_step(event)
+          return
+        elsif event_type == :interact_response
+          handle_interact_response(event)
+          return
+        end
       end
 
       # Intercept prop validation diagnostics (never delivered to update)
@@ -357,6 +394,7 @@ module Plushie
 
     def handle_renderer_exit(reason)
       @logger.warn("plushie: renderer exited: #{reason}")
+      fail_pending_interact("renderer_restarted")
       @model = @app.handle_renderer_exit(@model, reason)
       @previous_tree = nil # Force full snapshot on reconnect
       @running = false unless @daemon
@@ -382,6 +420,48 @@ module Plushie
       ack_queue&.push(:ok)
     end
 
+    # -- Interact ------------------------------------------------------------
+
+    def handle_interact_request(action, selector, payload, result_queue)
+      id = SecureRandom.hex(4)
+      @pending_interact = {id: id, result_queue: result_queue}
+      @bridge.send_encoded(
+        Protocol::Encode.encode_interact(id, action, selector, payload, @format)
+      )
+    end
+
+    def handle_interact_step(response)
+      events = extract_interact_events(response)
+      events.each { |ev| dispatch_event(ev) }
+      render_and_snapshot
+    end
+
+    def handle_interact_response(response)
+      events = extract_interact_events(response)
+      events.each { |ev| dispatch_event(ev) }
+      pending = @pending_interact
+      @pending_interact = nil
+      pending[:result_queue]&.push({events: events})
+    end
+
+    def extract_interact_events(response)
+      raw = response[:events] || response["events"] || []
+      raw.filter_map do |e|
+        if e.is_a?(Hash)
+          Protocol::Decode.decode_event(e.transform_keys(&:to_s))
+        else
+          e
+        end
+      end
+    end
+
+    def fail_pending_interact(reason)
+      return unless @pending_interact
+      pending = @pending_interact
+      @pending_interact = nil
+      pending[:result_queue]&.push({error: reason})
+    end
+
     # -- Shutdown ------------------------------------------------------------
 
     def shutdown
@@ -401,6 +481,8 @@ module Plushie
       # Flush pending await_async so callers don't hang
       @pending_await_async.each_value { |q| q.push(:ok) }
       @pending_await_async.clear
+      # Flush pending interact so callers don't hang
+      fail_pending_interact("runtime_shutdown")
     end
   end
 end

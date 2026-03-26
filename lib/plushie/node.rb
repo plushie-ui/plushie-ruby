@@ -11,6 +11,7 @@ module Plushie
   # @!attribute [r] type [String] widget type name ("button", "column", "text_input", etc.)
   # @!attribute [r] props [Hash] frozen hash of property values (symbol keys)
   # @!attribute [r] children [Array<Node>] frozen array of child nodes (empty for leaf widgets)
+  # @!attribute [r] meta [Hash] frozen runtime-only metadata, never sent to the renderer or included in diffs
   #
   # @example Creating a node
   #   Node.new(id: "greeting", type: "text", props: { content: "Hello" })
@@ -20,22 +21,23 @@ module Plushie
   #     puts "Found button: #{id}"
   #   end
   #
-  Node = Data.define(:id, :type, :props, :children) do
-    # Create a new Node with string-coerced id and type, and frozen props/children.
+  Node = Data.define(:id, :type, :props, :children, :meta) do
+    # Create a new Node with string-coerced id and type, and frozen props/children/meta.
     #
     # @param id [#to_s] unique widget identifier
     # @param type [#to_s] widget type name
     # @param props [Hash] widget properties (will be frozen)
     # @param children [Array<Node>] child nodes (will be frozen)
+    # @param meta [Hash] runtime-only metadata, never sent to the renderer (will be frozen)
     # @return [Node]
-    def initialize(id:, type:, props: {}, children: [])
-      super(id: id.to_s, type: type.to_s, props: props.freeze, children: children.freeze)
+    def initialize(id:, type:, props: {}, children: [], meta: {})
+      super(id: id.to_s, type: type.to_s, props: props.freeze, children: children.freeze, meta: meta.freeze)
     end
 
     # Return a new Node with the given fields replaced.
     # Unspecified fields retain their current values.
     #
-    # @param changes [Hash] fields to replace (:id, :type, :props, :children)
+    # @param changes [Hash] fields to replace (:id, :type, :props, :children, :meta)
     # @return [Node] new Node with the changes applied
     def with(**changes)
       self.class.new(**to_h.merge(changes))
