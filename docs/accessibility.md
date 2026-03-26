@@ -92,7 +92,7 @@ augment the inferred semantics.
 | `expanded` | Boolean | Expanded/collapsed state |
 | `required` | Boolean | Mark form field as required |
 | `level` | Integer | Heading level (1-6) |
-| `busy` | Boolean | Loading/processing state |
+| `busy` | Boolean | Suppresses AT announcements until cleared (auto-managed by sliders during drag; set explicitly for custom continuous interactions) |
 | `invalid` | Boolean | Form validation failure |
 | `modal` | Boolean | Dialog is modal |
 | `read_only` | Boolean | Can be read but not edited |
@@ -224,6 +224,30 @@ if model.error
   text("error", model.error, a11y: {live: :assertive, role: :alert})
 end
 ```
+
+### Busy state and continuous interactions
+
+When a value changes rapidly (e.g. during a slider drag or canvas
+interaction), setting `busy: true` on the node suppresses AT
+announcements until `busy` clears. AT then announces the final
+value once, avoiding a flood of intermediate announcements. This
+maps to WAI-ARIA `aria-busy`.
+
+**Built-in widgets handle this automatically.** Sliders set
+`busy: true` during drag and clear it on release. No SDK code
+needed.
+
+**For app-managed live regions** that reflect values from a
+continuous interaction (e.g. a text display showing a hex color
+while the user drags a canvas), set `busy` explicitly based on
+whether the interaction is active:
+
+```ruby
+text("hex", hex_value, a11y: {live: :polite, busy: model.drag != :none})
+```
+
+When the drag ends, `busy` clears and the screen reader announces
+the final hex value.
 
 ### Forms
 

@@ -302,7 +302,7 @@ All of the following are available in `Plushie::Test::Case`:
 All tests work on all backends. Write tests once, swap backends without
 changing assertions.
 
-### Three backends
+### Backend modes
 
 | | `:mock` | `:headless` | `:windowed` |
 |---|---|---|---|
@@ -351,8 +351,8 @@ difference is important.
 ### Structural tree hashes (`assert_tree_hash`)
 
 `assert_tree_hash` captures a SHA-256 hash of the serialized UI tree and
-compares it against a golden file. It works on all three backends because
-every backend can produce a tree.
+compares it against a golden file. It works on all backend modes because
+every mode can produce a tree.
 
 ```ruby
 def test_counter_initial_state
@@ -543,9 +543,9 @@ end
 
 ### On headless and windowed backends
 
-All three backends now use the shared `CommandProcessor` to execute async
-commands synchronously. `await_async` returns immediately on all backends
-because the commands have already completed.
+All backend modes execute async commands synchronously. `await_async`
+returns immediately on all modes because the commands have already
+completed.
 
 
 ## Debugging and error messages
@@ -819,6 +819,32 @@ end
 These tests run on `:mock` by default (fast, logic-only). Set
 `PLUSHIE_TEST_BACKEND=headless` to exercise the full Rust rendering path
 with the extension compiled in.
+
+
+## Key name validation
+
+`press`, `type_key`, and `release` validate key names at call time.
+Input is case-insensitive. Named keys use PascalCase matching the
+renderer's wire format (same strings that appear in event data):
+
+```ruby
+press("Tab")
+press("ArrowRight")
+press("Shift+PageUp")
+press("a")
+```
+
+Unrecognized key names raise immediately:
+
+```
+ArgumentError: unknown key "tabb" in "tabb".
+    Examples: Tab, ArrowRight, PageUp, Escape, Enter.
+    See Plushie::Protocol::Keys for the full list
+```
+
+Single characters are also accepted and lowercased (`"a"`, `"Z"`,
+`"1"`). Modifier combos use `+`: `"Ctrl+s"`, `"Shift+ArrowUp"`.
+Modifiers: `shift`, `ctrl`, `alt`, `logo`, `command`.
 
 
 ## Known limitations

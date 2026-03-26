@@ -115,6 +115,89 @@ class MyApp::Card
 end
 ```
 
+### Canvas widgets -- canvas-based widgets with internal state
+
+Use `Plushie::CanvasWidget` for widgets that render via canvas shapes,
+manage their own internal state, and transform raw canvas events into
+semantic events. No Rust code needed.
+
+Canvas widgets have three capabilities that composite widgets do not:
+
+- **Internal state** -- initialized by `init`, managed by the runtime.
+  The widget tree is the source of truth; state is keyed by scoped
+  widget ID.
+- **Event transformation** -- `handle_event` intercepts events at the
+  widget's scope boundary before they reach `update`. Raw canvas
+  events become semantic events that are indistinguishable from built-in
+  widget events.
+- **Widget-scoped subscriptions** -- `subscribe` returns subscriptions
+  scoped to this widget instance. Timer events route to `handle_event`,
+  not the app's `update`.
+
+```ruby
+module StarRating
+  extend Plushie::CanvasWidget
+
+  canvas_widget :star_rating
+
+  def self.init = {hover: nil}
+
+  def self.handle_event(event, state)
+    case event
+    in Event::Canvas[type: :element_enter, id: star_id]
+      [:update_state, state.merge(hover: star_id)]
+    in Event::Canvas[type: :element_leave]
+      [:update_state, state.merge(hover: nil)]
+    in Event::Canvas[type: :element_click, id: star_id]
+      [:emit, :select, star_id, state]
+    else
+      [:ignored, state]
+    end
+  end
+
+  def self.render(id, props, state)
+    Plushie::UI.canvas(id) do
+      props[:max].times do |i|
+        star(i.to_s, filled: i < props[:rating], hovered: state[:hover] == i.to_s)
+      end
+    end
+  end
+end
+```
+
+#### `handle_event` return values
+
+| Return value | Effect |
+|---|---|
+| `[:ignored, state]` | Event passes through to the app's `update` unchanged |
+| `[:consumed, state]` | Event is suppressed -- neither the app nor other widgets see it |
+| `[:update_state, state]` | Internal state updated, no output event -- triggers re-render |
+| `[:emit, kind, data]` | Emit a Widget event with the given family and data; id/scope filled in by the runtime |
+| `[:emit, kind, data, state]` | Same as above, and update internal state |
+
+#### Subscriptions
+
+Optional. Returns subscriptions scoped to this widget instance. Timer
+events from these subscriptions route to `handle_event`, not the
+app's `update`.
+
+```ruby
+def self.subscribe(props, state)
+  if state[:animating]
+    [Plushie::Subscription.every(16, :tick)]
+  else
+    []
+  end
+end
+```
+
+#### Lifecycle
+
+Internal state is initialized by `init` when the widget first appears
+in the tree. When the widget is removed from the tree, its state is
+cleaned up. Multiple instances of the same canvas widget each get
+independent state, keyed by their scoped widget ID.
+
 ## DSL reference
 
 | Method | Required | Description |
