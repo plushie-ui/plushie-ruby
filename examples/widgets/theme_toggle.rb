@@ -30,7 +30,7 @@ module ThemeToggle
 
   def handle_event(event, state)
     case event
-    in Event::Widget[type: :canvas_element_click, data: {**}]
+    in Event::Widget[type: :canvas_element_click, data: {element_id: "switch", **}]
       new_target = (state[:target] == 0.0) ? 1.0 : 0.0
       [:emit, :toggle, new_target >= 0.5, {progress: state[:progress], target: new_target}]
 
