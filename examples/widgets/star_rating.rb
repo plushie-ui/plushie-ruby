@@ -8,60 +8,89 @@ require "plushie"
 # rate, hover to preview, Tab/arrow to navigate, Enter/Space to select).
 # Pass readonly: true for a display-only version.
 #
-#   StarRating.render("my-rating", model.rating,
-#     hover: model.hover_star, focused: model.focused_star,
-#     theme_progress: p)
-#
-#   StarRating.render("review-stars", 4, readonly: true, scale: 0.5)
+#   StarRating.new("my-rating", rating: model.rating, theme_progress: p)
+#   StarRating.new("review-stars", rating: 4, readonly: true, scale: 0.5)
 #
 # Events:
-# - canvas_element_click with element_id "star-0" through "star-4"
-# - canvas_element_enter / canvas_element_leave for hover
-# - canvas_element_focused with element_id for keyboard focus
+# - :select with {"value" => n} when the user clicks a star
 module StarRating
-  include Plushie::UI
+  include Plushie::CanvasWidget
   extend self
+
+  canvas_widget :star_rating
 
   STAR_COUNT = 5
 
-  def render(id, rating, hover: nil, focused: nil, theme_progress: 0.0, readonly: false, scale: 1.0)
+  def init
+    {hover: nil}
+  end
+
+  # -- Event transformation --------------------------------------------------
+
+  def handle_event(event, state)
+    case event
+    in Event::Widget[type: :canvas_element_click, data:]
+      n = parse_star_index(data)
+      n ? [:emit, :select, n + 1] : [:consumed, state]
+
+    in Event::Widget[type: :canvas_element_enter, data:]
+      n = parse_star_index(data)
+      n ? [:update_state, {hover: n + 1}] : [:consumed, state]
+
+    in Event::Widget[type: :canvas_element_leave]
+      [:update_state, {hover: nil}]
+
+    else
+      [:consumed, state]
+    end
+  end
+
+  # -- Rendering -------------------------------------------------------------
+
+  def render(id, props, state)
+    include Plushie::UI
+
+    rating = props[:rating] || 0
+    readonly = props[:readonly] || false
+    scale = props[:scale] || 1.0
+    theme_progress = props[:theme_progress] || 0.0
+
     outer_r = 13 * scale
     inner_r = 5 * scale
     size = (30 * scale).round
     gap = (2 * scale).round
+    hover = state[:hover]
     display = hover || rating
     width = STAR_COUNT * size + (STAR_COUNT - 1) * gap
 
     commands = star_commands(outer_r, inner_r)
 
-    canvas_opts = {width: width, height: size}
     if readonly
-      canvas_opts[:alt] = "#{rating} out of #{STAR_COUNT} stars"
-      canvas_opts[:role] = "img"
-    else
-      canvas_opts[:role] = "radiogroup"
-      canvas_opts[:arrow_mode] = "wrap"
-    end
-
-    canvas(id, **canvas_opts) do
-      layer("stars") do
-        STAR_COUNT.times do |i|
-          star_cx = i * (size + gap) + size / 2
-          star_cy = size / 2
-          filled = i < display
-          preview = !readonly && !hover.nil? && i < hover && i >= rating
-
-          if readonly
-            canvas_group(x: star_cx, y: star_cy) do
-              canvas_path(commands, fill: star_color(filled, preview, theme_progress))
+      canvas(id, width: width, height: size,
+        alt: "#{rating} out of #{STAR_COUNT} stars") do
+        layer("stars") do
+          STAR_COUNT.times do |i|
+            canvas_group(x: i * (size + gap) + size / 2, y: size / 2) do
+              canvas_path(commands, fill: star_color(i < rating, false, theme_progress))
             end
-          else
+          end
+        end
+      end
+    else
+      canvas(id, width: width, height: size,
+        alt: "Star rating", role: "radiogroup") do
+        layer("stars") do
+          STAR_COUNT.times do |i|
+            filled = i < display
+            preview = !hover.nil? && i < hover && i >= rating
+
             canvas_group("star-#{i}",
-              x: star_cx, y: star_cy,
+              x: i * (size + gap) + size / 2,
+              y: size / 2,
               on_click: true,
               on_hover: true,
               cursor: "pointer",
-              focus_style: {stroke: "#3b82f6", stroke_width: 2 * scale},
+              focus_style: {stroke: {color: "#3b82f6", width: 2 * scale}},
               show_focus_ring: false,
               a11y: {
                 role: :radio,
@@ -78,7 +107,12 @@ module StarRating
     end
   end
 
-  private
+  def parse_star_index(data)
+    element_id = data && data["element_id"]
+    return nil unless element_id.is_a?(String) && element_id.start_with?("star-")
+
+    element_id.delete_prefix("star-").to_i
+  end
 
   def star_commands(outer_r, inner_r)
     points = (0..9).map do |i|
@@ -93,15 +127,25 @@ module StarRating
   end
 
   def star_color(filled, preview, progress)
-    if filled && !preview
-      "#f59e0b"
-    elsif preview
-      "#fcd34d"
+    if preview
+      fade([255, 200, 50], [200, 160, 80], progress)
+    elsif filled
+      fade([255, 180, 0], [255, 200, 50], progress)
     else
-      r = (209 + (74 - 209) * progress).round
-      g = (213 + (74 - 213) * progress).round
-      b = (219 + (94 - 219) * progress).round
-      "#%02x%02x%02x" % [r, g, b]
+      fade([224, 224, 224], [60, 60, 80], progress)
     end
+  end
+
+  def fade(rgb1, rgb2, t)
+    r = (rgb1[0] + (rgb2[0] - rgb1[0]) * t).round
+    g = (rgb1[1] + (rgb2[1] - rgb1[1]) * t).round
+    b = (rgb1[2] + (rgb2[2] - rgb1[2]) * t).round
+    "#%02x%02x%02x" % [r, g, b]
+  end
+
+  # -- Public builder --------------------------------------------------------
+
+  def self.new(id, **props)
+    Plushie::CanvasWidget.build(StarRating, id, props)
   end
 end

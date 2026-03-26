@@ -2,9 +2,15 @@
 
 # App rating page for Plushie.
 #
-# Demonstrates custom canvas widgets (star rating, theme toggle) composed
+# Demonstrates custom canvas widgets (StarRating, ThemeToggle) composed
 # with styled containers using the full DSL. The "Dark humor" toggle
-# animates and flips the entire page theme.
+# animates the emoji and flips the entire page theme.
+#
+# The review form showcases form validation with:
+# - Per-field error state tracked in the model
+# - Visual error styling via StyleMap (border + background tint)
+# - Accessible error wiring via a11y (required, invalid, error_message)
+# - Validate-on-submit with clear-on-change for responsive UX
 
 require "plushie"
 require_relative "widgets/star_rating"
@@ -29,9 +35,8 @@ class RatePlushie
   ].freeze
 
   Model = Plushie::Model.define(
-    :rating, :hover_star, :focused_star,
-    :toggle_progress, :toggle_target,
-    :reviews, :review_name, :review_comment
+    :rating, :dark_mode,
+    :reviews, :review_name, :review_comment, :errors
   )
 
   # -- Init / Update / Subscribe -----------------------------------------------
@@ -39,45 +44,30 @@ class RatePlushie
   def init(_opts)
     Model.new(
       rating: 0,
-      hover_star: nil,
-      focused_star: nil,
-      toggle_progress: 0.0,
-      toggle_target: 0.0,
+      dark_mode: false,
       reviews: INITIAL_REVIEWS,
       review_name: "",
-      review_comment: ""
+      review_comment: "",
+      errors: {}
     )
   end
 
   def update(model, event)
     case event
-    # Star rating interactions
-    in Event::Widget[type: :canvas_element_click, id: "stars", data:]
-      n = parse_star_index(data)
-      n ? model.with(rating: n + 1) : model
+    # Star rating emits :select with the number of stars.
+    in Event::Widget[type: :select, id: "stars", data:]
+      stars = data["value"]
+      model.with(rating: stars, errors: model.errors.except(:rating))
 
-    in Event::Widget[type: :canvas_element_enter, id: "stars", data:]
-      n = parse_star_index(data)
-      n ? model.with(hover_star: n + 1) : model
+    # Theme toggle emits :toggle with the new state.
+    in Event::Widget[type: :toggle, id: "theme-toggle", data:]
+      model.with(dark_mode: data["value"])
 
-    in Event::Widget[type: :canvas_element_leave, id: "stars"]
-      model.with(hover_star: nil)
-
-    in Event::Widget[type: :canvas_element_focused, id: "stars", data:]
-      n = parse_star_index(data)
-      n ? model.with(focused_star: n) : model
-
-    # Theme toggle
-    in Event::Widget[type: :canvas_element_click, id: "theme-toggle"]
-      target = (model.toggle_target == 0.0) ? 1.0 : 0.0
-      model.with(toggle_target: target)
-
-    # Review form
     in Event::Widget[type: :input, id: "review-name", value:]
-      model.with(review_name: value)
+      model.with(review_name: value, errors: model.errors.except(:name))
 
     in Event::Widget[type: :input, id: "review-comment", value:]
-      model.with(review_comment: value)
+      model.with(review_comment: value, errors: model.errors.except(:comment))
 
     in Event::Widget[type: :click, id: "submit-review"]
       submit_review(model)
@@ -85,41 +75,40 @@ class RatePlushie
     in Event::Widget[type: :submit, id: "review-name"]
       submit_review(model)
 
-    # Animation
-    in Event::Timer[tag: :animate]
-      model.with(toggle_progress: approach(model.toggle_progress, model.toggle_target, 0.06))
-
     else
       model
     end
   end
 
-  def subscribe(model)
-    if model.toggle_progress != model.toggle_target
-      [Subscription.every(16, :animate)]
-    else
-      []
-    end
+  def subscribe(_model)
+    []
   end
 
-  # -- View (composed from helper methods) -------------------------------------
+  # -- View ------------------------------------------------------------------
 
   def view(model)
-    p = smoothstep(model.toggle_progress)
+    p = model.dark_mode ? 1.0 : 0.0
     t = theme(p)
 
+    page_theme = Plushie::Type::Theme.custom("rate-plushie",
+      background: t[:page_bg],
+      text: t[:text],
+      primary: fade([59, 130, 246], [139, 92, 246], p))
+
     window("main", title: "Rate Plushie") do
-      container("page",
-        padding: {top: 32, bottom: 32, left: 24, right: 24},
-        background: t[:page_bg],
-        width: :fill, height: :fill) do
-        column(spacing: 24, width: :fill) do
-          text("heading", "Rate Plushie", size: 28, color: t[:text],
-            a11y: {role: :heading, level: 1})
-          rating_card(model, p, t)
-          text("reviews-heading", "Reviews", size: 20, color: t[:text],
-            a11y: {role: :heading, level: 2})
-          reviews_list(model.reviews, p, t)
+      themer("page-theme", theme: page_theme) do
+        container("page",
+          padding: {top: 32, bottom: 32, left: 24, right: 24},
+          background: t[:page_bg],
+          width: :fill, height: :fill) do
+          column(spacing: 24, width: :fill) do
+            text("heading", "Rate Plushie", size: 28, color: t[:text],
+              a11y: {role: :heading, level: 1})
+            rating_card(model, p, t)
+            text("reviews-heading", "Reviews", size: 20, color: t[:text],
+              a11y: {role: :heading, level: 2})
+            reviews_list(model.reviews, p, t)
+          end
         end
       end
     end
@@ -127,26 +116,33 @@ class RatePlushie
 
   private
 
-  def parse_star_index(data)
-    element_id = data && data["element_id"]
-    return nil unless element_id.is_a?(String) && element_id.start_with?("star-")
-
-    element_id.delete_prefix("star-").to_i
-  end
-
   def submit_review(model)
-    name = model.review_name.strip
-    comment = model.review_comment.strip
+    errors = validate_review(model)
 
-    if !name.empty? && !comment.empty? && model.rating > 0
+    if errors.empty?
+      name = model.review_name.strip
+      comment = model.review_comment.strip
       review = {stars: model.rating, user: name, time: "just now", text: comment}
-      model.with(reviews: [review, *model.reviews], review_name: "", review_comment: "", rating: 0)
+
+      model.with(
+        reviews: [review, *model.reviews],
+        review_name: "", review_comment: "",
+        rating: 0, errors: {}
+      )
     else
-      model
+      model.with(errors: errors)
     end
   end
 
-  # -- View: rating card -------------------------------------------------------
+  def validate_review(model)
+    errors = {}
+    errors[:name] = "Name is required" if model.review_name.strip.empty?
+    errors[:comment] = "Review text is required" if model.review_comment.strip.empty?
+    errors[:rating] = "Please select a rating" if model.rating <= 0
+    errors
+  end
+
+  # -- View: rating card -----------------------------------------------------
 
   def rating_card(model, p, t)
     container("rating-card",
@@ -156,9 +152,15 @@ class RatePlushie
       column(spacing: 20, width: :fill) do
         text("prompt", "How would you rate Plushie?", size: 14, color: t[:text_secondary])
 
-        StarRating.render("stars", model.rating,
-          hover: model.hover_star, focused: model.focused_star,
-          theme_progress: p)
+        column("stars-group", spacing: 4) do
+          StarRating.new("stars", rating: model.rating, theme_progress: p)
+
+          if (error = model.errors[:rating])
+            text("stars-error", error,
+              size: 12, color: t[:error_text],
+              a11y: {role: :alert, live: :polite})
+          end
+        end
 
         rule
         review_form(model, t)
@@ -167,30 +169,75 @@ class RatePlushie
     end
   end
 
-  # -- View: review form -------------------------------------------------------
+  # -- View: review form -----------------------------------------------------
 
-  def review_form(model, _t)
+  def review_form(model, t)
     column("review-form", spacing: 12, width: :fill) do
-      text_input("review-name", model.review_name,
-        placeholder: "Your name", width: :fill, a11y: {label: "Your name"})
-      text_editor("review-comment", model.review_comment,
-        placeholder: "Write your review...", width: :fill, height: 80,
-        a11y: {label: "Review text"})
+      column("name-field", spacing: 4, width: :fill) do
+        text_input("review-name", model.review_name,
+          placeholder: "Your name", on_submit: true,
+          style: input_style(model.errors[:name], t),
+          a11y: {
+            label: "Your name",
+            required: true,
+            invalid: !model.errors[:name].nil?,
+            error_message: model.errors[:name] ? "review-name-error" : nil
+          })
+
+        if (error = model.errors[:name])
+          text("review-name-error", error,
+            size: 12, color: t[:error_text],
+            a11y: {role: :alert, live: :polite})
+        end
+      end
+
+      column("comment-field", spacing: 4, width: :fill) do
+        text_editor("review-comment", model.review_comment,
+          placeholder: "Write your review...", height: 80,
+          style: input_style(model.errors[:comment], t),
+          a11y: {
+            label: "Review text",
+            required: true,
+            invalid: !model.errors[:comment].nil?,
+            error_message: model.errors[:comment] ? "review-comment-error" : nil
+          })
+
+        if (error = model.errors[:comment])
+          text("review-comment-error", error,
+            size: 12, color: t[:error_text],
+            a11y: {role: :alert, live: :polite})
+        end
+      end
+
       button("submit-review", "Submit Review")
     end
   end
 
-  # -- View: theme toggle row --------------------------------------------------
+  def input_style(error, t)
+    return :default unless error
 
-  def theme_row(model, t)
+    error_border = Plushie::Type::Border.new(
+      color: t[:error_border], width: 2, rounded: 4
+    )
+
+    Plushie::Type::StyleMap.new(
+      border: error_border,
+      background: t[:error_bg],
+      focused: {border: error_border}
+    )
+  end
+
+  # -- View: theme toggle row ------------------------------------------------
+
+  def theme_row(_model, t)
     row("theme-row", align_y: :center) do
       space("theme-spacer", width: :fill)
       text("toggle-label", "Dark humor", color: t[:text_secondary])
-      ThemeToggle.render("theme-toggle", model.toggle_progress)
+      ThemeToggle.new("theme-toggle")
     end
   end
 
-  # -- View: reviews list ------------------------------------------------------
+  # -- View: reviews list ----------------------------------------------------
 
   def reviews_list(reviews, p, t)
     column("reviews", spacing: 0, width: :fill) do
@@ -204,8 +251,7 @@ class RatePlushie
   def review_card(review, i, p, t)
     column("review-#{i}", spacing: 4, padding: 12, width: :fill) do
       row("rhdr-#{i}", spacing: 8, align_y: :center) do
-        StarRating.render("rstars-#{i}", review[:stars],
-          readonly: true, scale: 0.4, theme_progress: p)
+        StarRating.new("rstars-#{i}", rating: review[:stars], readonly: true, scale: 0.4, theme_progress: p)
         text("rname-#{i}", review[:user], size: 12, color: t[:text_secondary])
         space("rsp-#{i}", width: :fill)
         text("rtime-#{i}", review[:time], size: 12, color: t[:text_muted])
@@ -215,7 +261,7 @@ class RatePlushie
     end
   end
 
-  # -- Theme interpolation -----------------------------------------------------
+  # -- Theme -----------------------------------------------------------------
 
   def theme(p)
     {
@@ -224,7 +270,10 @@ class RatePlushie
       card_border: fade([224, 224, 224], [42, 42, 74], p),
       text: fade([26, 26, 26], [240, 240, 245], p),
       text_secondary: fade([102, 102, 102], [153, 153, 187], p),
-      text_muted: fade([170, 170, 170], [85, 85, 119], p)
+      text_muted: fade([170, 170, 170], [85, 85, 119], p),
+      error_text: fade([185, 28, 28], [255, 100, 100], p),
+      error_border: fade([220, 38, 38], [255, 80, 80], p),
+      error_bg: fade([254, 242, 242], [50, 20, 20], p)
     }
   end
 
@@ -233,23 +282,6 @@ class RatePlushie
     g = (rgb1[1] + (rgb2[1] - rgb1[1]) * t).round
     b = (rgb1[2] + (rgb2[2] - rgb1[2]) * t).round
     "#%02x%02x%02x" % [r, g, b]
-  end
-
-  def smoothstep(t)
-    return 0.0 if t <= 0.0
-    return 1.0 if t >= 1.0
-
-    t * t * (3 - 2 * t)
-  end
-
-  def approach(current, target, step)
-    if current < target
-      [current + step, target].min
-    elsif current > target
-      [current - step, target].max
-    else
-      current
-    end
   end
 end
 

@@ -2,61 +2,93 @@
 
 require "plushie"
 
-# Canvas-based theme toggle switch.
+# Animated theme toggle with a face on the thumb.
 #
-# Renders an animated toggle with a sun/moon face that rotates during
-# the transition. The progress value (0.0 = light, 1.0 = dark) drives
-# all interpolation -- the caller is responsible for animating it.
+# A toggle switch where the thumb has a drawn face. Light mode shows a
+# smiley; dark mode shows the face rotated upside down. The face rotates
+# during the transition. Animation is managed internally.
 #
-#   ThemeToggle.render("theme-toggle", model.toggle_progress)
+#   ThemeToggle.new("my-toggle")
 #
 # Events:
-# - canvas_element_click with element_id "switch"
+# - :toggle with {"value" => bool} when the user clicks the switch
 module ThemeToggle
-  include Plushie::UI
+  include Plushie::CanvasWidget
   extend self
+
+  canvas_widget :theme_toggle
 
   TRACK_W = 64
   TRACK_H = 32
   THUMB_R = 13
 
-  def render(id, progress)
+  def init
+    {progress: 0.0, target: 0.0}
+  end
+
+  # -- Event transformation --------------------------------------------------
+
+  def handle_event(event, state)
+    case event
+    in Event::Widget[type: :canvas_element_click, data: {**}]
+      new_target = (state[:target] == 0.0) ? 1.0 : 0.0
+      [:emit, :toggle, new_target >= 0.5, {progress: state[:progress], target: new_target}]
+
+    in Event::Timer[tag: :animate]
+      new_progress = approach(state[:progress], state[:target], 0.06)
+      [:update_state, {progress: new_progress, target: state[:target]}]
+
+    else
+      [:consumed, state]
+    end
+  end
+
+  # -- Widget-scoped subscriptions -------------------------------------------
+
+  def subscribe(_props, state)
+    if state[:progress] != state[:target]
+      [Plushie::Subscription.every(16, :animate)]
+    else
+      []
+    end
+  end
+
+  # -- Rendering -------------------------------------------------------------
+
+  def render(id, _props, state)
+    include Plushie::UI
+
+    progress = state[:progress]
     eased = smoothstep(progress)
     thumb_x = lerp(TRACK_H / 2.0, TRACK_W - TRACK_H / 2.0, eased)
     track_color = lerp_color([253, 230, 138], [91, 33, 182], eased)
     rotation = eased * Math::PI
     face_color = (progress < 0.5) ? "#665500" : "#4c1d95"
 
-    canvas(id, width: TRACK_W, height: TRACK_H, alt: "Theme toggle") do
+    ring_pad = 4
+
+    canvas(id,
+      width: TRACK_W + ring_pad * 2,
+      height: TRACK_H + ring_pad * 2,
+      alt: "Theme toggle") do
       layer("toggle") do
         canvas_group("switch",
+          x: ring_pad,
+          y: ring_pad,
           on_click: true,
           cursor: "pointer",
-          hit_rect: Plushie::Canvas::Shape::HitRect.new(x: 0, y: 0, w: TRACK_W, h: TRACK_H),
+          hit_rect: {x: 0, y: 0, w: TRACK_W, h: TRACK_H},
+          focus_ring_radius: TRACK_H / 2 + ring_pad,
           a11y: {role: :switch, label: "Dark humor", toggled: progress >= 0.5}) do
-          # Track (rounded rect via path since canvas_rect has no radius)
-          r = TRACK_H / 2.0
-          canvas_path([
-            Plushie::Canvas::Shape.move_to(r, 0),
-            Plushie::Canvas::Shape.line_to(TRACK_W - r, 0),
-            Plushie::Canvas::Shape.arc(TRACK_W - r, r, r, -Math::PI / 2, Math::PI / 2),
-            Plushie::Canvas::Shape.line_to(r, TRACK_H),
-            Plushie::Canvas::Shape.arc(r, r, r, Math::PI / 2, 3 * Math::PI / 2)
-          ], fill: track_color)
-
-          # Thumb circle
+          canvas_rect(0, 0, TRACK_W, TRACK_H, fill: track_color, radius: TRACK_H / 2)
           canvas_circle(thumb_x, TRACK_H / 2.0, THUMB_R, fill: "#ffffff")
 
-          # Face -- nested group with transforms instead of push/pop
           canvas_group(transforms: [
             Plushie::Canvas::Shape.translate(thumb_x, TRACK_H / 2.0),
             Plushie::Canvas::Shape.rotate(rotation)
           ]) do
-            # Left eye
             canvas_circle(-3.5, -3, 2, fill: face_color)
-            # Right eye
             canvas_circle(3.5, -3, 2, fill: face_color)
-            # Mouth (smile path)
             canvas_path(smile_path, stroke: Plushie::Canvas::Shape.stroke(face_color, 2))
           end
         end
@@ -64,7 +96,15 @@ module ThemeToggle
     end
   end
 
-  private
+  def approach(current, target, step)
+    if current < target
+      [current + step, target].min
+    elsif current > target
+      [current - step, target].max
+    else
+      current
+    end
+  end
 
   def smoothstep(t)
     return 0.0 if t <= 0.0
@@ -91,5 +131,11 @@ module ThemeToggle
       Plushie::Canvas::Shape.line_to(3, 5),
       Plushie::Canvas::Shape.line_to(5, 1)
     ]
+  end
+
+  # -- Public builder --------------------------------------------------------
+
+  def self.new(id, **props)
+    Plushie::CanvasWidget.build(ThemeToggle, id, props)
   end
 end
