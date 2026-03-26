@@ -160,7 +160,7 @@ module Plushie
     attr_accessor :extensions
 
     # Runtime configuration map passed to widget extensions via
-    # the Settings wire message. Keyed by extension config_key.
+    # the Settings wire message. Keyed by extension widget type.
     # @return [Hash]
     attr_accessor :extension_config
 

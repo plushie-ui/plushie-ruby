@@ -262,6 +262,19 @@ module Plushie
     #   in Event::Effect[request_id: "open_file", result:]
     Effect = Data.define(:request_id, :result)
 
+    # Renderer error for an extension command.
+    #
+    # @!attribute [r] reason [String] machine-readable error reason
+    # @!attribute [r] node_id [String, nil] target widget node ID
+    # @!attribute [r] op [String, nil] command operation name
+    # @!attribute [r] extension [String, nil] extension widget type
+    # @!attribute [r] message [String, nil] human-readable error text
+    ExtensionCommandError = Data.define(:reason, :node_id, :op, :extension, :message) do
+      def initialize(reason:, node_id: nil, op: nil, extension: nil, message: nil)
+        super
+      end
+    end
+
     # System events for theme changes, animation frames, and other runtime signals.
     # Triggered by OS-level changes or renderer lifecycle events.
     # Subscribe via Subscription.on_theme_change or on_animation_frame.

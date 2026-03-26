@@ -374,7 +374,23 @@ module Plushie
           Event::System.new(type: :all_windows_closed)
 
         when "error"
-          Event::System.new(type: :error, data: data)
+          if msg["id"] == "extension_command"
+            Event::ExtensionCommandError.new(
+              reason: data["reason"] || "",
+              node_id: data["node_id"],
+              op: data["op"],
+              extension: data["extension"],
+              message: data["message"]
+            )
+          else
+            error_data =
+              if data.is_a?(Hash)
+                data.merge("id" => msg["id"])
+              else
+                {"id" => msg["id"], "details" => data}
+              end
+            Event::System.new(type: :error, data: error_data)
+          end
 
         when "announce"
           Event::System.new(type: :announce, data: data["text"])

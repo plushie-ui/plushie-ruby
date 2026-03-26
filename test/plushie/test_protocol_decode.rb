@@ -562,6 +562,24 @@ class TestProtocolDecode < Minitest::Test
     assert_equal "prop_validation", event.data["kind"]
   end
 
+  def test_decode_extension_command_error
+    event = D.decode_event({
+      "family" => "error",
+      "id" => "extension_command",
+      "data" => {
+        "kind" => "extension_command",
+        "reason" => "unknown_node",
+        "node_id" => "g1",
+        "op" => "set_value",
+        "message" => "no extension handles node `g1`"
+      }
+    })
+    assert_instance_of Plushie::Event::ExtensionCommandError, event
+    assert_equal "unknown_node", event.reason
+    assert_equal "g1", event.node_id
+    assert_equal "set_value", event.op
+  end
+
   # -- Fallback (extension events) -----------------------------------------
 
   def test_decode_unknown_family_with_id

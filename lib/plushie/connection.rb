@@ -226,6 +226,8 @@ module Plushie
         if @hello[:protocol] != Protocol::PROTOCOL_VERSION
           raise Error, "protocol version mismatch: expected #{Protocol::PROTOCOL_VERSION}, got #{@hello[:protocol]}"
         end
+
+        validate_required_extensions!(@hello)
       end
     end
 
@@ -261,6 +263,8 @@ module Plushie
         if @hello[:protocol] != Protocol::PROTOCOL_VERSION
           raise Error, "protocol version mismatch: expected #{Protocol::PROTOCOL_VERSION}, got #{@hello[:protocol]}"
         end
+
+        validate_required_extensions!(@hello)
       end
     end
 
@@ -325,6 +329,21 @@ module Plushie
       elsif @on_message
         @on_message.call(msg)
       end
+    end
+
+    def validate_required_extensions!(hello)
+      expected =
+        Plushie.configuration.extensions
+          .select { |ext| ext.respond_to?(:native?) && ext.native? }
+          .map { |ext| ext.type_names.first.to_s }
+          .uniq
+
+      missing = expected - Array(hello[:extensions])
+      return if missing.empty?
+
+      raise Error,
+        "renderer is missing required extensions #{missing.inspect}. " \
+        "Renderer reported #{Array(hello[:extensions]).inspect}"
     end
   end
 end

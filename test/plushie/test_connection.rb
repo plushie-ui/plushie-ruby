@@ -4,6 +4,26 @@ require "test_helper"
 require "json"
 
 class TestConnection < Minitest::Test
+  def test_validate_required_extensions_rejects_missing_native_extension
+    ext = Class.new do
+      def self.native? = true
+      def self.type_names = [:gauge]
+    end
+
+    original = Plushie.configuration.extensions
+    Plushie.configuration.extensions = [ext]
+
+    conn = Plushie::Connection.allocate
+    error =
+      assert_raises(Plushie::Error) do
+        conn.send(:validate_required_extensions!, {type: :hello, extensions: []})
+      end
+
+    assert_match(/missing required extensions/, error.message)
+  ensure
+    Plushie.configuration.extensions = original
+  end
+
   # -- msgpack write framing (4-byte length prefix) -------------------------
 
   def test_msgpack_write_framing
