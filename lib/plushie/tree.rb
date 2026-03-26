@@ -151,10 +151,10 @@ module Plushie
         result = Plushie::CanvasWidget.render_placeholder(node, scoped_id, node.id, registry)
         if result
           rendered_node, _entry = result
-          # Normalize the rendered output at the same scope position.
-          # The rendered node has no placeholder meta, so this is a plain
-          # normalization pass. Preserve the widget meta on the final node.
-          normalized = normalize_node(rendered_node, scope, registry)
+          # Normalize the rendered output. Pass empty scope because the
+          # rendered node's ID is already fully scoped (set by
+          # render_placeholder). Passing the parent scope would double-scope.
+          normalized = normalize_node(rendered_node, "", registry)
           return normalized.with(meta: rendered_node.meta)
         end
       end

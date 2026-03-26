@@ -428,6 +428,7 @@ module Plushie
     def handle_renderer_exit(reason)
       @logger.warn("plushie: renderer exited: #{reason}")
       fail_pending_interact("renderer_restarted")
+      @canvas_widgets = {} # Registry re-derived on next render
       @model = @app.handle_renderer_exit(@model, reason)
       @previous_tree = nil # Force full snapshot on reconnect
       @running = false unless @daemon
@@ -457,8 +458,6 @@ module Plushie
 
     def handle_interact_request(action, selector, payload, result_queue)
       id = SecureRandom.hex(4)
-      msg = {type: "interact", id: id, action: action, payload: payload}
-      msg[:selector] = selector if selector
       @pending_interact = {id: id, result_queue: result_queue}
       @bridge.send_encoded(
         Protocol::Encode.encode_interact(id, action, selector, payload, @format)
