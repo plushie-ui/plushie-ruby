@@ -78,6 +78,7 @@ require_relative "plushie/canvas/shape"
 
 # Extension system
 require_relative "plushie/extension"
+require_relative "plushie/canvas_widget"
 
 require_relative "plushie/ui"
 require_relative "plushie/app"

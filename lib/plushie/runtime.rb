@@ -50,6 +50,7 @@ module Plushie
       @pending_timers = {}     # event_key -> timer_thread
       @subscriptions = {}      # sub_key -> {sub_type:, ...}
       @subscription_keys = []  # sorted keys for short-circuit
+      @canvas_widgets = {}     # scoped_id -> CanvasWidget::RegistryEntry
       @consecutive_errors = 0
       @diagnostics = []        # accumulated prop validation diagnostics
       @diagnostics_mutex = Mutex.new
@@ -219,10 +220,7 @@ module Plushie
         in [:stream_value, tag, nonce, value]
           handle_stream_value(tag, nonce, value)
         in [:timer_tick, tag]
-          dispatch_event(Event::Timer.new(
-            tag: tag,
-            timestamp: Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
-          ))
+          handle_timer_tick(tag)
         in [:send_after_event, event]
           dispatch_event(event)
         in [:effect_timeout, id]
@@ -284,6 +282,14 @@ module Plushie
         timer&.kill
       end
 
+      # Route through canvas widget handlers before app.update.
+      # Handlers can consume, transform, or ignore the event.
+      unless @canvas_widgets.empty?
+        routed_event, @canvas_widgets = CanvasWidget.dispatch_through_widgets(@canvas_widgets, event)
+        return if routed_event.nil?  # consumed by a canvas widget
+        event = routed_event
+      end
+
       saved_model = @model
 
       result = @app.update(@model, event)
@@ -305,8 +311,9 @@ module Plushie
     # -- Rendering -----------------------------------------------------------
 
     def render_and_snapshot
-      tree_list = Tree.normalize(@app.view(@model))
+      tree_list = Tree.normalize(@app.view(@model), registry: @canvas_widgets)
       @previous_tree = tree_list.is_a?(Array) ? tree_list.first : tree_list
+      @canvas_widgets = CanvasWidget.derive_registry(@previous_tree) if @previous_tree
 
       wire = Tree.node_to_wire(@previous_tree)
       encoded = Protocol::Encode.encode_snapshot(wire, @format)
@@ -317,8 +324,9 @@ module Plushie
     end
 
     def render_and_patch
-      tree_list = Tree.normalize(@app.view(@model))
+      tree_list = Tree.normalize(@app.view(@model), registry: @canvas_widgets)
       new_tree = tree_list.is_a?(Array) ? tree_list.first : tree_list
+      @canvas_widgets = CanvasWidget.derive_registry(new_tree) if new_tree
 
       if @previous_tree.nil?
         # First render or post-restart: send full snapshot
@@ -382,6 +390,31 @@ module Plushie
       dispatch_event(Event::Stream.new(tag: tag, value: value))
     end
 
+    # -- Timer handling -------------------------------------------------------
+
+    def handle_timer_tick(tag)
+      # Check if this is a canvas widget timer
+      unless @canvas_widgets.empty?
+        result = CanvasWidget.handle_widget_timer(@canvas_widgets, tag)
+        if result
+          event_or_nil, @canvas_widgets = result
+          if event_or_nil
+            dispatch_event(event_or_nil)
+          else
+            # Widget handled the timer internally; re-render for state changes
+            render_and_patch
+            sync_subscriptions
+          end
+          return
+        end
+      end
+
+      dispatch_event(Event::Timer.new(
+        tag: tag,
+        timestamp: Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
+      ))
+    end
+
     # -- Effect handling -----------------------------------------------------
 
     def handle_effect_timeout(id)
@@ -424,6 +457,8 @@ module Plushie
 
     def handle_interact_request(action, selector, payload, result_queue)
       id = SecureRandom.hex(4)
+      msg = {type: "interact", id: id, action: action, payload: payload}
+      msg[:selector] = selector if selector
       @pending_interact = {id: id, result_queue: result_queue}
       @bridge.send_encoded(
         Protocol::Encode.encode_interact(id, action, selector, payload, @format)
@@ -433,6 +468,7 @@ module Plushie
     def handle_interact_step(response)
       events = extract_interact_events(response)
       events.each { |ev| dispatch_event(ev) }
+      # Send current snapshot back so the renderer can continue
       render_and_snapshot
     end
 

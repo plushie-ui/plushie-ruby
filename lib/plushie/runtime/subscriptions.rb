@@ -24,6 +24,13 @@ module Plushie
           []
         end
 
+        # Merge canvas widget subscriptions
+        cw = defined?(@canvas_widgets) ? @canvas_widgets : nil
+        if cw && !cw.empty?
+          widget_subs = CanvasWidget.collect_subscriptions(cw)
+          new_specs += widget_subs
+        end
+
         new_by_key = new_specs.each_with_object({}) { |spec, h| h[spec.key] = spec }
         new_sorted_keys = new_by_key.keys.sort_by(&:to_s)
 

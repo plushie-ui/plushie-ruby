@@ -81,12 +81,16 @@ module Plushie
     # Converts symbol prop values to strings via Encode, resolves
     # scoped IDs, and validates tree structure.
     #
+    # When a canvas widget registry is provided, canvas widget
+    # placeholders are detected and rendered with stored state.
+    #
     # @param tree [Node, Array<Node>]
+    # @param registry [Hash, nil] canvas widget registry for state lookup
     # @return [Array<Node>] normalized tree (always an array)
-    def self.normalize(tree)
+    def self.normalize(tree, registry: nil)
       return [Node.new(id: "root", type: "container")] if tree.nil?
       trees = tree.is_a?(Array) ? tree : [tree]
-      trees.compact.map { |node| normalize_node(node, "") }
+      trees.compact.map { |node| normalize_node(node, "", registry) }
     end
 
     # -------------------------------------------------------------------
@@ -130,12 +134,29 @@ module Plushie
     # Private implementation
     # -------------------------------------------------------------------
 
-    def self.normalize_node(node, scope)
+    def self.normalize_node(node, scope, registry)
       # Compute scoped ID
       scoped_id = if scope.empty? || node.type == "window" || node.id.start_with?("auto:")
         node.id
       else
         "#{scope}/#{node.id}"
+      end
+
+      # Canvas widget rendering: if this node is a canvas_widget placeholder
+      # (tagged in meta), render it with the best available state and
+      # normalize the output. The rendered canvas node does NOT have the
+      # placeholder meta, so normalization of the output won't re-trigger
+      # rendering (no recursion possible).
+      if registry && defined?(Plushie::CanvasWidget) && Plushie::CanvasWidget.placeholder?(node)
+        result = Plushie::CanvasWidget.render_placeholder(node, scoped_id, node.id, registry)
+        if result
+          rendered_node, _entry = result
+          # Normalize the rendered output at the same scope position.
+          # The rendered node has no placeholder meta, so this is a plain
+          # normalization pass. Preserve the widget meta on the final node.
+          normalized = normalize_node(rendered_node, scope, registry)
+          return normalized.with(meta: rendered_node.meta)
+        end
       end
 
       props = node.props.transform_values { |v| encode_value(v) }
@@ -169,7 +190,7 @@ module Plushie
         end
       end
 
-      children = node.children.map { |c| normalize_node(c, child_scope) }
+      children = node.children.map { |c| normalize_node(c, child_scope, registry) }
       Node.new(id: scoped_id, type: node.type, props: props, children: children)
     end
     private_class_method :normalize_node
