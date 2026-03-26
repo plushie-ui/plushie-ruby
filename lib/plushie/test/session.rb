@@ -26,6 +26,7 @@ module Plushie
         @format = pool.format
         @model = nil
         @tree = nil
+        @diagnostics = []
         init_app
       end
 
@@ -78,19 +79,19 @@ module Plushie
       # Press a key (key down).
       # @param key [String] key name, supports modifiers: "ctrl+s"
       def press(key)
-        interact("press", nil, key: key)
+        interact("press", nil, key: normalize_key(key))
       end
 
       # Release a key (key up).
       # @param key [String]
       def release(key)
-        interact("release", nil, key: key)
+        interact("release", nil, key: normalize_key(key))
       end
 
       # Type a key (press + release).
       # @param key [String]
       def type_key(key)
-        interact("type_key", nil, key: key)
+        interact("type_key", nil, key: normalize_key(key))
       end
 
       # Move cursor to coordinates.
@@ -178,6 +179,38 @@ module Plushie
         init_app
       end
 
+      # Register an effect stub with the renderer for this session.
+      #
+      # @param kind [String] effect kind
+      # @param response [Object] canned response
+      def register_effect_stub(kind, response)
+        @pool.send_message(
+          {type: "register_effect_stub", kind: kind.to_s, response: response},
+          @session_id
+        )
+        @pool.read_message(@session_id, timeout: 5)
+      end
+
+      # Remove a previously registered effect stub.
+      #
+      # @param kind [String] effect kind
+      def unregister_effect_stub(kind)
+        @pool.send_message(
+          {type: "unregister_effect_stub", kind: kind.to_s},
+          @session_id
+        )
+        @pool.read_message(@session_id, timeout: 5)
+      end
+
+      # Returns and clears accumulated prop validation diagnostics.
+      #
+      # @return [Array<Event::System>]
+      def get_diagnostics
+        result = @diagnostics.dup
+        @diagnostics.clear
+        result
+      end
+
       # Stop the session and release the renderer session.
       def stop
         @pool.unregister(@session_id)
@@ -248,6 +281,7 @@ module Plushie
       # Process events from an interact_step: all in one batch, one snapshot at the end.
       def process_events_batch(events)
         events.each do |event|
+          next if intercept_diagnostic(event)
           saved = @model
           result = @app.update(@model, event)
           @model, commands = unwrap_result(result)
@@ -262,6 +296,7 @@ module Plushie
       # Process events individually: each triggers update + render + snapshot.
       def process_events_individually(events)
         events.each do |event|
+          next if intercept_diagnostic(event)
           saved = @model
           result = @app.update(@model, event)
           @model, commands = unwrap_result(result)
@@ -408,6 +443,71 @@ module Plushie
         return nil unless node
         props = node.is_a?(Hash) ? (node[:props] || node["props"] || {}) : node.props
         props[key.to_sym] || props[key.to_s]
+      end
+
+      # Valid modifier prefixes for key combos (case-insensitive).
+      VALID_MODIFIERS = {
+        "shift" => "Shift",
+        "ctrl" => "Ctrl",
+        "alt" => "Alt",
+        "logo" => "Logo",
+        "command" => "Command"
+      }.freeze
+
+      # Case-insensitive lookup for named keys. Maps downcased input
+      # to PascalCase wire format (matching what the renderer sends in events).
+      NAMED_KEY_LOOKUP = Protocol::Keys::NAMED_KEYS.keys
+        .each_with_object({}) { |name, h| h[name.downcase] = name }
+        .freeze
+
+      # Parse and validate a key string. Handles modifier prefixes
+      # (e.g. "ctrl+s", "Shift+ArrowRight") and resolves key names
+      # case-insensitively.
+      #
+      # @param key [String] raw key input
+      # @return [String] normalized key string for the interact protocol
+      # @raise [ArgumentError] on unknown modifier or key name
+      def normalize_key(key)
+        parts = key.split("+")
+        key_name = parts.pop
+        mod_parts = parts
+
+        normalized_mods = mod_parts.map do |mod|
+          wire = VALID_MODIFIERS[mod.downcase]
+          unless wire
+            raise ArgumentError,
+              "unknown modifier #{mod.inspect} in key #{key.inspect}. " \
+              "Valid: Shift, Ctrl, Alt, Logo, Command"
+          end
+          wire
+        end
+
+        # Single characters pass through (lowercased for iced).
+        # Named keys are resolved case-insensitively to PascalCase.
+        normalized_key = if key_name.length == 1
+          key_name.downcase
+        elsif (resolved = NAMED_KEY_LOOKUP[key_name.downcase])
+          resolved
+        else
+          raise ArgumentError,
+            "unknown key #{key_name.inspect} in #{key.inspect}. " \
+            "Examples: Tab, ArrowRight, PageUp, Escape, Enter. " \
+            "See Plushie::Protocol::Keys::NAMED_KEYS for the full list"
+        end
+
+        if normalized_mods.empty?
+          normalized_key
+        else
+          (normalized_mods + [normalized_key]).join("+")
+        end
+      end
+
+      # Intercept diagnostic events, accumulate them instead of dispatching.
+      # Returns true if the event was intercepted.
+      def intercept_diagnostic(event)
+        return false unless event.is_a?(Event::System) && event.type == :diagnostic
+        @diagnostics << event
+        true
       end
 
       def extract_events(response)

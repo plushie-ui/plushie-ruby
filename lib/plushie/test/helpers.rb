@@ -129,6 +129,35 @@ module Plushie
         :ok
       end
 
+      # Register an effect stub with the renderer.
+      # The renderer will return the given response immediately for
+      # any effect of the given kind.
+      #
+      # @param kind [String] effect kind (e.g. "clipboard_read")
+      # @param response [Object] the canned response to return
+      def register_effect_stub(kind, response)
+        session.register_effect_stub(kind, response)
+      end
+
+      # Remove a previously registered effect stub.
+      #
+      # @param kind [String] effect kind
+      def unregister_effect_stub(kind)
+        session.unregister_effect_stub(kind)
+      end
+
+      # Assert that no prop validation diagnostics have been emitted.
+      # Clears the diagnostic list after checking.
+      #
+      # @raise [Minitest::Assertion] if diagnostics are pending
+      def assert_no_diagnostics
+        diagnostics = session.get_diagnostics
+        return if diagnostics.empty?
+
+        details = diagnostics.map { |d| "  - #{d.data.inspect}" }.join("\n")
+        flunk "Expected no prop validation diagnostics, but found:\n#{details}"
+      end
+
       # Find a widget by accessibility role.
       # @param role [Symbol, String] e.g. :button, "textbox"
       # @return [Hash, nil]

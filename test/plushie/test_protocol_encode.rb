@@ -170,11 +170,26 @@ class TestProtocolEncode < Minitest::Test
       E.encode_tree_hash("t", "n", :json),
       E.encode_screenshot("s", "n", 100, 100, :json),
       E.encode_reset("r", :json),
-      E.encode_advance_frame(0, :json)
+      E.encode_advance_frame(0, :json),
+      E.encode_register_effect_stub("clipboard_read", {"text" => "hello"}, :json),
+      E.encode_unregister_effect_stub("clipboard_read", :json)
     ]
     messages.each do |msg|
       parsed = JSON.parse(msg)
       assert parsed.key?("session"), "Missing session field in: #{parsed["type"]}"
     end
+  end
+
+  def test_encode_register_effect_stub
+    result = JSON.parse(E.encode_register_effect_stub("clipboard_read", {"text" => "hello"}, :json))
+    assert_equal "register_effect_stub", result["type"]
+    assert_equal "clipboard_read", result["kind"]
+    assert_equal "hello", result["response"]["text"]
+  end
+
+  def test_encode_unregister_effect_stub
+    result = JSON.parse(E.encode_unregister_effect_stub("file_open", :json))
+    assert_equal "unregister_effect_stub", result["type"]
+    assert_equal "file_open", result["kind"]
   end
 end

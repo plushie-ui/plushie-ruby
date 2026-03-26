@@ -65,6 +65,8 @@ module Plushie
         when "tree_hash_response" then decode_tree_hash_response(msg)
         when "screenshot_response" then decode_screenshot_response(msg)
         when "reset_response" then decode_reset_response(msg)
+        when "effect_stub_registered", "effect_stub_unregistered"
+          {type: :effect_stub_ack, kind: msg["kind"]}
         else msg
         end
       end
@@ -90,7 +92,8 @@ module Plushie
           "open", "close", "key_binding", "sort", "scroll",
           "canvas_element_enter", "canvas_element_leave",
           "canvas_element_click", "canvas_element_drag",
-          "canvas_element_drag_end", "canvas_element_focused"
+          "canvas_element_drag_end", "canvas_element_focused",
+          "canvas_element_key_press", "canvas_element_key_release"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: family.to_sym, id: id,

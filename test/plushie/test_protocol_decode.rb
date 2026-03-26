@@ -511,6 +511,57 @@ class TestProtocolDecode < Minitest::Test
     assert_equal ["sidebar"], event.scope
   end
 
+  # -- Canvas element key events -------------------------------------------
+
+  def test_decode_canvas_element_key_press
+    event = D.decode_event({
+      "family" => "canvas_element_key_press", "id" => "chart/node1",
+      "data" => {"element_id" => "node1", "key" => "ArrowRight", "modifiers" => {"shift" => false}}
+    })
+    assert_instance_of Plushie::Event::Widget, event
+    assert_equal :canvas_element_key_press, event.type
+    assert_equal "node1", event.id
+    assert_equal ["chart"], event.scope
+    assert_equal "ArrowRight", event.data["key"]
+  end
+
+  def test_decode_canvas_element_key_release
+    event = D.decode_event({
+      "family" => "canvas_element_key_release", "id" => "canvas/elem",
+      "data" => {"element_id" => "elem", "key" => "Tab", "modifiers" => {}}
+    })
+    assert_instance_of Plushie::Event::Widget, event
+    assert_equal :canvas_element_key_release, event.type
+    assert_equal "elem", event.id
+    assert_equal ["canvas"], event.scope
+  end
+
+  # -- Effect stub ack responses -------------------------------------------
+
+  def test_decode_effect_stub_registered
+    result = D.dispatch_message({"type" => "effect_stub_registered", "kind" => "clipboard_read"})
+    assert_equal :effect_stub_ack, result[:type]
+    assert_equal "clipboard_read", result[:kind]
+  end
+
+  def test_decode_effect_stub_unregistered
+    result = D.dispatch_message({"type" => "effect_stub_unregistered", "kind" => "file_open"})
+    assert_equal :effect_stub_ack, result[:type]
+    assert_equal "file_open", result[:kind]
+  end
+
+  # -- Diagnostic events ---------------------------------------------------
+
+  def test_decode_diagnostic
+    event = D.decode_event({
+      "family" => "diagnostic",
+      "data" => {"kind" => "prop_validation", "widget_id" => "btn1", "message" => "unknown prop: foo"}
+    })
+    assert_instance_of Plushie::Event::System, event
+    assert_equal :diagnostic, event.type
+    assert_equal "prop_validation", event.data["kind"]
+  end
+
   # -- Fallback (extension events) -----------------------------------------
 
   def test_decode_unknown_family_with_id

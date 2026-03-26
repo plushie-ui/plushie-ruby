@@ -50,6 +50,10 @@ module Plushie
       @subscriptions = {}      # sub_key -> {sub_type:, ...}
       @subscription_keys = []  # sorted keys for short-circuit
       @consecutive_errors = 0
+      @diagnostics = []        # accumulated prop validation diagnostics
+      @diagnostics_mutex = Mutex.new
+      @pending_stub_acks = {}  # kind -> Queue (for sync ack round-trip)
+      @pending_await_async = {} # tag -> Queue (for sync await)
 
       @logger = Logger.new($stderr, level: :warn, progname: "plushie")
     end
@@ -77,6 +81,65 @@ module Plushie
       @running = false
       @event_queue.push(:shutdown)
       @loop_thread&.join(5)
+    end
+
+    # Register an effect stub with the renderer.
+    # Blocks until the renderer confirms the stub is stored.
+    #
+    # @param kind [String] effect kind (e.g. "clipboard_read")
+    # @param response [Object] the canned response to return
+    # @param timeout [Numeric] max wait in seconds
+    def register_effect_stub(kind, response, timeout: 5)
+      ack_queue = Thread::Queue.new
+      @event_queue.push([:register_effect_stub, kind, response, ack_queue])
+      result = ack_queue.pop(timeout: timeout)
+      raise Plushie::Error, "effect stub registration timed out for #{kind}" if result.nil?
+      :ok
+    end
+
+    # Remove a previously registered effect stub.
+    # Blocks until the renderer confirms the stub is removed.
+    #
+    # @param kind [String] effect kind
+    # @param timeout [Numeric] max wait in seconds
+    def unregister_effect_stub(kind, timeout: 5)
+      ack_queue = Thread::Queue.new
+      @event_queue.push([:unregister_effect_stub, kind, ack_queue])
+      result = ack_queue.pop(timeout: timeout)
+      raise Plushie::Error, "effect stub unregistration timed out for #{kind}" if result.nil?
+      :ok
+    end
+
+    # Returns and clears accumulated prop validation diagnostics.
+    #
+    # The renderer emits diagnostic events when validate_props is enabled.
+    # These are intercepted by the runtime (never delivered to update)
+    # and accumulated. This method atomically retrieves and clears the list.
+    #
+    # @return [Array<Event::System>]
+    def get_diagnostics
+      @diagnostics_mutex.synchronize do
+        result = @diagnostics.dup
+        @diagnostics.clear
+        result
+      end
+    end
+
+    # Waits for an async task with the given tag to complete.
+    #
+    # If the task has already completed, returns immediately. Otherwise
+    # blocks until the task finishes and its result has been processed
+    # through update.
+    #
+    # @param tag [Symbol] the async command tag
+    # @param timeout [Numeric] max wait in seconds
+    # @return [:ok]
+    def await_async(tag, timeout: 5)
+      ack_queue = Thread::Queue.new
+      @event_queue.push([:await_async, tag, ack_queue])
+      result = ack_queue.pop(timeout: timeout)
+      raise Plushie::Error, "await_async timed out for #{tag}" if result.nil?
+      :ok
     end
 
     private
@@ -141,6 +204,18 @@ module Plushie
           dispatch_event(event)
         in [:effect_timeout, id]
           handle_effect_timeout(id)
+        in [:register_effect_stub, kind, response, ack_queue]
+          @bridge.send_register_effect_stub(kind, response)
+          @pending_stub_acks[kind] = ack_queue
+        in [:unregister_effect_stub, kind, ack_queue]
+          @bridge.send_unregister_effect_stub(kind)
+          @pending_stub_acks[kind] = ack_queue
+        in [:await_async, tag, ack_queue]
+          if @async_tasks.key?(tag)
+            @pending_await_async[tag] = ack_queue
+          else
+            ack_queue.push(:ok)
+          end
         in :force_rerender
           render_and_patch
         else
@@ -152,6 +227,20 @@ module Plushie
     # -- Event dispatch ------------------------------------------------------
 
     def dispatch_event(event)
+      # Intercept effect stub ack responses
+      if event.is_a?(Hash) && event[:type] == :effect_stub_ack
+        ack_queue = @pending_stub_acks.delete(event[:kind])
+        ack_queue&.push(:ok)
+        return
+      end
+
+      # Intercept prop validation diagnostics (never delivered to update)
+      if event.is_a?(Event::System) && event.type == :diagnostic
+        @logger.warn("plushie: prop validation diagnostic: #{event.data.inspect}")
+        @diagnostics_mutex.synchronize { @diagnostics << event }
+        return
+      end
+
       # Cancel effect timeout if this is an effect response
       if event.is_a?(Event::Effect)
         timer = @pending_effects.delete(event.request_id)
@@ -247,6 +336,7 @@ module Plushie
       return unless entry && entry[:nonce] == nonce
       @async_tasks.delete(tag)
       dispatch_event(Event::Async.new(tag: tag, result: result))
+      notify_await_async(tag)
     end
 
     def handle_stream_value(tag, nonce, value)
@@ -285,6 +375,13 @@ module Plushie
       end
     end
 
+    # -- Await async notification --------------------------------------------
+
+    def notify_await_async(tag)
+      ack_queue = @pending_await_async.delete(tag)
+      ack_queue&.push(:ok)
+    end
+
     # -- Shutdown ------------------------------------------------------------
 
     def shutdown
@@ -298,6 +395,12 @@ module Plushie
       @pending_timers.clear
       @subscriptions.each_value { |entry| entry[:thread]&.kill if entry[:sub_type] == :timer }
       @subscriptions.clear
+      # Flush pending stub acks so callers don't hang
+      @pending_stub_acks.each_value { |q| q.push(:ok) }
+      @pending_stub_acks.clear
+      # Flush pending await_async so callers don't hang
+      @pending_await_async.each_value { |q| q.push(:ok) }
+      @pending_await_async.clear
     end
   end
 end

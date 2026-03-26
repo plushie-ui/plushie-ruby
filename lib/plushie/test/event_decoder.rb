@@ -38,7 +38,8 @@ module Plushie
           "canvas_element_enter", "canvas_element_leave", "canvas_element_click",
           "canvas_element_drag", "canvas_element_drag_end", "canvas_element_focused",
           "canvas_element_blurred", "canvas_focused", "canvas_blurred",
-          "canvas_group_focused", "canvas_group_blurred"
+          "canvas_group_focused", "canvas_group_blurred",
+          "canvas_element_key_press", "canvas_element_key_release"
           id, scope = split_scoped_id(raw["id"])
           Event::Widget.new(
             type: family.to_sym, id: id,

@@ -210,5 +210,46 @@ class TestTestHelpers < Minitest::Test
     assert_includes methods, :assert_exists
     assert_includes methods, :assert_not_exists
     assert_includes methods, :model
+    assert_includes methods, :register_effect_stub
+    assert_includes methods, :unregister_effect_stub
+    assert_includes methods, :assert_no_diagnostics
+  end
+
+  # -- Key normalization (case-insensitive, validated) ----------------------
+
+  def test_key_normalize_lowercase_named_key
+    session = Plushie::Test::Session.allocate
+    assert_equal "Escape", session.send(:normalize_key, "escape")
+    assert_equal "ArrowUp", session.send(:normalize_key, "arrowup")
+    assert_equal "Tab", session.send(:normalize_key, "tab")
+    assert_equal "Enter", session.send(:normalize_key, "ENTER")
+  end
+
+  def test_key_normalize_single_char_lowercased
+    session = Plushie::Test::Session.allocate
+    assert_equal "a", session.send(:normalize_key, "a")
+    assert_equal "a", session.send(:normalize_key, "A")
+  end
+
+  def test_key_normalize_with_modifiers
+    session = Plushie::Test::Session.allocate
+    assert_equal "Ctrl+s", session.send(:normalize_key, "ctrl+s")
+    assert_equal "Shift+ArrowRight", session.send(:normalize_key, "SHIFT+arrowright")
+  end
+
+  def test_key_normalize_unknown_key_raises
+    session = Plushie::Test::Session.allocate
+    assert_raises(ArgumentError) { session.send(:normalize_key, "NotAKey") }
+  end
+
+  def test_key_normalize_unknown_modifier_raises
+    session = Plushie::Test::Session.allocate
+    assert_raises(ArgumentError) { session.send(:normalize_key, "badmod+a") }
+  end
+
+  def test_key_normalize_preserves_pascal_case
+    session = Plushie::Test::Session.allocate
+    assert_equal "PageUp", session.send(:normalize_key, "PageUp")
+    assert_equal "PageUp", session.send(:normalize_key, "pageup")
   end
 end

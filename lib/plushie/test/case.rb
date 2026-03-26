@@ -50,8 +50,9 @@ module Plushie
         Thread.current[:_plushie_test_session] = @_plushie_session
       end
 
-      # Teardown: stop the session and clean up.
+      # Teardown: assert no diagnostics, stop the session, and clean up.
       def teardown
+        assert_no_diagnostics if @_plushie_session
         @_plushie_session&.stop
         Thread.current[:_plushie_test_session] = nil
         super

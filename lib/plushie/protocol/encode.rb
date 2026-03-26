@@ -314,6 +314,31 @@ module Plushie
       end
 
       # ---------------------------------------------------------------
+      # Effect stubs
+      # ---------------------------------------------------------------
+
+      # Register an effect stub with the renderer.
+      # The renderer will return the given response immediately for
+      # any effect of the given kind, without executing the real effect.
+      #
+      # @param kind [String] effect kind (e.g. "clipboard_read")
+      # @param response [Object] the canned response to return
+      # @param format [:msgpack, :json]
+      # @return [String]
+      def encode_register_effect_stub(kind, response, format = :msgpack)
+        encode({type: "register_effect_stub", session: "", kind: kind.to_s, response: response}, format)
+      end
+
+      # Remove a previously registered effect stub.
+      #
+      # @param kind [String] effect kind
+      # @param format [:msgpack, :json]
+      # @return [String]
+      def encode_unregister_effect_stub(kind, format = :msgpack)
+        encode({type: "unregister_effect_stub", session: "", kind: kind.to_s}, format)
+      end
+
+      # ---------------------------------------------------------------
       # Helpers
       # ---------------------------------------------------------------
 

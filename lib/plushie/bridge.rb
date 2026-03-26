@@ -70,6 +70,25 @@ module Plushie
       @last_snapshot = snapshot_data
     end
 
+    # Register an effect stub with the renderer.
+    #
+    # @param kind [String] effect kind
+    # @param response [Object] canned response
+    def send_register_effect_stub(kind, response)
+      @connection&.send_encoded(
+        Protocol::Encode.encode_register_effect_stub(kind, response, @format)
+      )
+    end
+
+    # Remove a previously registered effect stub.
+    #
+    # @param kind [String] effect kind
+    def send_unregister_effect_stub(kind)
+      @connection&.send_encoded(
+        Protocol::Encode.encode_unregister_effect_stub(kind, @format)
+      )
+    end
+
     # Stop the connection and clean up.
     def stop
       @connection&.close
