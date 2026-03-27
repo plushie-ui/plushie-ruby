@@ -23,7 +23,13 @@ module Plushie
     @pending_timers: Hash[untyped, Thread]
     @subscriptions: Hash[untyped, Hash[Symbol, untyped]]
     @subscription_keys: Array[untyped]
+    @canvas_widgets: Hash[String, CanvasWidget::RegistryEntry]
     @consecutive_errors: Integer
+    @diagnostics: Array[Event::System]
+    @diagnostics_mutex: Mutex
+    @pending_stub_acks: Hash[String, Thread::Queue[untyped]]
+    @pending_await_async: Hash[Symbol, Thread::Queue[untyped]]
+    @pending_interact: Hash[Symbol, untyped]?
     @logger: Logger
     @loop_thread: Thread?
 
@@ -42,6 +48,11 @@ module Plushie
     def run: () -> void
     def start: () -> Runtime
     def stop: () -> void
+    def register_effect_stub: (String kind, untyped response, ?timeout: Numeric) -> :ok
+    def unregister_effect_stub: (String kind, ?timeout: Numeric) -> :ok
+    def get_diagnostics: () -> Array[Event::System]
+    def interact: (String action, ?untyped selector, ?Hash[Symbol, untyped] payload, ?timeout: Numeric) -> Array[untyped]
+    def await_async: (Symbol tag, ?timeout: Numeric) -> :ok
 
     private
 
@@ -55,10 +66,17 @@ module Plushie
 
     # Event dispatch
     def dispatch_event: (untyped event) -> void
+    def handle_timer_tick: (untyped tag) -> void
+    def handle_interact_step: (untyped response) -> void
+    def handle_interact_response: (untyped response) -> void
+    def handle_interact_request: (String action, untyped selector, Hash[Symbol, untyped] payload, Thread::Queue[untyped] result_queue) -> void
+    def apply_event: (untyped event) -> void
+    def extract_interact_events: (untyped response) -> Array[untyped]
 
     # Rendering
     def render_and_snapshot: () -> void
     def render_and_patch: () -> void
+    def normalize_view_tree: ((Node | Array[Node] | nil) view_tree) -> Node
 
     # Result validation
     def unwrap_result: (untyped result) -> [untyped, Command::Cmd]
@@ -66,12 +84,14 @@ module Plushie
     # Async handling
     def handle_async_result: (Symbol tag, Integer nonce, untyped result) -> void
     def handle_stream_value: (Symbol tag, Integer nonce, untyped value) -> void
+    def notify_await_async: (Symbol tag) -> void
 
     # Effect handling
     def handle_effect_timeout: (String id) -> void
 
     # Renderer exit
     def handle_renderer_exit: (untyped reason) -> void
+    def fail_pending_interact: (String reason) -> void
 
     # Error handling
     def handle_callback_error: (String callback_name, Exception error, ?hint: String?) -> void

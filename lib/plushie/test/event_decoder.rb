@@ -43,7 +43,7 @@ module Plushie
           id, scope = split_scoped_id(raw["id"])
           Event::Widget.new(
             type: family.to_sym, id: id,
-            value: raw["value"], scope: scope, data: raw["data"]
+            value: raw["value"], window_id: raw["window_id"], scope: scope, data: raw["data"]
           )
 
         # Key events

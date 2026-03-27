@@ -185,7 +185,12 @@ class TestIoStream < Minitest::Test
     assert_equal Plushie::Protocol::PROTOCOL_VERSION, conn.hello[:protocol]
 
     # Send a widget event through the "renderer" pipe
-    event = {"type" => "event", "id" => "btn", "action" => "press"}
+    event = {
+      "type" => "event",
+      "family" => "click",
+      "id" => "btn",
+      "window_id" => "main"
+    }
     @renderer_out_w.write(F.encode_packet(JSON.generate(event)))
     @renderer_out_w.flush
 

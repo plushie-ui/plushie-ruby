@@ -2,13 +2,14 @@ module Plushie
   class Subscription
     class Sub
       attr_reader type: Symbol
-      attr_reader tag: Symbol
+      attr_reader tag: String | Symbol
       attr_reader interval: Integer?
       attr_reader max_rate: Integer?
 
-      def initialize: (type: Symbol, tag: Symbol, ?interval: Integer?, ?max_rate: Integer?) -> void
+      def initialize: (type: Symbol, tag: String | Symbol, ?interval: Integer?, ?max_rate: Integer?) -> void
 
       def key: () -> Array[untyped]
+      def with: (**untyped changes) -> Sub
       def with_max_rate: (Integer rate) -> Sub
     end
 

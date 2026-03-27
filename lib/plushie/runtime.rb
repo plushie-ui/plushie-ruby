@@ -50,7 +50,7 @@ module Plushie
       @pending_timers = {}     # event_key -> timer_thread
       @subscriptions = {}      # sub_key -> {sub_type:, ...}
       @subscription_keys = []  # sorted keys for short-circuit
-      @canvas_widgets = {}     # scoped_id -> CanvasWidget::RegistryEntry
+      @canvas_widgets = {}     # "#{window_id}\0#{scoped_id}" -> CanvasWidget::RegistryEntry
       @consecutive_errors = 0
       @diagnostics = []        # accumulated prop validation diagnostics
       @diagnostics_mutex = Mutex.new
@@ -74,8 +74,9 @@ module Plushie
     # Start the event loop in a background thread.
     # @return [Runtime] self
     def start
-      @loop_thread = Thread.new { run }
-      @loop_thread.name = "plushie-runtime"
+      thread = Thread.new { run }
+      thread.name = "plushie-runtime"
+      @loop_thread = thread
       self
     end
 
@@ -95,7 +96,7 @@ module Plushie
     def register_effect_stub(kind, response, timeout: 5)
       ack_queue = Thread::Queue.new
       @event_queue.push([:register_effect_stub, kind, response, ack_queue])
-      result = ack_queue.pop(timeout: timeout)
+      result = ack_queue.pop(timeout: Float(timeout))
       raise Plushie::Error, "effect stub registration timed out for #{kind}" if result.nil?
       :ok
     end
@@ -108,7 +109,7 @@ module Plushie
     def unregister_effect_stub(kind, timeout: 5)
       ack_queue = Thread::Queue.new
       @event_queue.push([:unregister_effect_stub, kind, ack_queue])
-      result = ack_queue.pop(timeout: timeout)
+      result = ack_queue.pop(timeout: Float(timeout))
       raise Plushie::Error, "effect stub unregistration timed out for #{kind}" if result.nil?
       :ok
     end
@@ -143,7 +144,7 @@ module Plushie
     def interact(action, selector = nil, payload = {}, timeout: 5)
       result_queue = Thread::Queue.new
       @event_queue.push([:interact, action, selector, payload, result_queue])
-      result = result_queue.pop(timeout: timeout)
+      result = result_queue.pop(timeout: Float(timeout))
       raise Plushie::Error, "interact timed out for #{action}" if result.nil?
       raise Plushie::Error, result[:error] if result.is_a?(Hash) && result[:error]
       result.is_a?(Hash) ? result.fetch(:events, []) : []
@@ -161,7 +162,7 @@ module Plushie
     def await_async(tag, timeout: 5)
       ack_queue = Thread::Queue.new
       @event_queue.push([:await_async, tag, ack_queue])
-      result = ack_queue.pop(timeout: timeout)
+      result = ack_queue.pop(timeout: Float(timeout))
       raise Plushie::Error, "await_async timed out for #{tag}" if result.nil?
       :ok
     end
@@ -182,18 +183,20 @@ module Plushie
       settings = @app.settings
       ext_config = Plushie.configuration.extension_config
       settings = settings.merge(extension_config: ext_config) if ext_config && !ext_config.empty?
-      @bridge.start(settings: settings)
+      bridge = @bridge or raise Plushie::Error, "bridge not started"
+      bridge.start(settings: settings)
     end
 
     def start_dev_server
-      opts = {event_queue: @event_queue}
-      opts[:dirs] = @dev_dirs if @dev_dirs
-      @dev_server = DevServer.new(**opts)
-      @dev_server.start
+      server = DevServer.new(event_queue: @event_queue, dirs: @dev_dirs)
+      server.start
+      @dev_server = server
     end
 
     def initialize_app
-      result = @app.init({})
+      # @type var init_opts: Hash[Symbol, untyped]
+      init_opts = {}
+      result = @app.init(init_opts)
       @model, commands = unwrap_result(result)
 
       render_and_snapshot
@@ -311,21 +314,21 @@ module Plushie
     # -- Rendering -----------------------------------------------------------
 
     def render_and_snapshot
-      tree_list = Tree.normalize(@app.view(@model), registry: @canvas_widgets)
-      @previous_tree = tree_list.is_a?(Array) ? tree_list.first : tree_list
+      @previous_tree = normalize_view_tree(@app.view(@model))
       @canvas_widgets = CanvasWidget.derive_registry(@previous_tree) if @previous_tree
 
-      wire = Tree.node_to_wire(@previous_tree)
+      tree = @previous_tree or raise Plushie::Error, "missing normalized view tree"
+      wire = Tree.node_to_wire(tree)
       encoded = Protocol::Encode.encode_snapshot(wire, @format)
-      @bridge.send_encoded(encoded)
-      @bridge.remember_snapshot(encoded)
+      bridge = @bridge or raise Plushie::Error, "bridge not started"
+      bridge.send_encoded(encoded)
+      bridge.remember_snapshot(encoded)
     rescue => e
       handle_callback_error("view", e)
     end
 
     def render_and_patch
-      tree_list = Tree.normalize(@app.view(@model), registry: @canvas_widgets)
-      new_tree = tree_list.is_a?(Array) ? tree_list.first : tree_list
+      new_tree = normalize_view_tree(@app.view(@model))
       @canvas_widgets = CanvasWidget.derive_registry(new_tree) if new_tree
 
       if @previous_tree.nil?
@@ -333,21 +336,33 @@ module Plushie
         @previous_tree = new_tree
         wire = Tree.node_to_wire(new_tree)
         encoded = Protocol::Encode.encode_snapshot(wire, @format)
-        @bridge.send_encoded(encoded)
-        @bridge.remember_snapshot(encoded)
+        bridge = @bridge or raise Plushie::Error, "bridge not started"
+        bridge.send_encoded(encoded)
+        bridge.remember_snapshot(encoded)
       else
         ops = Tree.diff(@previous_tree, new_tree)
         @previous_tree = new_tree
 
         unless ops.empty?
-          @bridge.send_encoded(Protocol::Encode.encode_patch(ops, @format))
+          bridge = @bridge or raise Plushie::Error, "bridge not started"
+          bridge.send_encoded(Protocol::Encode.encode_patch(ops, @format))
           # Also remember the current tree as a snapshot for restart
           wire = Tree.node_to_wire(new_tree)
-          @bridge.remember_snapshot(Protocol::Encode.encode_snapshot(wire, @format))
+          bridge.remember_snapshot(Protocol::Encode.encode_snapshot(wire, @format))
         end
       end
     rescue => e
       handle_callback_error("view", e)
+    end
+
+    def normalize_view_tree(view_tree)
+      windows = Tree.normalize(view_tree, registry: @canvas_widgets)
+
+      if windows.empty? || !windows.all? { |node| node.type == "window" }
+        raise ArgumentError, "view must return a window node or an array of window nodes"
+      end
+
+      Node.new(id: "root", type: "root", children: windows)
     end
 
     # -- Result validation ---------------------------------------------------
@@ -459,7 +474,8 @@ module Plushie
     def handle_interact_request(action, selector, payload, result_queue)
       id = SecureRandom.hex(4)
       @pending_interact = {id: id, result_queue: result_queue}
-      @bridge.send_encoded(
+      bridge = @bridge or raise Plushie::Error, "bridge not started"
+      bridge.send_encoded(
         Protocol::Encode.encode_interact(id, action, selector, payload, @format)
       )
     end
@@ -479,6 +495,8 @@ module Plushie
       events.each { |ev| dispatch_event(ev) }
       pending = @pending_interact
       @pending_interact = nil
+      return unless pending
+
       pending[:result_queue]&.push({events: events})
     end
 
@@ -519,9 +537,10 @@ module Plushie
     end
 
     def fail_pending_interact(reason)
-      return unless @pending_interact
       pending = @pending_interact
       @pending_interact = nil
+      return unless pending
+
       pending[:result_queue]&.push({error: reason})
     end
 

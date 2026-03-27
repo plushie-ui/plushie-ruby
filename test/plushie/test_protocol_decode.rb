@@ -5,81 +5,85 @@ require "test_helper"
 class TestProtocolDecode < Minitest::Test
   D = Plushie::Protocol::Decode
 
+  def windowed(raw)
+    raw.merge("window_id" => "main")
+  end
+
   # -- Widget events -------------------------------------------------------
 
   def test_decode_click
-    event = D.decode_event({"family" => "click", "id" => "save"})
+    event = D.decode_event(windowed({"family" => "click", "id" => "save"}))
     assert_instance_of Plushie::Event::Widget, event
     assert_equal :click, event.type
     assert_equal "save", event.id
   end
 
   def test_decode_input_with_value
-    event = D.decode_event({"family" => "input", "id" => "search", "value" => "hello"})
+    event = D.decode_event(windowed({"family" => "input", "id" => "search", "value" => "hello"}))
     assert_equal :input, event.type
     assert_equal "hello", event.value
   end
 
   def test_decode_scoped_id
-    event = D.decode_event({"family" => "click", "id" => "form/sidebar/save"})
+    event = D.decode_event(windowed({"family" => "click", "id" => "form/sidebar/save"}))
     assert_equal "save", event.id
     assert_equal ["sidebar", "form"], event.scope
   end
 
   def test_decode_submit
-    event = D.decode_event({"family" => "submit", "id" => "field", "value" => "text"})
+    event = D.decode_event(windowed({"family" => "submit", "id" => "field", "value" => "text"}))
     assert_equal :submit, event.type
     assert_equal "text", event.value
   end
 
   def test_decode_toggle
-    event = D.decode_event({"family" => "toggle", "id" => "cb", "value" => true})
+    event = D.decode_event(windowed({"family" => "toggle", "id" => "cb", "value" => true}))
     assert_equal :toggle, event.type
     assert_equal true, event.value
   end
 
   def test_decode_select
-    event = D.decode_event({"family" => "select", "id" => "pick", "value" => "opt1"})
+    event = D.decode_event(windowed({"family" => "select", "id" => "pick", "value" => "opt1"}))
     assert_equal :select, event.type
   end
 
   def test_decode_slide
-    event = D.decode_event({"family" => "slide", "id" => "vol", "value" => 0.5})
+    event = D.decode_event(windowed({"family" => "slide", "id" => "vol", "value" => 0.5}))
     assert_equal :slide, event.type
     assert_equal 0.5, event.value
   end
 
   def test_decode_slide_release
-    event = D.decode_event({"family" => "slide_release", "id" => "vol", "value" => 0.7})
+    event = D.decode_event(windowed({"family" => "slide_release", "id" => "vol", "value" => 0.7}))
     assert_equal :slide_release, event.type
   end
 
   def test_decode_scroll
-    event = D.decode_event({"family" => "scroll", "id" => "list", "data" => {"absolute_x" => 0, "relative_y" => 0.5}})
+    event = D.decode_event(windowed({"family" => "scroll", "id" => "list", "data" => {"absolute_x" => 0, "relative_y" => 0.5}}))
     assert_equal :scroll, event.type
     assert_equal 0.5, event.data["relative_y"]
   end
 
   def test_decode_canvas_element_click
-    event = D.decode_event({"family" => "canvas_element_click", "id" => "chart", "data" => {"element_id" => "bar1"}})
+    event = D.decode_event(windowed({"family" => "canvas_element_click", "id" => "chart", "data" => {"element_id" => "bar1"}}))
     assert_equal :canvas_element_click, event.type
     assert_equal "bar1", event.data["element_id"]
   end
 
   def test_decode_paste
-    event = D.decode_event({"family" => "paste", "id" => "input", "value" => "pasted"})
+    event = D.decode_event(windowed({"family" => "paste", "id" => "input", "value" => "pasted"}))
     assert_equal :paste, event.type
     assert_equal "pasted", event.value
   end
 
   def test_decode_sort
-    event = D.decode_event({"family" => "sort", "id" => "table", "data" => {"column" => "name"}})
+    event = D.decode_event(windowed({"family" => "sort", "id" => "table", "data" => {"column" => "name"}}))
     assert_equal :sort, event.type
   end
 
   def test_decode_open_close
-    open = D.decode_event({"family" => "open", "id" => "picker"})
-    close = D.decode_event({"family" => "close", "id" => "picker"})
+    open = D.decode_event(windowed({"family" => "open", "id" => "picker"}))
+    close = D.decode_event(windowed({"family" => "close", "id" => "picker"}))
     assert_equal :open, open.type
     assert_equal :close, close.type
   end
@@ -87,14 +91,14 @@ class TestProtocolDecode < Minitest::Test
   # -- Mouse area events ---------------------------------------------------
 
   def test_decode_mouse_right_press
-    event = D.decode_event({"family" => "mouse_right_press", "id" => "area"})
+    event = D.decode_event(windowed({"family" => "mouse_right_press", "id" => "area"}))
     assert_instance_of Plushie::Event::MouseArea, event
     assert_equal :right_press, event.type
     assert_equal "area", event.id
   end
 
   def test_decode_mouse_move
-    event = D.decode_event({"family" => "mouse_move", "id" => "zone", "data" => {"x" => 10, "y" => 20}})
+    event = D.decode_event(windowed({"family" => "mouse_move", "id" => "zone", "data" => {"x" => 10, "y" => 20}}))
     assert_instance_of Plushie::Event::MouseArea, event
     assert_equal :move, event.type
     assert_equal 10, event.x
@@ -102,14 +106,14 @@ class TestProtocolDecode < Minitest::Test
   end
 
   def test_decode_mouse_scroll
-    event = D.decode_event({"family" => "mouse_scroll", "id" => "zone", "data" => {"delta_x" => 0, "delta_y" => -3}})
+    event = D.decode_event(windowed({"family" => "mouse_scroll", "id" => "zone", "data" => {"delta_x" => 0, "delta_y" => -3}}))
     assert_equal :scroll, event.type
     assert_equal(-3, event.delta_y)
   end
 
   def test_decode_mouse_enter_exit
-    enter = D.decode_event({"family" => "mouse_enter", "id" => "hover"})
-    exit_ev = D.decode_event({"family" => "mouse_exit", "id" => "hover"})
+    enter = D.decode_event(windowed({"family" => "mouse_enter", "id" => "hover"}))
+    exit_ev = D.decode_event(windowed({"family" => "mouse_exit", "id" => "hover"}))
     assert_equal :enter, enter.type
     assert_equal :exit, exit_ev.type
   end
@@ -117,20 +121,20 @@ class TestProtocolDecode < Minitest::Test
   # -- Canvas events -------------------------------------------------------
 
   def test_decode_canvas_press
-    event = D.decode_event({"family" => "canvas_press", "id" => "draw", "data" => {"x" => 5, "y" => 10, "button" => "left"}})
+    event = D.decode_event(windowed({"family" => "canvas_press", "id" => "draw", "data" => {"x" => 5, "y" => 10, "button" => "left"}}))
     assert_instance_of Plushie::Event::Canvas, event
     assert_equal :press, event.type
     assert_equal "left", event.button
   end
 
   def test_decode_canvas_move
-    event = D.decode_event({"family" => "canvas_move", "id" => "draw", "data" => {"x" => 15, "y" => 25}})
+    event = D.decode_event(windowed({"family" => "canvas_move", "id" => "draw", "data" => {"x" => 15, "y" => 25}}))
     assert_equal :move, event.type
     assert_equal 15, event.x
   end
 
   def test_decode_canvas_scroll
-    event = D.decode_event({"family" => "canvas_scroll", "id" => "draw", "data" => {"x" => 0, "y" => 0, "delta_x" => 1, "delta_y" => -2}})
+    event = D.decode_event(windowed({"family" => "canvas_scroll", "id" => "draw", "data" => {"x" => 0, "y" => 0, "delta_x" => 1, "delta_y" => -2}}))
     assert_equal :scroll, event.type
     assert_equal(-2, event.delta_y)
   end
@@ -138,14 +142,14 @@ class TestProtocolDecode < Minitest::Test
   # -- Pane events ---------------------------------------------------------
 
   def test_decode_pane_resized
-    event = D.decode_event({"family" => "pane_resized", "id" => "grid", "data" => {"split" => "s1", "ratio" => 0.4}})
+    event = D.decode_event(windowed({"family" => "pane_resized", "id" => "grid", "data" => {"split" => "s1", "ratio" => 0.4}}))
     assert_instance_of Plushie::Event::Pane, event
     assert_equal :resized, event.type
     assert_equal 0.4, event.ratio
   end
 
   def test_decode_pane_clicked
-    event = D.decode_event({"family" => "pane_clicked", "id" => "grid", "data" => {"pane" => "p1"}})
+    event = D.decode_event(windowed({"family" => "pane_clicked", "id" => "grid", "data" => {"pane" => "p1"}}))
     assert_equal :clicked, event.type
     assert_equal "p1", event.pane
   end
@@ -153,7 +157,7 @@ class TestProtocolDecode < Minitest::Test
   # -- Sensor events -------------------------------------------------------
 
   def test_decode_sensor_resize
-    event = D.decode_event({"family" => "sensor_resize", "id" => "sens", "data" => {"width" => 100, "height" => 200}})
+    event = D.decode_event(windowed({"family" => "sensor_resize", "id" => "sens", "data" => {"width" => 100, "height" => 200}}))
     assert_instance_of Plushie::Event::Sensor, event
     assert_equal :resize, event.type
     assert_equal 100, event.width
@@ -359,10 +363,10 @@ class TestProtocolDecode < Minitest::Test
   # -- Pane events (additional) --------------------------------------------
 
   def test_decode_pane_dragged_with_action_region_edge
-    event = D.decode_event({
+    event = D.decode_event(windowed({
       "family" => "pane_dragged", "id" => "grid",
       "data" => {"pane" => "p1", "target" => "p2", "action" => "dropped", "region" => "center", "edge" => "left"}
-    })
+    }))
     assert_instance_of Plushie::Event::Pane, event
     assert_equal :dragged, event.type
     assert_equal "p1", event.pane
@@ -373,7 +377,7 @@ class TestProtocolDecode < Minitest::Test
   end
 
   def test_decode_pane_focus_cycle
-    event = D.decode_event({"family" => "pane_focus_cycle", "id" => "grid", "data" => {"pane" => "p3"}})
+    event = D.decode_event(windowed({"family" => "pane_focus_cycle", "id" => "grid", "data" => {"pane" => "p3"}}))
     assert_instance_of Plushie::Event::Pane, event
     assert_equal :focus_cycle, event.type
     assert_equal "p3", event.pane
@@ -440,7 +444,7 @@ class TestProtocolDecode < Minitest::Test
   # -- Canvas events (additional) ------------------------------------------
 
   def test_decode_canvas_release
-    event = D.decode_event({"family" => "canvas_release", "id" => "draw", "data" => {"x" => 30, "y" => 40, "button" => "right"}})
+    event = D.decode_event(windowed({"family" => "canvas_release", "id" => "draw", "data" => {"x" => 30, "y" => 40, "button" => "right"}}))
     assert_instance_of Plushie::Event::Canvas, event
     assert_equal :release, event.type
     assert_equal 30, event.x
@@ -514,10 +518,10 @@ class TestProtocolDecode < Minitest::Test
   # -- Canvas element key events -------------------------------------------
 
   def test_decode_canvas_element_key_press
-    event = D.decode_event({
+    event = D.decode_event(windowed({
       "family" => "canvas_element_key_press", "id" => "chart/node1",
       "data" => {"element_id" => "node1", "key" => "ArrowRight", "modifiers" => {"shift" => false}}
-    })
+    }))
     assert_instance_of Plushie::Event::Widget, event
     assert_equal :canvas_element_key_press, event.type
     assert_equal "node1", event.id
@@ -526,10 +530,10 @@ class TestProtocolDecode < Minitest::Test
   end
 
   def test_decode_canvas_element_key_release
-    event = D.decode_event({
+    event = D.decode_event(windowed({
       "family" => "canvas_element_key_release", "id" => "canvas/elem",
       "data" => {"element_id" => "elem", "key" => "Tab", "modifiers" => {}}
-    })
+    }))
     assert_instance_of Plushie::Event::Widget, event
     assert_equal :canvas_element_key_release, event.type
     assert_equal "elem", event.id
@@ -583,7 +587,7 @@ class TestProtocolDecode < Minitest::Test
   # -- Fallback (extension events) -----------------------------------------
 
   def test_decode_unknown_family_with_id
-    event = D.decode_event({"family" => "extension_custom", "id" => "ext1", "value" => 42})
+    event = D.decode_event(windowed({"family" => "extension_custom", "id" => "ext1", "value" => 42}))
     assert_instance_of Plushie::Event::Widget, event
     assert_equal :extension_custom, event.type
     assert_equal 42, event.value
@@ -642,7 +646,7 @@ class TestProtocolDecode < Minitest::Test
   def test_decode_interact_response_with_events
     msg = {
       "type" => "interact_response", "id" => "i1", "session" => "s1",
-      "events" => [{"family" => "click", "id" => "btn"}]
+      "events" => [windowed({"family" => "click", "id" => "btn"})]
     }
     result = D.decode_interact_response(msg)
     assert_equal :interact_response, result[:type]
@@ -653,7 +657,7 @@ class TestProtocolDecode < Minitest::Test
   def test_decode_interact_step
     msg = {
       "type" => "interact_step", "id" => "i1", "session" => "s1",
-      "events" => [{"family" => "input", "id" => "f", "value" => "a"}]
+      "events" => [windowed({"family" => "input", "id" => "f", "value" => "a"})]
     }
     result = D.decode_interact_step(msg)
     assert_equal :interact_step, result[:type]
@@ -684,7 +688,7 @@ class TestProtocolDecode < Minitest::Test
   # -- Full round-trip via decode_message ----------------------------------
 
   def test_decode_message_dispatches_event
-    json = '{"type":"event","family":"click","id":"btn1"}'
+    json = '{"type":"event","family":"click","id":"btn1","window_id":"main"}'
     result = D.decode_message(json, :json)
     assert_instance_of Plushie::Event::Widget, result
     assert_equal :click, result.type

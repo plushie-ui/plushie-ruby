@@ -20,6 +20,7 @@ module Plushie
     # @!attribute [r] type [Symbol] event kind (:click, :input, :submit, :toggle, :select, :slide, etc.)
     # @!attribute [r] id [String] widget ID that produced the event
     # @!attribute [r] value [Object, nil] event value (text for :input, boolean for :toggle, etc.)
+    # @!attribute [r] window_id [String, nil] window that produced the event
     # @!attribute [r] scope [Array<String>] reversed ancestor scope chain (immediate parent first)
     # @!attribute [r] data [Hash, nil] additional event data
     #
@@ -27,8 +28,8 @@ module Plushie
     #   in Event::Widget[type: :click, id: "save"]
     # @example Input with value
     #   in Event::Widget[type: :input, id: "search", value:]
-    Widget = Data.define(:type, :id, :value, :scope, :data) do
-      def initialize(type:, id:, value: nil, scope: [], data: nil)
+    Widget = Data.define(:type, :id, :value, :window_id, :scope, :data) do
+      def initialize(type:, id:, value: nil, window_id: nil, scope: [], data: nil)
         super
       end
     end
@@ -159,15 +160,16 @@ module Plushie
     # @!attribute [r] button [Symbol, nil] mouse button (:left, :right, :middle)
     # @!attribute [r] delta_x [Float, nil] scroll delta x
     # @!attribute [r] delta_y [Float, nil] scroll delta y
+    # @!attribute [r] window_id [String, nil] window that produced the event
     # @!attribute [r] scope [Array<String>] reversed ancestor scope chain
     #
     # @example Canvas shape click
     #   in Event::Canvas[type: :click, id: "my_circle", x:, y:]
     # @example Canvas scroll
     #   in Event::Canvas[type: :scroll, id:, delta_y:]
-    Canvas = Data.define(:type, :id, :x, :y, :button, :delta_x, :delta_y, :scope) do
+    Canvas = Data.define(:type, :id, :x, :y, :button, :delta_x, :delta_y, :window_id, :scope) do
       def initialize(type:, id:, x: nil, y: nil, button: nil,
-        delta_x: nil, delta_y: nil, scope: [])
+        delta_x: nil, delta_y: nil, window_id: nil, scope: [])
         super
       end
     end
@@ -181,14 +183,15 @@ module Plushie
     # @!attribute [r] y [Float, nil] mouse y position relative to the area
     # @!attribute [r] delta_x [Float, nil] movement delta x (for :move)
     # @!attribute [r] delta_y [Float, nil] movement delta y (for :move)
+    # @!attribute [r] window_id [String, nil] window that produced the event
     # @!attribute [r] scope [Array<String>] reversed ancestor scope chain
     #
     # @example Mouse entered area
     #   in Event::MouseArea[type: :enter, id: "hover_zone"]
     # @example Mouse moved within area
     #   in Event::MouseArea[type: :move, id:, x:, y:]
-    MouseArea = Data.define(:type, :id, :x, :y, :delta_x, :delta_y, :scope) do
-      def initialize(type:, id:, x: nil, y: nil, delta_x: nil, delta_y: nil, scope: [])
+    MouseArea = Data.define(:type, :id, :x, :y, :delta_x, :delta_y, :window_id, :scope) do
+      def initialize(type:, id:, x: nil, y: nil, delta_x: nil, delta_y: nil, window_id: nil, scope: [])
         super
       end
     end
@@ -202,6 +205,7 @@ module Plushie
     # @!attribute [r] target [Object, nil] target pane identifier (for drop/split)
     # @!attribute [r] split [Symbol, nil] split direction (:horizontal, :vertical)
     # @!attribute [r] ratio [Float, nil] resize ratio
+    # @!attribute [r] window_id [String, nil] window that produced the event
     # @!attribute [r] scope [Array<String>] reversed ancestor scope chain
     # @!attribute [r] action [Symbol, nil] pane action type
     # @!attribute [r] region [Symbol, nil] drop region (:center, :left, :right, :top, :bottom)
@@ -211,10 +215,10 @@ module Plushie
     #   in Event::Pane[type: :resized, id: "editor_panes", ratio:]
     # @example Pane split
     #   in Event::Pane[type: :split, pane:, split: :horizontal]
-    Pane = Data.define(:type, :id, :pane, :target, :split, :ratio, :scope,
+    Pane = Data.define(:type, :id, :pane, :target, :split, :ratio, :window_id, :scope,
       :action, :region, :edge) do
       def initialize(type:, id:, pane: nil, target: nil, split: nil, ratio: nil,
-        scope: [], action: nil, region: nil, edge: nil)
+        window_id: nil, scope: [], action: nil, region: nil, edge: nil)
         super
       end
     end
@@ -226,12 +230,13 @@ module Plushie
     # @!attribute [r] id [String] sensor widget ID
     # @!attribute [r] width [Float, nil] measured width
     # @!attribute [r] height [Float, nil] measured height
+    # @!attribute [r] window_id [String, nil] window that produced the event
     # @!attribute [r] scope [Array<String>] reversed ancestor scope chain
     #
     # @example Sensor resized
     #   in Event::Sensor[type: :resized, id: "content_area", width:, height:]
-    Sensor = Data.define(:type, :id, :width, :height, :scope) do
-      def initialize(type:, id:, width: nil, height: nil, scope: [])
+    Sensor = Data.define(:type, :id, :width, :height, :window_id, :scope) do
+      def initialize(type:, id:, width: nil, height: nil, window_id: nil, scope: [])
         super
       end
     end

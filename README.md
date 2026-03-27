@@ -122,8 +122,9 @@ Plushie follows the Elm architecture. Your app implements four callbacks:
 - **`update(model, event)`** -- receives the current model and an event,
   returns the new model. Pure function. Return `[model, command]` for
   side effects.
-- **`view(model)`** -- receives the model, returns a UI tree using the
-  block DSL. The runtime diffs trees and sends patches to the renderer.
+- **`view(model)`** -- receives the model, returns a `window(...)`
+  node or an array of window nodes using the block DSL. The runtime
+  diffs trees and sends patches to the renderer.
 - **`subscribe(model)`** (optional) -- returns active subscriptions
   (timers, keyboard/mouse events).
 

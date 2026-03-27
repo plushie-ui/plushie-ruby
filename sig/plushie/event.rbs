@@ -7,10 +7,18 @@ module Plushie
       attr_reader type: Symbol
       attr_reader id: String
       attr_reader value: untyped
+      attr_reader window_id: String?
       attr_reader scope: Array[String]
       attr_reader data: untyped
 
-      def initialize: (type: Symbol, id: String, ?value: untyped, ?scope: Array[String], ?data: untyped) -> void
+      def initialize: (
+        type: Symbol,
+        id: String,
+        ?value: untyped,
+        ?window_id: String?,
+        ?scope: Array[String],
+        ?data: untyped
+      ) -> void
     end
 
     class Key
@@ -55,10 +63,10 @@ module Plushie
       attr_reader id: String?
       attr_reader scope: Array[String]
       attr_reader text: String?
-      attr_reader cursor: Integer?
+      attr_reader cursor: [Integer, Integer]?
       attr_reader captured: bool
 
-      def initialize: (type: Symbol, ?id: String?, ?scope: Array[String], ?text: String?, ?cursor: Integer?, ?captured: bool) -> void
+      def initialize: (type: Symbol, ?id: String?, ?scope: Array[String], ?text: String?, ?cursor: [Integer, Integer]?, ?captured: bool) -> void
     end
 
     class Window
@@ -82,9 +90,20 @@ module Plushie
       attr_reader button: Symbol?
       attr_reader delta_x: Numeric?
       attr_reader delta_y: Numeric?
+      attr_reader window_id: String?
       attr_reader scope: Array[String]
 
-      def initialize: (type: Symbol, id: String, ?x: Numeric?, ?y: Numeric?, ?button: Symbol?, ?delta_x: Numeric?, ?delta_y: Numeric?, ?scope: Array[String]) -> void
+      def initialize: (
+        type: Symbol,
+        id: String,
+        ?x: Numeric?,
+        ?y: Numeric?,
+        ?button: Symbol?,
+        ?delta_x: Numeric?,
+        ?delta_y: Numeric?,
+        ?window_id: String?,
+        ?scope: Array[String]
+      ) -> void
     end
 
     class MouseArea
@@ -94,9 +113,19 @@ module Plushie
       attr_reader y: Numeric?
       attr_reader delta_x: Numeric?
       attr_reader delta_y: Numeric?
+      attr_reader window_id: String?
       attr_reader scope: Array[String]
 
-      def initialize: (type: Symbol, id: String, ?x: Numeric?, ?y: Numeric?, ?delta_x: Numeric?, ?delta_y: Numeric?, ?scope: Array[String]) -> void
+      def initialize: (
+        type: Symbol,
+        id: String,
+        ?x: Numeric?,
+        ?y: Numeric?,
+        ?delta_x: Numeric?,
+        ?delta_y: Numeric?,
+        ?window_id: String?,
+        ?scope: Array[String]
+      ) -> void
     end
 
     class Pane
@@ -106,12 +135,25 @@ module Plushie
       attr_reader target: String?
       attr_reader split: Symbol?
       attr_reader ratio: Float?
+      attr_reader window_id: String?
       attr_reader scope: Array[String]
       attr_reader action: Symbol?
       attr_reader region: Symbol?
       attr_reader edge: Symbol?
 
-      def initialize: (type: Symbol, id: String, ?pane: String?, ?target: String?, ?split: Symbol?, ?ratio: Float?, ?scope: Array[String], ?action: Symbol?, ?region: Symbol?, ?edge: Symbol?) -> void
+      def initialize: (
+        type: Symbol,
+        id: String,
+        ?pane: String?,
+        ?target: String?,
+        ?split: Symbol?,
+        ?ratio: Float?,
+        ?window_id: String?,
+        ?scope: Array[String],
+        ?action: Symbol?,
+        ?region: Symbol?,
+        ?edge: Symbol?
+      ) -> void
     end
 
     class Sensor
@@ -119,9 +161,17 @@ module Plushie
       attr_reader id: String
       attr_reader width: Numeric?
       attr_reader height: Numeric?
+      attr_reader window_id: String?
       attr_reader scope: Array[String]
 
-      def initialize: (type: Symbol, id: String, ?width: Numeric?, ?height: Numeric?, ?scope: Array[String]) -> void
+      def initialize: (
+        type: Symbol,
+        id: String,
+        ?width: Numeric?,
+        ?height: Numeric?,
+        ?window_id: String?,
+        ?scope: Array[String]
+      ) -> void
     end
 
     class Modifiers
@@ -136,6 +186,22 @@ module Plushie
       attr_reader result: untyped
 
       def initialize: (request_id: String, result: untyped) -> void
+    end
+
+    class ExtensionCommandError
+      attr_reader reason: String
+      attr_reader node_id: String?
+      attr_reader op: String?
+      attr_reader extension: String?
+      attr_reader message: String?
+
+      def initialize: (
+        reason: String,
+        ?node_id: String?,
+        ?op: String?,
+        ?extension: String?,
+        ?message: String?
+      ) -> void
     end
 
     class System

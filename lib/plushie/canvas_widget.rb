@@ -33,8 +33,8 @@ module Plushie
   # Each canvas widget in the chain gets a chance to handle the event:
   # `:ignored` passes through, `:consumed` stops the chain, and
   # `[:emit, kind, data]` replaces the event with a Widget event and
-  # continues. The runtime fills in `id` and `scope` automatically
-  # from the widget's position in the tree.
+  # continues. The runtime fills in `id`, `scope`, and `window_id`
+  # automatically from the widget's position in the tree.
   module CanvasWidget
     # Metadata keys used internally. Stored in Node#meta, never on the wire.
     META_KEY = :__canvas_widget__
@@ -43,6 +43,10 @@ module Plushie
 
     # Subscription tag namespace prefix for canvas widgets.
     CW_TAG_PREFIX = "__cw:"
+
+    def self.widget_key(window_id, widget_id)
+      "#{window_id}\0#{widget_id}"
+    end
 
     # Methods added to classes that include Plushie::CanvasWidget.
     module ClassMethods
@@ -106,14 +110,14 @@ module Plushie
     # Derive the registry from a normalized tree.
     #
     # Walks the tree and extracts canvas widget metadata from nodes.
-    # Returns a hash mapping scoped IDs to RegistryEntry values.
+    # Returns a hash mapping window-aware widget keys to RegistryEntry values.
     #
     # @param tree [Node, nil]
     # @return [Hash{String => RegistryEntry}]
     def self.derive_registry(tree)
       return {} if tree.nil?
       registry = {}
-      collect_entries(tree, registry)
+      collect_entries(tree, registry, nil)
       registry
     end
 
@@ -130,7 +134,8 @@ module Plushie
     def self.dispatch_through_widgets(registry, event)
       scope = extract_scope(event)
       event_id = extract_id(event)
-      chain = build_handler_chain(registry, scope, event_id)
+      window_id = extract_window_id(event)
+      chain = build_handler_chain(registry, window_id, scope, event_id)
 
       return [event, registry] if chain.empty?
       walk_chain(registry, event, chain)
@@ -146,9 +151,9 @@ module Plushie
     # @param registry [Hash{String => RegistryEntry}]
     # @return [Array<Subscription::Sub>]
     def self.collect_subscriptions(registry)
-      registry.flat_map do |widget_id, entry|
+      registry.flat_map do |widget_key, entry|
         subs = entry.widget_module.subscribe(entry.props, entry.state)
-        Array(subs).map { |sub| namespace_tag(sub, widget_id) }
+        Array(subs).map { |sub| namespace_tag(sub, widget_key) }
       end
     end
 
@@ -160,7 +165,7 @@ module Plushie
       tag.to_s.start_with?(CW_TAG_PREFIX)
     end
 
-    # Parse a namespaced tag into [widget_id, inner_tag].
+    # Parse a namespaced tag into [widget_key, inner_tag].
     # Returns nil if the tag isn't namespaced.
     #
     # @param tag [String, Symbol]
@@ -170,10 +175,16 @@ module Plushie
       return nil unless tag_str.start_with?(CW_TAG_PREFIX)
 
       rest = tag_str[CW_TAG_PREFIX.length..]
-      idx = rest.index(":")
-      return nil unless idx
+      return nil if rest.nil? || rest.empty?
+      first = rest.index(":")
+      return nil unless first
+      second = rest.index(":", first + 1)
+      return nil unless second
 
-      [rest[0...idx], rest[(idx + 1)..]]
+      window_id = rest[0...first].to_s
+      widget_id = rest[(first + 1)...second].to_s
+      inner_tag = rest[(second + 1)..].to_s
+      [widget_key(window_id, widget_id), inner_tag]
     end
 
     # Route a timer event to the correct canvas widget.
@@ -190,8 +201,8 @@ module Plushie
       parsed = parse_widget_tag(tag)
       return nil unless parsed
 
-      widget_id, inner_tag = parsed
-      entry = registry[widget_id]
+      widget_key, inner_tag = parsed
+      entry = registry[widget_key]
       return [nil, registry] unless entry
 
       timer_event = Event::Timer.new(
@@ -199,16 +210,22 @@ module Plushie
         timestamp: Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
       )
 
-      action, new_state = safe_handle_event(entry, timer_event, widget_id)
+      action, new_state = safe_handle_event(entry, timer_event, widget_key)
       new_entry = RegistryEntry.new(widget_module: entry.widget_module, state: new_state, props: entry.props)
-      registry = registry.merge(widget_id => new_entry)
+      registry = registry.merge(widget_key => new_entry)
 
       case action
       in :ignored | :consumed | :update_state
         [nil, registry]
       in [:emit, kind, data]
-        id, scope = resolve_emit_identity(timer_event, widget_id)
-        emitted = Event::Widget.new(type: kind.to_sym, id: id, scope: scope, data: normalize_emit_data(data))
+        window_id, id, scope = resolve_emit_identity(timer_event, widget_key)
+        emitted = Event::Widget.new(
+          type: kind.to_sym,
+          id: id,
+          window_id: window_id,
+          scope: scope,
+          data: normalize_emit_data(data)
+        )
         dispatch_through_widgets(registry, emitted)
       end
     end
@@ -221,17 +238,20 @@ module Plushie
     # returns the rendered node with widget metadata attached.
     #
     # @param node [Node] the placeholder node
+    # @param window_id [String, nil] containing window ID
     # @param scoped_id [String] the normalized scoped ID
     # @param local_id [String] the pre-scoped local ID
     # @param registry [Hash{String => RegistryEntry}]
     # @return [Array(Node, RegistryEntry), nil]
-    def self.render_placeholder(node, scoped_id, local_id, registry)
+    def self.render_placeholder(node, window_id, scoped_id, local_id, registry)
       widget_module = node.meta[META_KEY]
       widget_props = node.meta[PROPS_KEY] || {}
       return nil unless widget_module
+      raise ArgumentError, "canvas widget #{local_id.inspect} must be rendered inside a window" if window_id.nil? || window_id.empty?
 
       # Look up existing state or create initial
-      existing = registry[scoped_id]
+      key = widget_key(window_id, scoped_id)
+      existing = registry[key]
       state = if existing
         existing.state
       else
@@ -257,28 +277,34 @@ module Plushie
     class << self
       private
 
-      def collect_entries(node, acc)
+      def collect_entries(node, acc, current_window_id)
+        current_window_id = node.id if node.type == "window"
         meta = node.meta
         if meta.key?(META_KEY) && meta.key?(STATE_KEY)
+          raise ArgumentError, "canvas widget #{node.id.inspect} must be rendered inside a window" if current_window_id.nil? || current_window_id.empty?
+
           widget_module = meta[META_KEY]
           state = meta[STATE_KEY]
           props = meta[PROPS_KEY] || {}
-          acc[node.id] = RegistryEntry.new(widget_module: widget_module, state: state, props: props)
+          key = widget_key(current_window_id, node.id)
+          acc[key] = RegistryEntry.new(widget_module: widget_module, state: state, props: props)
         end
 
-        node.children.each { |child| collect_entries(child, acc) }
+        node.children.each { |child| collect_entries(child, acc, current_window_id) }
       end
 
-      def build_handler_chain(registry, scope, event_id)
+      def build_handler_chain(registry, window_id, scope, event_id)
         chain = scope_to_widget_ids(scope).filter_map do |id|
-          entry = registry[id]
-          entry ? [id, entry] : nil
+          key = widget_key(window_id, id)
+          entry = registry[key]
+          entry ? [key, entry] : nil
         end
 
         if chain.empty?
           target_id = scope_to_id(scope, event_id)
-          entry = registry[target_id]
-          chain = [[target_id, entry]] if entry
+          key = widget_key(window_id, target_id)
+          entry = registry[key]
+          chain = [[key, entry]] if entry
         end
 
         chain
@@ -300,8 +326,14 @@ module Plushie
         in :consumed | :update_state
           [nil, registry]
         in [:emit, kind, data]
-          id, scope = resolve_emit_identity(event, widget_id)
-          emitted = Event::Widget.new(type: kind.to_sym, id: id, scope: scope, data: normalize_emit_data(data))
+          window_id, id, scope = resolve_emit_identity(event, widget_id)
+          emitted = Event::Widget.new(
+            type: kind.to_sym,
+            id: id,
+            window_id: window_id,
+            scope: scope,
+            data: normalize_emit_data(data)
+          )
           walk_chain(registry, emitted, rest)
         end
       end
@@ -326,16 +358,18 @@ module Plushie
       end
 
       def resolve_emit_identity(event, widget_id)
+        window_id, full_widget_id = split_widget_key(widget_id)
         scope = extract_scope(event)
         case scope
-        in [canvas_id, *parent_scope]
-          [canvas_id, parent_scope]
+        in [canvas_id, *parent_scope] if extract_window_id(event) == window_id
+          [window_id, canvas_id, parent_scope]
         in []
           id = extract_id(event)
           if id.empty?
-            split_widget_id(widget_id)
+            id, widget_scope = split_widget_id(full_widget_id)
+            [window_id, id, widget_scope]
           else
-            [id, []]
+            [window_id, id, []]
           end
         end
       end
@@ -343,7 +377,7 @@ module Plushie
       def split_widget_id(widget_id)
         parts = widget_id.split("/")
         if parts.length > 1
-          [parts.last, parts[0...-1].reverse]
+          [parts.last.to_s, Array(parts[0...-1]).reverse]
         else
           [widget_id, []]
         end
@@ -365,7 +399,7 @@ module Plushie
         forward = scope.reverse
         result = []
         forward.length.downto(1) do |n|
-          result << forward[0...n].join("/")
+          result << Array(forward[0...n]).join("/")
         end
         result
       end
@@ -377,8 +411,9 @@ module Plushie
       end
 
       def namespace_tag(sub, widget_id)
+        window_id, full_widget_id = split_widget_key(widget_id)
         old_tag = sub.tag
-        new_tag = "#{CW_TAG_PREFIX}#{widget_id}:#{old_tag}"
+        new_tag = "#{CW_TAG_PREFIX}#{window_id}:#{full_widget_id}:#{old_tag}"
         sub.with(tag: new_tag)
       end
 
@@ -388,6 +423,14 @@ module Plushie
 
       def extract_id(event)
         event.respond_to?(:id) ? (event.id || "").to_s : ""
+      end
+
+      def extract_window_id(event)
+        event.respond_to?(:window_id) ? event.window_id.to_s : ""
+      end
+
+      def split_widget_key(widget_key)
+        widget_key.split("\0", 2)
       end
     end
   end

@@ -1,0 +1,13 @@
+module MessagePack
+  def self.pack: (untyped value) -> String
+  def self.unpack: (String data) -> untyped
+
+  class MalformedFormatError < StandardError
+  end
+
+  class UnpackError < StandardError
+  end
+
+  class TypeError < StandardError
+  end
+end

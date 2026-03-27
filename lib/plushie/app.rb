@@ -31,6 +31,9 @@ module Plushie
   #     end
   #   end
   #
+  # `view(model)` must return a `window(...)` node or an array of
+  # `window(...)` nodes. Widgets do not live at the top level.
+  #
   module App
     def self.included(base)
       base.include(Plushie::UI)

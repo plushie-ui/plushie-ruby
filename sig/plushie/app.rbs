@@ -5,7 +5,7 @@ module Plushie
     # Required callbacks
     def init: (Hash[Symbol, untyped] opts) -> untyped
     def update: (untyped model, untyped event) -> (untyped | [untyped, Command::Cmd])
-    def view: (untyped model) -> Node
+    def view: (untyped model) -> (Node | Array[Node])
 
     # Optional callbacks with defaults
     def subscribe: (untyped model) -> Array[Subscription::Sub]

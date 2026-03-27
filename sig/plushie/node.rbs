@@ -2,10 +2,17 @@ module Plushie
   class Node
     attr_reader id: String
     attr_reader type: String
-    attr_reader props: Hash[Symbol, untyped]
+    attr_reader props: Hash[Symbol | String, untyped]
     attr_reader children: Array[Node]
+    attr_reader meta: Hash[Symbol, untyped]
 
-    def initialize: (id: String, type: String, ?props: Hash[Symbol, untyped], ?children: Array[Node]) -> void
+    def initialize: (
+      id: String,
+      type: String,
+      ?props: Hash[Symbol | String, untyped],
+      ?children: Array[Node],
+      ?meta: Hash[Symbol, untyped]
+    ) -> void
 
     def with: (**untyped changes) -> Node
   end

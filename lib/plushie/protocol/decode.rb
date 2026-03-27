@@ -26,6 +26,8 @@ module Plushie
         when :msgpack
           require "msgpack"
           MessagePack.unpack(data)
+        else
+          raise ArgumentError, "unsupported protocol format: #{format.inspect}"
         end
       rescue JSON::ParserError, MessagePack::MalformedFormatError,
         MessagePack::UnpackError, MessagePack::TypeError => e
@@ -97,7 +99,8 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: family.to_sym, id: id,
-            value: msg["value"], scope: scope, data: msg["data"]
+            value: msg["value"], window_id: require_window_id!(msg, family),
+            scope: scope, data: msg["data"]
           )
 
         # -- Mouse area events -> Event::MouseArea ----------------------------
@@ -107,19 +110,21 @@ module Plushie
           "mouse_double_click", "mouse_enter", "mouse_exit"
           id, scope = split_scoped_id(msg["id"])
           type = family.delete_prefix("mouse_").to_sym
-          Event::MouseArea.new(type: type, id: id, scope: scope)
+          Event::MouseArea.new(
+            type: type, id: id, window_id: require_window_id!(msg, family), scope: scope
+          )
 
         when "mouse_move"
           id, scope = split_scoped_id(msg["id"])
           Event::MouseArea.new(
-            type: :move, id: id, scope: scope,
+            type: :move, id: id, window_id: require_window_id!(msg, family), scope: scope,
             x: data["x"], y: data["y"]
           )
 
         when "mouse_scroll"
           id, scope = split_scoped_id(msg["id"])
           Event::MouseArea.new(
-            type: :scroll, id: id, scope: scope,
+            type: :scroll, id: id, window_id: require_window_id!(msg, family), scope: scope,
             delta_x: data["delta_x"], delta_y: data["delta_y"]
           )
 
@@ -129,7 +134,7 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           type = (family == "canvas_press") ? :press : :release
           Event::Canvas.new(
-            type: type, id: id, scope: scope,
+            type: type, id: id, window_id: require_window_id!(msg, family), scope: scope,
             x: data["x"], y: data["y"],
             button: data["button"] || "left"
           )
@@ -137,14 +142,14 @@ module Plushie
         when "canvas_move"
           id, scope = split_scoped_id(msg["id"])
           Event::Canvas.new(
-            type: :move, id: id, scope: scope,
+            type: :move, id: id, window_id: require_window_id!(msg, family), scope: scope,
             x: data["x"], y: data["y"]
           )
 
         when "canvas_scroll"
           id, scope = split_scoped_id(msg["id"])
           Event::Canvas.new(
-            type: :scroll, id: id, scope: scope,
+            type: :scroll, id: id, window_id: require_window_id!(msg, family), scope: scope,
             x: data["x"], y: data["y"],
             delta_x: data["delta_x"], delta_y: data["delta_y"]
           )
@@ -154,14 +159,14 @@ module Plushie
         when "pane_resized"
           id, scope = split_scoped_id(msg["id"])
           Event::Pane.new(
-            type: :resized, id: id, scope: scope,
+            type: :resized, id: id, window_id: require_window_id!(msg, family), scope: scope,
             split: data["split"], ratio: data["ratio"]
           )
 
         when "pane_dragged"
           id, scope = split_scoped_id(msg["id"])
           Event::Pane.new(
-            type: :dragged, id: id, scope: scope,
+            type: :dragged, id: id, window_id: require_window_id!(msg, family), scope: scope,
             pane: data["pane"], target: data["target"],
             action: Parsers.parse_pane_action(data["action"]),
             region: Parsers.parse_pane_region(data["region"]),
@@ -171,14 +176,14 @@ module Plushie
         when "pane_clicked"
           id, scope = split_scoped_id(msg["id"])
           Event::Pane.new(
-            type: :clicked, id: id, scope: scope,
+            type: :clicked, id: id, window_id: require_window_id!(msg, family), scope: scope,
             pane: data["pane"]
           )
 
         when "pane_focus_cycle"
           id, scope = split_scoped_id(msg["id"])
           Event::Pane.new(
-            type: :focus_cycle, id: id, scope: scope,
+            type: :focus_cycle, id: id, window_id: require_window_id!(msg, family), scope: scope,
             pane: data["pane"]
           )
 
@@ -187,7 +192,7 @@ module Plushie
         when "sensor_resize"
           id, scope = split_scoped_id(msg["id"])
           Event::Sensor.new(
-            type: :resize, id: id, scope: scope,
+            type: :resize, id: id, window_id: require_window_id!(msg, family), scope: scope,
             width: data["width"], height: data["height"]
           )
 
@@ -415,35 +420,35 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :canvas_element_blurred, id: id,
-            value: nil, scope: scope, data: data
+            value: nil, window_id: require_window_id!(msg, family), scope: scope, data: data
           )
 
         when "canvas_focused"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :canvas_focused, id: id,
-            value: nil, scope: scope, data: nil
+            value: nil, window_id: require_window_id!(msg, family), scope: scope, data: nil
           )
 
         when "canvas_blurred"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :canvas_blurred, id: id,
-            value: nil, scope: scope, data: nil
+            value: nil, window_id: require_window_id!(msg, family), scope: scope, data: nil
           )
 
         when "canvas_group_focused"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :canvas_group_focused, id: id,
-            value: nil, scope: scope, data: data
+            value: nil, window_id: require_window_id!(msg, family), scope: scope, data: data
           )
 
         when "canvas_group_blurred"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :canvas_group_blurred, id: id,
-            value: nil, scope: scope, data: data
+            value: nil, window_id: require_window_id!(msg, family), scope: scope, data: data
           )
 
         # -- Diagnostic events -> Event::System ---------------------------------
@@ -458,7 +463,8 @@ module Plushie
             id, scope = split_scoped_id(msg["id"])
             Event::Widget.new(
               type: family&.to_sym, id: id,
-              value: msg["value"], scope: scope, data: msg["data"]
+              value: msg["value"], window_id: require_window_id!(msg, family),
+              scope: scope, data: msg["data"]
             )
           end
         end
@@ -624,8 +630,15 @@ module Plushie
       def split_scoped_id(full_id)
         return [full_id.to_s, []] unless full_id&.include?("/")
         parts = full_id.split("/")
-        id = parts.pop
+        id = parts.pop.to_s
         [id, parts.reverse]
+      end
+
+      def require_window_id!(msg, family)
+        window_id = msg["window_id"]
+        return window_id if window_id.is_a?(String) && !window_id.empty?
+
+        raise ArgumentError, "event family #{family.inspect} is missing required window_id"
       end
 
       # Parse a modifiers hash from the wire format.
@@ -649,7 +662,7 @@ module Plushie
       def parse_ime_cursor(cursor)
         case cursor
         when Hash then [cursor["start"], cursor["end"]]
-        when Array then cursor
+        when Array then [cursor[0], cursor[1]] if cursor.length == 2
         end
       end
     end

@@ -2,6 +2,19 @@ module Plushie
   module Protocol
     PROTOCOL_VERSION: Integer
 
+    module Keys
+      def self.parse_key: (untyped value) -> String
+      def self.parse_physical_key: (untyped value) -> String?
+      def self.parse_location: (untyped value) -> Symbol
+    end
+
+    module Parsers
+      def self.parse_mouse_button: (untyped value) -> Symbol?
+      def self.parse_scroll_unit: (untyped value) -> Symbol?
+      def self.parse_pane_action: (untyped value) -> Symbol?
+      def self.parse_pane_region: (untyped value) -> Symbol?
+    end
+
     module Encode
       def self.encode: (Hash[Symbol, untyped] map, ?Symbol format) -> String
 
@@ -55,6 +68,24 @@ module Plushie
     end
 
     module Decode
+      def decode: (String data, ?Symbol format) -> Hash[String, untyped]
+      def decode_message: (String data, ?Symbol format) -> (untyped | nil)
+      def dispatch_message: (Hash[String, untyped] msg) -> (untyped | nil)
+      def decode_event: (Hash[String, untyped] msg) -> untyped
+      def decode_hello: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def decode_effect_response: (Hash[String, untyped] msg) -> Event::Effect
+      def decode_query_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def decode_op_query_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def decode_interact_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def decode_interact_step: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def decode_tree_hash_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def decode_screenshot_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def decode_reset_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def split_scoped_id: (String? full_id) -> [String, Array[String]]
+      def parse_modifiers: (Hash[String, untyped]? mods) -> Hash[Symbol, bool]
+      def parse_ime_cursor: (Hash[String, untyped] | Array[Integer] | nil cursor) -> [Integer, Integer]?
+      def require_window_id!: (Hash[String, untyped] msg, String family) -> String
+
       def self.decode: (String data, ?Symbol format) -> Hash[String, untyped]
       def self.decode_message: (String data, ?Symbol format) -> (untyped | nil)
       def self.dispatch_message: (Hash[String, untyped] msg) -> (untyped | nil)
@@ -77,6 +108,7 @@ module Plushie
       def self.split_scoped_id: (String? full_id) -> [String, Array[String]]
       def self.parse_modifiers: (Hash[String, untyped]? mods) -> Hash[Symbol, bool]
       def self.parse_ime_cursor: (Hash[String, untyped] | Array[Integer] | nil cursor) -> [Integer, Integer]?
+      def self.require_window_id!: (Hash[String, untyped] msg, String family) -> String
     end
   end
 end

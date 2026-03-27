@@ -45,8 +45,11 @@ module Plushie
     # @param tree [Node, Array<Node>]
     # @return [Array<String>]
     def self.ids(tree)
+      return [] if tree.nil?
+
+      # @type var result: Array[String]
       result = []
-      trees = tree.is_a?(Array) ? tree : [tree]
+      trees = (tree.is_a?(Array) ? tree : [tree]).compact
 
       trees.each do |node|
         result << node.id
@@ -62,8 +65,11 @@ module Plushie
     # @yield [Node] predicate block
     # @return [Array<Node>]
     def self.find_all(tree, &predicate)
+      return [] if tree.nil?
+
+      # @type var result: Array[Node]
       result = []
-      trees = tree.is_a?(Array) ? tree : [tree]
+      trees = (tree.is_a?(Array) ? tree : [tree]).compact
 
       trees.each do |node|
         result << node if predicate.call(node)
@@ -89,8 +95,8 @@ module Plushie
     # @return [Array<Node>] normalized tree (always an array)
     def self.normalize(tree, registry: nil)
       return [Node.new(id: "root", type: "container")] if tree.nil?
-      trees = tree.is_a?(Array) ? tree : [tree]
-      trees.compact.map { |node| normalize_node(node, "", registry) }
+      trees = (tree.is_a?(Array) ? tree : [tree]).compact
+      trees.compact.map { |node| normalize_node(node, "", registry, nil) }
     end
 
     # -------------------------------------------------------------------
@@ -110,11 +116,13 @@ module Plushie
     # @return [Array<Hash>] patch operations
     def self.diff(old_tree, new_tree)
       return [] if old_tree.nil? && new_tree.nil?
-      return [{"op" => "replace_node", "path" => [], "node" => node_to_wire(new_tree)}] if old_tree.nil?
+      return [{"op" => "replace_node", "path" => [], "node" => node_to_wire(new_tree)}] if old_tree.nil? && !new_tree.nil?
       return [{"op" => "remove_child", "path" => [], "index" => 0}] if new_tree.nil?
-      return [{"op" => "replace_node", "path" => [], "node" => node_to_wire(new_tree)}] if old_tree.id != new_tree.id
+      old_node = old_tree or raise ArgumentError, "old_tree cannot be nil here"
+      new_node = new_tree or raise ArgumentError, "new_tree cannot be nil here"
+      return [{"op" => "replace_node", "path" => [], "node" => node_to_wire(new_node)}] if old_node.id != new_node.id
 
-      diff_node(old_tree, new_tree, [])
+      diff_node(old_node, new_node, [])
     end
 
     # Convert a Node to a plain wire-ready Hash (recursive).
@@ -134,13 +142,14 @@ module Plushie
     # Private implementation
     # -------------------------------------------------------------------
 
-    def self.normalize_node(node, scope, registry)
+    def self.normalize_node(node, scope, registry, window_id)
       # Compute scoped ID
       scoped_id = if scope.empty? || node.type == "window" || node.id.start_with?("auto:")
         node.id
       else
         "#{scope}/#{node.id}"
       end
+      current_window_id = (node.type == "window") ? node.id : window_id
 
       # Canvas widget rendering: if this node is a canvas_widget placeholder
       # (tagged in meta), render it with the best available state and
@@ -148,13 +157,15 @@ module Plushie
       # placeholder meta, so normalization of the output won't re-trigger
       # rendering (no recursion possible).
       if registry && defined?(Plushie::CanvasWidget) && Plushie::CanvasWidget.placeholder?(node)
-        result = Plushie::CanvasWidget.render_placeholder(node, scoped_id, node.id, registry)
+        result = Plushie::CanvasWidget.render_placeholder(
+          node, current_window_id, scoped_id, node.id, registry
+        )
         if result
           rendered_node, _entry = result
           # Normalize the rendered output. Pass empty scope because the
           # rendered node's ID is already fully scoped (set by
           # render_placeholder). Passing the parent scope would double-scope.
-          normalized = normalize_node(rendered_node, "", registry)
+          normalized = normalize_node(rendered_node, "", registry, current_window_id)
           return normalized.with(meta: rendered_node.meta)
         end
       end
@@ -190,7 +201,7 @@ module Plushie
         end
       end
 
-      children = node.children.map { |c| normalize_node(c, child_scope, registry) }
+      children = node.children.map { |c| normalize_node(c, child_scope, registry, current_window_id) }
       Node.new(id: scoped_id, type: node.type, props: props, children: children)
     end
     private_class_method :normalize_node
@@ -216,7 +227,9 @@ module Plushie
     private_class_method :encode_value
 
     def self.encode_props(props)
-      props.each_with_object({}) do |(k, v), h|
+      # @type var encoded: Hash[String, untyped]
+      encoded = {}
+      props.each_with_object(encoded) do |(k, v), h|
         h[k.to_s] = encode_value(v)
       end
     end
@@ -236,24 +249,32 @@ module Plushie
         return [{"op" => "replace_node", "path" => path, "node" => node_to_wire(new)}]
       end
 
+      child_ops = case child_result
+      when Array
+        child_result
+      else
+        raise "unexpected diff result"
+      end
+
       prop_ops = diff_props(old.props, new.props, path)
-      prop_ops + child_result
+      prop_ops + child_ops
     end
     private_class_method :diff_node
 
     def self.diff_props(old_props, new_props, path)
       return [] if old_props == new_props
 
+      # @type var changed: Hash[String, untyped]
       changed = {}
 
       # Changed or added keys
       new_props.each do |k, v|
-        changed[k] = v unless old_props.key?(k) && old_props[k] == v
+        changed[k.to_s] = v unless old_props.key?(k) && old_props[k] == v
       end
 
       # Removed keys -> nil
       old_props.each_key do |k|
-        changed[k] = nil unless new_props.key?(k)
+        changed[k.to_s] = nil unless new_props.key?(k)
       end
 
       return [] if changed.empty?
@@ -262,8 +283,10 @@ module Plushie
     private_class_method :diff_props
 
     def self.diff_children(old_children, new_children, path)
+      # @type var old_by_id: Hash[String, [Node, Integer]]
       old_by_id = {}
       old_children.each_with_index { |c, i| old_by_id[c.id] = [c, i] }
+      # @type var new_by_id: Hash[String, [Node, Integer]]
       new_by_id = {}
       new_children.each_with_index { |c, i| new_by_id[c.id] = [c, i] }
 
@@ -284,7 +307,9 @@ module Plushie
         .map { |idx| {"op" => "remove_child", "path" => path, "index" => idx} }
 
       # Walk new children for updates and inserts
+      # @type var update_ops: Array[Hash[String, untyped]]
       update_ops = []
+      # @type var insert_ops: Array[Hash[String, untyped]]
       insert_ops = []
 
       new_children.each_with_index do |child, idx|

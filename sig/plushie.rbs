@@ -1,9 +1,24 @@
 module Plushie
+  class Configuration
+    attr_accessor binary_path: String?
+    attr_accessor source_path: String?
+    attr_accessor build_name: String
+    attr_accessor extensions: Array[untyped]
+    attr_accessor extension_config: Hash[String, untyped]
+    attr_accessor test_backend: Symbol?
+    attr_accessor artifacts: Array[Symbol]
+    attr_accessor bin_file: String?
+    attr_accessor wasm_dir: String?
+  end
+
   VERSION: String
   BINARY_VERSION: String
 
   class Error < StandardError
   end
+
+  def self.configuration: () -> Configuration
+  def self.configure: () { (Configuration) -> untyped } -> void
 
   # Start a Plushie app and block until it exits.
   def self.run: (singleton(App) app_class, **untyped opts) -> void
