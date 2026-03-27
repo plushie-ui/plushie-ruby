@@ -342,7 +342,7 @@ module Plushie
             r = @app.update(@model, event)
             @model, sub_cmds = unwrap_result(r)
             process_commands_sync(sub_cmds)
-          rescue => e
+          rescue
             @model = saved
           end
         when :stream
@@ -355,7 +355,7 @@ module Plushie
               r = @app.update(@model, event)
               @model, sub_cmds = unwrap_result(r)
               process_commands_sync(sub_cmds)
-            rescue => e
+            rescue
               @model = saved
             end
           }
@@ -366,7 +366,7 @@ module Plushie
             r = @app.update(@model, final_event)
             @model, sub_cmds = unwrap_result(r)
             process_commands_sync(sub_cmds)
-          rescue => e
+          rescue
             @model = saved
           end
         when :done
@@ -376,7 +376,7 @@ module Plushie
             r = @app.update(@model, event)
             @model, sub_cmds = unwrap_result(r)
             process_commands_sync(sub_cmds)
-          rescue => e
+          rescue
             @model = saved
           end
         else
@@ -402,10 +402,7 @@ module Plushie
         case selector
         when String
           if selector.start_with?("#")
-            id = selector[1..]
-            # Resolve to scoped ID from local tree
-            scoped = resolve_scoped_id(id)
-            {by: "id", value: scoped || id}
+            resolve_id_selector(selector)
           else
             {by: "text", value: selector}
           end
@@ -415,28 +412,89 @@ module Plushie
         end
       end
 
-      def resolve_scoped_id(local_id)
-        return nil unless @tree
-        node = find_node_recursive(@tree, local_id)
-        node&.id
+      def resolve_id_selector(selector)
+        window_id, widget_id = parse_id_selector(selector)
+        return {by: "id", value: widget_id, window_id: window_id} unless @tree
+
+        exact_matches = find_exact_id_targets(@tree, widget_id)
+        exact_matches.select! { |match| match[:window_id] == window_id } if window_id
+
+        if exact_matches.length == 1
+          match = exact_matches.first
+          return {by: "id", value: match[:id], window_id: match[:window_id]}
+        end
+
+        if widget_id.include?("/")
+          if exact_matches.length > 1
+            raise Plushie::Error, "Selector #{selector.inspect} matches multiple windows. Prefix it with \"#<window_id>::\"."
+          end
+
+          return window_id ? {by: "id", value: widget_id, window_id: window_id} : {by: "id", value: widget_id}
+        end
+
+        local_matches = find_local_id_targets(@tree, widget_id)
+        local_matches.select! { |match| match[:window_id] == window_id } if window_id
+
+        if local_matches.length == 1
+          match = local_matches.first
+          return {by: "id", value: match[:id], window_id: match[:window_id]}
+        end
+
+        if local_matches.length > 1
+          raise Plushie::Error,
+            "Selector #{selector.inspect} is ambiguous across windows. Prefix it with \"#<window_id>::\" or use the full scoped id."
+        end
+
+        window_id ? {by: "id", value: widget_id, window_id: window_id} : {by: "id", value: widget_id}
       end
 
-      def find_node_recursive(node, local_id)
-        # Check if this node's local segment matches
-        segments = node.id.split("/")
-        return node if segments.last == local_id
+      def parse_id_selector(selector)
+        raw = selector[1..]
+        if raw.include?("::")
+          raw.split("::", 2)
+        else
+          [nil, raw]
+        end
+      end
+
+      def find_exact_id_targets(node, target_id, current_window_id = nil, matches = [])
+        node_window_id = if node.type == "window"
+          node.id
+        else
+          current_window_id
+        end
+        matches << {id: node.id, window_id: node_window_id} if node_window_id && node.id == target_id
 
         node.children.each do |child|
-          found = find_node_recursive(child, local_id)
-          return found if found
+          find_exact_id_targets(child, target_id, node_window_id, matches)
         end
-        nil
+
+        matches
+      end
+
+      def find_local_id_targets(node, local_id, current_window_id = nil, matches = [])
+        node_window_id = if node.type == "window"
+          node.id
+        else
+          current_window_id
+        end
+        matches << {id: node.id, window_id: node_window_id} if node_window_id && node.id.split("/").last == local_id
+
+        node.children.each do |child|
+          find_local_id_targets(child, local_id, node_window_id, matches)
+        end
+
+        matches
       end
 
       def find_in_local_tree(selector)
         return nil unless @tree
-        id = selector.start_with?("#") ? selector[1..] : selector
-        Tree.find(@tree, id) || find_node_recursive(@tree, id)
+        _window_id, id = parse_id_selector(selector.start_with?("#") ? selector : "##{selector}")
+        Tree.find(@tree, id) || begin
+          matches = find_local_id_targets(@tree, id)
+          match = matches.one? ? matches.first : nil
+          match ? Tree.find(@tree, match[:id]) : nil
+        end
       end
 
       def node_prop(node, key)

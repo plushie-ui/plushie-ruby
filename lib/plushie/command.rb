@@ -247,7 +247,7 @@ module Plushie
 
     # @param enabled [Boolean]
     # @return [Cmd]
-    def self.allow_automatic_tabbing(enabled) = Cmd.new(type: :window_op, payload: {op: :allow_automatic_tabbing, window_id: "_global", enabled:})
+    def self.allow_automatic_tabbing(enabled) = Cmd.new(type: :system_op, payload: {op: :allow_automatic_tabbing, enabled:})
 
     # -------------------------------------------------------------------
     # Window queries
@@ -299,11 +299,11 @@ module Plushie
 
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.get_system_theme(tag) = Cmd.new(type: :window_query, payload: {op: :get_system_theme, window_id: "_system", tag: tag.to_s})
+    def self.get_system_theme(tag) = Cmd.new(type: :system_query, payload: {op: :get_system_theme, tag: tag.to_s})
 
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.get_system_info(tag) = Cmd.new(type: :window_query, payload: {op: :get_system_info, window_id: "_system", tag: tag.to_s})
+    def self.get_system_info(tag) = Cmd.new(type: :system_query, payload: {op: :get_system_info, tag: tag.to_s})
 
     # -------------------------------------------------------------------
     # Canvas operations

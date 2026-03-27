@@ -196,8 +196,9 @@ class TestCommand < Minitest::Test
 
   def test_allow_automatic_tabbing
     cmd = C.allow_automatic_tabbing(false)
+    assert_equal :system_op, cmd.type
+    assert_equal :allow_automatic_tabbing, cmd.payload[:op]
     assert_equal false, cmd.payload[:enabled]
-    assert_equal "_global", cmd.payload[:window_id]
   end
 
   # -- Window queries ------------------------------------------------------
@@ -210,9 +211,8 @@ class TestCommand < Minitest::Test
 
   def test_get_system_theme
     cmd = C.get_system_theme(:theme)
-    assert_equal :window_query, cmd.type
+    assert_equal :system_query, cmd.type
     assert_equal :get_system_theme, cmd.payload[:op]
-    assert_equal "_system", cmd.payload[:window_id]
   end
 
   # -- PaneGrid ------------------------------------------------------------
@@ -275,9 +275,8 @@ class TestCommand < Minitest::Test
 
   def test_get_system_info
     cmd = C.get_system_info(:info)
-    assert_equal :window_query, cmd.type
+    assert_equal :system_query, cmd.type
     assert_equal :get_system_info, cmd.payload[:op]
-    assert_equal "_system", cmd.payload[:window_id]
   end
 
   # -- Font ----------------------------------------------------------------

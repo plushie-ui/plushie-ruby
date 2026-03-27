@@ -5,12 +5,14 @@ module Plushie
     def self.ids: (Node | Array[Node] | nil tree) -> Array[String]
     def self.find_all: (Node | Array[Node] | nil tree) { (Node) -> boolish } -> Array[Node]
     def self.normalize: (Node | Array[Node] | nil tree, ?registry: Hash[String, CanvasWidget::RegistryEntry]?) -> Array[Node]
+    def self.normalize_view: (Node | Array[Node] | nil tree, ?registry: Hash[String, CanvasWidget::RegistryEntry]?) -> Node
     def self.diff: (Node? old_tree, Node? new_tree) -> Array[Hash[String, untyped]]
     def self.node_to_wire: (Node node) -> Hash[String, untyped]
 
     private
 
     def self.normalize_node: (Node node, String scope, Hash[String, CanvasWidget::RegistryEntry]? registry, String? window_id) -> Node
+    def self.check_duplicate_ids!: (Array[Node] children) -> void
     def self.encode_value: (untyped value) -> untyped
     def self.encode_props: (Hash[Symbol | String, untyped] props) -> Hash[String, untyped]
     def self.diff_node: (Node old, Node new, Array[Integer] path) -> Array[Hash[String, untyped]]

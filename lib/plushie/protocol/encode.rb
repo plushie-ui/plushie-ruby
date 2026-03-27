@@ -139,6 +139,32 @@ module Plushie
         }, format)
       end
 
+      # Send a system-level operation not tied to a specific window.
+      #
+      # @param op [String, Symbol]
+      # @param settings [Hash]
+      # @param format [:msgpack, :json]
+      # @return [String]
+      def encode_system_op(op, settings, format = :msgpack)
+        encode({
+          type: "system_op", session: "",
+          op: op.to_s, settings: settings
+        }, format)
+      end
+
+      # Send a system-level query.
+      #
+      # @param op [String, Symbol]
+      # @param settings [Hash]
+      # @param format [:msgpack, :json]
+      # @return [String]
+      def encode_system_query(op, settings, format = :msgpack)
+        encode({
+          type: "system_query", session: "",
+          op: op.to_s, settings: settings
+        }, format)
+      end
+
       # ---------------------------------------------------------------
       # Effects
       # ---------------------------------------------------------------

@@ -47,6 +47,12 @@ module Plushie
         when :window_query
           send_window_query(cmd.payload)
 
+        when :system_op
+          send_system_op(cmd.payload)
+
+        when :system_query
+          send_system_query(cmd.payload)
+
         # Effects
         when :effect
           execute_effect(cmd.payload)
@@ -179,6 +185,24 @@ module Plushie
         settings[:tag] = payload[:tag].to_s if payload[:tag]
         @bridge.send_encoded(
           Protocol::Encode.encode_window_op(op, window_id, settings, @format)
+        )
+      end
+
+      # Send a system-level operation.
+      def send_system_op(payload)
+        op = payload[:op]
+        settings = payload.except(:op)
+        @bridge.send_encoded(
+          Protocol::Encode.encode_system_op(op, settings, @format)
+        )
+      end
+
+      # Send a system-level query.
+      def send_system_query(payload)
+        op = payload[:op]
+        settings = payload.except(:op)
+        @bridge.send_encoded(
+          Protocol::Encode.encode_system_query(op, settings, @format)
         )
       end
 

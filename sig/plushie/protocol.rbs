@@ -34,6 +34,8 @@ module Plushie
 
       # Window operations
       def self.encode_window_op: (String | Symbol op, String window_id, Hash[Symbol, untyped] settings, ?Symbol format) -> String
+      def self.encode_system_op: (String | Symbol op, Hash[Symbol, untyped] settings, ?Symbol format) -> String
+      def self.encode_system_query: (String | Symbol op, Hash[Symbol, untyped] settings, ?Symbol format) -> String
 
       # Effects
       def self.encode_effect: (String id, String kind, Hash[Symbol, untyped] payload, ?Symbol format) -> String

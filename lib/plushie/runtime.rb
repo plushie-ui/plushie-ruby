@@ -356,13 +356,7 @@ module Plushie
     end
 
     def normalize_view_tree(view_tree)
-      windows = Tree.normalize(view_tree, registry: @canvas_widgets)
-
-      if windows.empty? || !windows.all? { |node| node.type == "window" }
-        raise ArgumentError, "view must return a window node or an array of window nodes"
-      end
-
-      Node.new(id: "root", type: "root", children: windows)
+      Tree.normalize_view(view_tree, registry: @canvas_widgets)
     end
 
     # -- Result validation ---------------------------------------------------

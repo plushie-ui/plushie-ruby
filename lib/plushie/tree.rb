@@ -96,7 +96,24 @@ module Plushie
     def self.normalize(tree, registry: nil)
       return [Node.new(id: "root", type: "container")] if tree.nil?
       trees = (tree.is_a?(Array) ? tree : [tree]).compact
-      trees.compact.map { |node| normalize_node(node, "", registry, nil) }
+      normalized = trees.compact.map { |node| normalize_node(node, "", registry, nil) }
+      check_duplicate_ids!(normalized)
+      normalized
+    end
+
+    # Normalize a top-level app view and require explicit windows.
+    #
+    # @param tree [Node, Array<Node>, nil]
+    # @param registry [Hash, nil]
+    # @return [Node] normalized synthetic root or window node
+    def self.normalize_view(tree, registry: nil)
+      windows = normalize(tree, registry: registry)
+
+      if windows.empty? || !windows.all? { |node| node.type == "window" }
+        raise ArgumentError, "view must return a window node or an array of window nodes"
+      end
+
+      Node.new(id: "root", type: "root", children: windows)
     end
 
     # -------------------------------------------------------------------
@@ -117,7 +134,7 @@ module Plushie
     def self.diff(old_tree, new_tree)
       return [] if old_tree.nil? && new_tree.nil?
       return [{"op" => "replace_node", "path" => [], "node" => node_to_wire(new_tree)}] if old_tree.nil? && !new_tree.nil?
-      return [{"op" => "remove_child", "path" => [], "index" => 0}] if new_tree.nil?
+      return [{"op" => "replace_node", "path" => [], "node" => node_to_wire(Node.new(id: "root", type: "container"))}] if new_tree.nil?
       old_node = old_tree or raise ArgumentError, "old_tree cannot be nil here"
       new_node = new_tree or raise ArgumentError, "new_tree cannot be nil here"
       return [{"op" => "replace_node", "path" => [], "node" => node_to_wire(new_node)}] if old_node.id != new_node.id
@@ -202,9 +219,30 @@ module Plushie
       end
 
       children = node.children.map { |c| normalize_node(c, child_scope, registry, current_window_id) }
+      check_duplicate_ids!(children)
       Node.new(id: scoped_id, type: node.type, props: props, children: children)
     end
     private_class_method :normalize_node
+
+    def self.check_duplicate_ids!(children)
+      # @type var seen: Hash[String, bool]
+      seen = {}
+      # @type var duplicates: Array[String]
+      duplicates = []
+
+      children.each do |child|
+        if seen[child.id]
+          duplicates << child.id
+        else
+          seen[child.id] = true
+        end
+      end
+
+      return if duplicates.empty?
+
+      raise ArgumentError, "duplicate sibling IDs detected during normalize: #{duplicates.uniq.map(&:inspect).join(", ")}"
+    end
+    private_class_method :check_duplicate_ids!
 
     def self.encode_value(value)
       case value

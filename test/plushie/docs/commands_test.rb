@@ -161,7 +161,7 @@ class DocsCommandsTest < Minitest::Test
 
   def test_commands_get_system_theme_construct
     cmd = C.get_system_theme(:theme_detected)
-    assert_equal :window_query, cmd.type
+    assert_equal :system_query, cmd.type
     assert_equal :get_system_theme, cmd.payload[:op]
     assert_equal "theme_detected", cmd.payload[:tag]
   end

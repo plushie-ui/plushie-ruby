@@ -112,6 +112,8 @@ module Plushie
       def send_widget_op: (Symbol op, Hash[Symbol, untyped] payload) -> void
       def send_window_op: (Hash[Symbol, untyped] payload) -> void
       def send_window_query: (Hash[Symbol, untyped] payload) -> void
+      def send_system_op: (Hash[Symbol, untyped] payload) -> void
+      def send_system_query: (Hash[Symbol, untyped] payload) -> void
       def send_image_op: (Hash[Symbol, untyped] payload) -> void
       def send_extension_command: (Hash[Symbol, untyped] payload) -> void
       def send_extension_commands: (Array[Hash[Symbol, untyped]] commands) -> void

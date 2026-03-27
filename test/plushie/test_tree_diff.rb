@@ -28,7 +28,7 @@ class TestTreeDiff < Minitest::Test
     old_tree = node("root", "column")
     ops = Plushie::Tree.diff(old_tree, nil)
     assert_equal 1, ops.length
-    assert_equal "remove_child", ops[0]["op"]
+    assert_equal "replace_node", ops[0]["op"]
   end
 
   # -- Identical trees ------------------------------------------------------
