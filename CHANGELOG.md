@@ -54,7 +54,7 @@ Initial release. Targets plushie-renderer 0.5.0.
 - Minitest and RSpec integration
 - 100% YARD documentation coverage with zero warnings
 - RBS type signatures for all modules
-- GitHub Actions CI workflow (Ruby 3.2 + 3.3 matrix)
+- GitHub Actions CI workflow (Ruby 3.2 + 3.3 + 4.0 matrix)
 - CONTRIBUTING.md with commit conventions and development guide
 - Rake tasks: download, build, run, connect, inspect, script, replay,
   preflight
