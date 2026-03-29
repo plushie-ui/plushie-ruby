@@ -18,7 +18,15 @@ module Plushie
       def sync_subscriptions
         new_specs = begin
           subs = @app.subscribe(@model)
-          subs.is_a?(Array) ? subs : []
+          subs = subs.is_a?(Array) ? subs : []
+          subs.each do |s|
+            unless s.is_a?(Subscription::Sub)
+              raise ArgumentError, "subscribe must return a list of Subscription::Sub structs, got: #{s.inspect}"
+            end
+          end
+          subs
+        rescue ArgumentError
+          raise
         rescue => e
           @logger.error("plushie: subscribe raised: #{e.class}: #{e.message}")
           []
@@ -87,7 +95,7 @@ module Plushie
           entry[:thread]&.kill
         when :renderer
           @bridge.send_encoded(
-            Protocol::Encode.encode_unsubscribe(entry[:kind], @format)
+            Protocol::Encode.encode_unsubscribe(entry[:kind], @format, tag: entry[:tag])
           )
         end
       end
@@ -112,10 +120,12 @@ module Plushie
       # Start a renderer subscription (send subscribe message to bridge).
       def start_renderer_subscription(spec)
         @bridge.send_encoded(
-          Protocol::Encode.encode_subscribe(spec.type, spec.tag, @format, max_rate: spec.max_rate)
+          Protocol::Encode.encode_subscribe(spec.type, spec.tag, @format,
+            max_rate: spec.max_rate, window_id: spec.window_id)
         )
 
-        {sub_type: :renderer, kind: spec.type, tag: spec.tag, max_rate: spec.max_rate}
+        {sub_type: :renderer, kind: spec.type, tag: spec.tag,
+         max_rate: spec.max_rate, window_id: spec.window_id}
       end
 
       # Update max_rate on existing renderer subscriptions if changed.
@@ -132,7 +142,8 @@ module Plushie
 
         # Re-send subscribe with new rate
         @bridge.send_encoded(
-          Protocol::Encode.encode_subscribe(spec.type, spec.tag, @format, max_rate: spec.max_rate)
+          Protocol::Encode.encode_subscribe(spec.type, spec.tag, @format,
+            max_rate: spec.max_rate, window_id: spec.window_id)
         )
         @subscriptions[key] = entry.merge(max_rate: spec.max_rate)
       end

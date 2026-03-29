@@ -26,8 +26,8 @@ module Plushie
       def self.encode_patch: (Array[Hash[String, untyped]] ops, ?Symbol format) -> String
 
       # Subscriptions
-      def self.encode_subscribe: (String | Symbol kind, String | Symbol tag, ?Symbol format, ?max_rate: Integer?) -> String
-      def self.encode_unsubscribe: (String | Symbol kind, ?Symbol format) -> String
+      def self.encode_subscribe: (String | Symbol kind, String | Symbol tag, ?Symbol format, ?max_rate: Integer?, ?window_id: String?) -> String
+      def self.encode_unsubscribe: (String | Symbol kind, ?Symbol format, ?tag: (String | Symbol)?) -> String
 
       # Widget operations
       def self.encode_widget_op: (String | Symbol op, Hash[Symbol, untyped] payload, ?Symbol format) -> String

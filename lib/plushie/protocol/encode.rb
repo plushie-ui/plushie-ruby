@@ -87,9 +87,10 @@ module Plushie
       # @param format [:msgpack, :json]
       # @param max_rate [Integer, nil] max events per second (nil = unlimited)
       # @return [String]
-      def encode_subscribe(kind, tag, format = :msgpack, max_rate: nil)
+      def encode_subscribe(kind, tag, format = :msgpack, max_rate: nil, window_id: nil)
         msg = {type: "subscribe", session: "", kind: kind.to_s, tag: tag.to_s}
         msg[:max_rate] = max_rate if max_rate
+        msg[:window_id] = window_id if window_id
         encode(msg, format)
       end
 
@@ -97,9 +98,12 @@ module Plushie
       #
       # @param kind [String, Symbol] event category
       # @param format [:msgpack, :json]
+      # @param tag [String, Symbol, nil] specific subscription tag for targeted removal
       # @return [String]
-      def encode_unsubscribe(kind, format = :msgpack)
-        encode({type: "unsubscribe", session: "", kind: kind.to_s}, format)
+      def encode_unsubscribe(kind, format = :msgpack, tag: nil)
+        msg = {type: "unsubscribe", session: "", kind: kind.to_s}
+        msg[:tag] = tag.to_s if tag
+        encode(msg, format)
       end
 
       # ---------------------------------------------------------------

@@ -27,8 +27,9 @@ module Plushie
     # @!attribute [r] tag [Symbol] identifier for subscription management and (for timers) event correlation
     # @!attribute [r] interval [Integer, nil] interval in milliseconds (only for :every)
     # @!attribute [r] max_rate [Integer, nil] maximum events per second (nil = unlimited)
-    Sub = Data.define(:type, :tag, :interval, :max_rate) do
-      def initialize(type:, tag:, interval: nil, max_rate: nil)
+    # @!attribute [r] window_id [String, nil] window scope (nil = all windows)
+    Sub = Data.define(:type, :tag, :interval, :max_rate, :window_id) do
+      def initialize(type:, tag:, interval: nil, max_rate: nil, window_id: nil)
         super
       end
 
@@ -41,6 +42,8 @@ module Plushie
       def key
         if type == :every
           [:every, interval, tag]
+        elsif window_id
+          [type, tag, window_id]
         else
           [type, tag]
         end
@@ -72,8 +75,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_key_press(tag, max_rate: nil)
-      Sub.new(type: :on_key_press, tag:, max_rate:)
+    def self.on_key_press(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_key_press, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to keyboard release events.
@@ -83,8 +86,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_key_release(tag, max_rate: nil)
-      Sub.new(type: :on_key_release, tag:, max_rate:)
+    def self.on_key_release(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_key_release, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to modifier key state changes.
@@ -95,8 +98,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_modifiers_changed(tag, max_rate: nil)
-      Sub.new(type: :on_modifiers_changed, tag:, max_rate:)
+    def self.on_modifiers_changed(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_modifiers_changed, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to mouse movement events.
@@ -106,8 +109,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_mouse_move(tag, max_rate: nil)
-      Sub.new(type: :on_mouse_move, tag:, max_rate:)
+    def self.on_mouse_move(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_mouse_move, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to mouse button press and release events.
@@ -117,8 +120,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_mouse_button(tag, max_rate: nil)
-      Sub.new(type: :on_mouse_button, tag:, max_rate:)
+    def self.on_mouse_button(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_mouse_button, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to mouse scroll wheel events.
@@ -128,8 +131,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_mouse_scroll(tag, max_rate: nil)
-      Sub.new(type: :on_mouse_scroll, tag:, max_rate:)
+    def self.on_mouse_scroll(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_mouse_scroll, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to window close request events.
@@ -139,8 +142,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_window_close(tag, max_rate: nil)
-      Sub.new(type: :on_window_close, tag:, max_rate:)
+    def self.on_window_close(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_window_close, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to window opened events.
@@ -150,8 +153,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_window_open(tag, max_rate: nil)
-      Sub.new(type: :on_window_open, tag:, max_rate:)
+    def self.on_window_open(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_window_open, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to window resize events.
@@ -161,8 +164,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_window_resize(tag, max_rate: nil)
-      Sub.new(type: :on_window_resize, tag:, max_rate:)
+    def self.on_window_resize(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_window_resize, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to window focus events.
@@ -172,8 +175,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_window_focus(tag, max_rate: nil)
-      Sub.new(type: :on_window_focus, tag:, max_rate:)
+    def self.on_window_focus(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_window_focus, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to window unfocus events.
@@ -183,8 +186,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_window_unfocus(tag, max_rate: nil)
-      Sub.new(type: :on_window_unfocus, tag:, max_rate:)
+    def self.on_window_unfocus(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_window_unfocus, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to window move events.
@@ -194,8 +197,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_window_move(tag, max_rate: nil)
-      Sub.new(type: :on_window_move, tag:, max_rate:)
+    def self.on_window_move(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_window_move, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to touch screen events (finger press, lift, move, lost).
@@ -205,8 +208,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_touch(tag, max_rate: nil)
-      Sub.new(type: :on_touch, tag:, max_rate:)
+    def self.on_touch(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_touch, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to IME (Input Method Editor) composition events.
@@ -216,8 +219,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_ime(tag, max_rate: nil)
-      Sub.new(type: :on_ime, tag:, max_rate:)
+    def self.on_ime(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_ime, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to OS theme changes (light/dark mode).
@@ -227,8 +230,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_theme_change(tag, max_rate: nil)
-      Sub.new(type: :on_theme_change, tag:, max_rate:)
+    def self.on_theme_change(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_theme_change, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to animation frame ticks for smooth animations.
@@ -238,8 +241,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_animation_frame(tag, max_rate: nil)
-      Sub.new(type: :on_animation_frame, tag:, max_rate:)
+    def self.on_animation_frame(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_animation_frame, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to file drag and drop events.
@@ -249,8 +252,8 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_file_drop(tag, max_rate: nil)
-      Sub.new(type: :on_file_drop, tag:, max_rate:)
+    def self.on_file_drop(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_file_drop, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to all renderer events (catch-all).
@@ -261,8 +264,26 @@ module Plushie
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_event(tag, max_rate: nil)
-      Sub.new(type: :on_event, tag:, max_rate:)
+    def self.on_event(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_event, tag:, max_rate:, window_id: window)
+    end
+
+    # Scope a list of subscriptions to a specific window.
+    #
+    # Window-scoped subscriptions tell the renderer to only deliver events
+    # from the given window. Without a window scope, subscriptions receive
+    # events from all windows.
+    #
+    #   Subscription.for_window("editor", [
+    #     Subscription.on_key_press(:editor_keys),
+    #     Subscription.on_mouse_move(:editor_mouse, max_rate: 60)
+    #   ])
+    #
+    # @param window_id [String]
+    # @param subscriptions [Array<Sub>]
+    # @return [Array<Sub>]
+    def self.for_window(window_id, subscriptions)
+      subscriptions.map { |sub| sub.with(window_id: window_id) }
     end
   end
 end
