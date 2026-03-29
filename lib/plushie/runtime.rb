@@ -496,7 +496,9 @@ module Plushie
       flush_pending_effects_on_exit
       flush_pending_stub_acks
       @canvas_widgets = {}
-      @previous_tree = nil
+      # Keep @previous_tree intact. render_and_snapshot overwrites it on
+      # success. If view fails, resend_last_snapshot uses it as a fallback
+      # so the new renderer has something to display.
 
       # The new renderer expects Settings as the first message.
       send_settings

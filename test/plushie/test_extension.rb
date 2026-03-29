@@ -124,7 +124,7 @@ class TestExtension < Minitest::Test
   end
 
   def test_stateful_widget_without_render_raises
-    assert_raises(ArgumentError, /requires.*def self.render/) do
+    err = assert_raises(ArgumentError) do
       klass = Class.new do
         include Plushie::Widget
 
@@ -133,6 +133,7 @@ class TestExtension < Minitest::Test
       end
       klass.finalize!
     end
+    assert_match(/requires.*def self\.render/, err.message)
   end
 
   # -- Stateful widgets --------------------------------------------------------
