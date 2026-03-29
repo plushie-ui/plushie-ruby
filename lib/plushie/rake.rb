@@ -56,13 +56,13 @@ namespace :plushie do
       abort "cargo not found. Install Rust via https://rustup.rs"
     end
 
-    # Check for configured extensions
-    require "plushie/extension/build"
-    extensions = Plushie::Extension::Build.configured_extensions
+    # Check for configured native widgets
+    require "plushie/widget/native_build"
+    widgets = Plushie::Widget::NativeBuild.configured_widgets
 
-    if extensions.any?
-      Plushie::Extension::Build.build_with_extensions(
-        extensions, release: release
+    if widgets.any?
+      Plushie::Widget::NativeBuild.build_with_widgets(
+        widgets, release: release
       )
     else
       # Stock build: requires source checkout

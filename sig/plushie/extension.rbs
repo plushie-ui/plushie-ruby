@@ -1,9 +1,9 @@
 module Plushie
-  module Extension
+  module Widget
     KNOWN_PROP_TYPES: Array[Symbol]
     RESERVED_PROP_NAMES: Array[Symbol]
 
-    module ClassMethods
+    module CustomDSL
       VALID_KINDS: Array[Symbol]
 
       def widget: (Symbol type_name, **untyped opts) -> void
@@ -26,7 +26,7 @@ module Plushie
 
       def prop_names: () -> Array[Symbol]
 
-      def extension_props: () -> Array[Hash[Symbol, untyped]]
+      def widget_props: () -> Array[Hash[Symbol, untyped]]
 
       def container?: () -> bool
 

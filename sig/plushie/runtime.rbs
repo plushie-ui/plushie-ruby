@@ -95,6 +95,7 @@ module Plushie
 
     # Error handling
     def handle_callback_error: (String callback_name, Exception error, ?hint: String?) -> void
+    def handle_view_error: (Exception error) -> void
 
     # Shutdown
     def shutdown: () -> void

@@ -227,7 +227,7 @@ module Plushie
           raise Error, "protocol version mismatch: expected #{Protocol::PROTOCOL_VERSION}, got #{@hello[:protocol]}"
         end
 
-        validate_required_extensions!(@hello)
+        validate_required_widgets!(@hello)
       end
     end
 
@@ -264,7 +264,7 @@ module Plushie
           raise Error, "protocol version mismatch: expected #{Protocol::PROTOCOL_VERSION}, got #{@hello[:protocol]}"
         end
 
-        validate_required_extensions!(@hello)
+        validate_required_widgets!(@hello)
       end
     end
 
@@ -331,19 +331,21 @@ module Plushie
       end
     end
 
-    def validate_required_extensions!(hello)
+    def validate_required_widgets!(hello)
       expected =
-        Plushie.configuration.extensions
-          .select { |ext| ext.respond_to?(:native?) && ext.native? }
-          .map { |ext| ext.type_names.first.to_s }
+        Plushie.configuration.widgets
+          .select { |w| w.respond_to?(:native?) && w.native? }
+          .map { |w| w.type_names.first.to_s }
           .uniq
 
-      missing = expected - Array(hello[:extensions])
+      # Wire protocol uses "extensions" for the widget list in hello
+      available = Array(hello[:extensions]) + Array(hello[:widgets])
+      missing = expected - available
       return if missing.empty?
 
       raise Error,
-        "renderer is missing required extensions #{missing.inspect}. " \
-        "Renderer reported #{Array(hello[:extensions]).inspect}"
+        "renderer is missing required widgets #{missing.inspect}. " \
+        "Renderer reported #{available.inspect}"
     end
   end
 end

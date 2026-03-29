@@ -10,18 +10,18 @@ class TestConnection < Minitest::Test
       def self.type_names = [:gauge]
     end
 
-    original = Plushie.configuration.extensions
-    Plushie.configuration.extensions = [ext]
+    original = Plushie.configuration.widgets
+    Plushie.configuration.widgets = [ext]
 
     conn = Plushie::Connection.allocate
     error =
       assert_raises(Plushie::Error) do
-        conn.send(:validate_required_extensions!, {type: :hello, extensions: []})
+        conn.send(:validate_required_widgets!, {type: :hello, extensions: []})
       end
 
-    assert_match(/missing required extensions/, error.message)
+    assert_match(/missing required widgets/, error.message)
   ensure
-    Plushie.configuration.extensions = original
+    Plushie.configuration.widgets = original
   end
 
   # -- msgpack write framing (4-byte length prefix) -------------------------

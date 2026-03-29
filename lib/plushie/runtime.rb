@@ -182,8 +182,8 @@ module Plushie
         token: @token
       )
       settings = @app.settings
-      ext_config = Plushie.configuration.extension_config
-      settings = settings.merge(extension_config: ext_config) if ext_config && !ext_config.empty?
+      wc = Plushie.configuration.widget_config
+      settings = settings.merge(extension_config: wc) if wc && !wc.empty?
       bridge = @bridge or raise Plushie::Error, "bridge not started"
       bridge.start(settings: settings)
     end

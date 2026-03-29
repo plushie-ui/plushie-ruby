@@ -3,8 +3,8 @@ module Plushie
     attr_accessor binary_path: String?
     attr_accessor source_path: String?
     attr_accessor build_name: String
-    attr_accessor extensions: Array[untyped]
-    attr_accessor extension_config: Hash[String, untyped]
+    attr_accessor widgets: Array[untyped]
+    attr_accessor widget_config: Hash[String, untyped]
     attr_accessor test_backend: Symbol?
     attr_accessor artifacts: Array[Symbol]
     attr_accessor bin_file: String?

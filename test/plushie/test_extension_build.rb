@@ -1,11 +1,11 @@
 # frozen_string_literal: true
 
 require "test_helper"
-require "plushie/extension/build"
+require "plushie/widget/native_build"
 
 # A fake native extension for testing the build pipeline.
 class FakeSparkline
-  include Plushie::Extension
+  include Plushie::Widget
 
   widget :sparkline, kind: :native_widget
   rust_crate "native/sparkline"
@@ -17,7 +17,7 @@ end
 
 # A second native extension for collision testing.
 class FakeChart
-  include Plushie::Extension
+  include Plushie::Widget
 
   widget :chart, kind: :native_widget
   rust_crate "native/chart"
@@ -28,7 +28,7 @@ end
 
 # Extension with a duplicate type name (sparkline) for collision testing.
 class FakeSparklineDupe
-  include Plushie::Extension
+  include Plushie::Widget
 
   widget :sparkline, kind: :native_widget
   rust_crate "native/sparkline_v2"
@@ -39,7 +39,7 @@ end
 
 # Extension with duplicate crate basename for crate collision testing.
 class FakeChartSameCrate
-  include Plushie::Extension
+  include Plushie::Widget
 
   widget :pie_chart, kind: :native_widget
   rust_crate "other/chart"
@@ -49,7 +49,7 @@ class FakeChartSameCrate
 end
 
 class TestExtensionBuild < Minitest::Test
-  Build = Plushie::Extension::Build
+  Build = Plushie::Widget::NativeBuild
 
   # -- Collision detection --
 
@@ -89,7 +89,7 @@ class TestExtensionBuild < Minitest::Test
   def test_resolve_crate_paths_rejects_traversal_outside_project
     # Create a class with a crate path that escapes the base dir
     escape_ext = Class.new do
-      include Plushie::Extension
+      include Plushie::Widget
 
       widget :evil, kind: :native_widget
       rust_crate "../../etc/shadow"
@@ -234,7 +234,7 @@ class TestExtensionBuild < Minitest::Test
 
   def test_pure_widget_is_not_native
     klass = Class.new do
-      include Plushie::Extension
+      include Plushie::Widget
 
       widget :gauge
       prop :value, :number, default: 0
@@ -246,7 +246,7 @@ class TestExtensionBuild < Minitest::Test
   def test_native_widget_missing_rust_crate_raises
     assert_raises(ArgumentError) do
       Class.new do
-        include Plushie::Extension
+        include Plushie::Widget
 
         widget :bad_native, kind: :native_widget
         rust_constructor "bad::Bad::new()"
@@ -258,7 +258,7 @@ class TestExtensionBuild < Minitest::Test
   def test_native_widget_missing_rust_constructor_raises
     assert_raises(ArgumentError) do
       Class.new do
-        include Plushie::Extension
+        include Plushie::Widget
 
         widget :bad_native, kind: :native_widget
         rust_crate "native/bad"
@@ -270,46 +270,46 @@ class TestExtensionBuild < Minitest::Test
   def test_invalid_widget_kind_raises
     assert_raises(ArgumentError) do
       Class.new do
-        include Plushie::Extension
+        include Plushie::Widget
 
         widget :bad, kind: :something_else
       end
     end
   end
 
-  # -- configured_extensions --
+  # -- configured_widgets --
 
-  def test_configured_extensions_returns_empty_without_env
-    old_val = ENV.delete("PLUSHIE_EXTENSIONS")
+  def test_configured_widgets_returns_empty_without_env
+    old_val = ENV.delete("PLUSHIE_WIDGETS")
     begin
-      assert_equal [], Build.configured_extensions
+      assert_equal [], Build.configured_widgets
     ensure
-      ENV["PLUSHIE_EXTENSIONS"] = old_val if old_val
+      ENV["PLUSHIE_WIDGETS"] = old_val if old_val
     end
   end
 
-  def test_configured_extensions_returns_empty_for_blank_string
-    ENV["PLUSHIE_EXTENSIONS"] = "  "
+  def test_configured_widgets_returns_empty_for_blank_string
+    ENV["PLUSHIE_WIDGETS"] = "  "
     begin
-      assert_equal [], Build.configured_extensions
+      assert_equal [], Build.configured_widgets
     ensure
-      ENV.delete("PLUSHIE_EXTENSIONS")
+      ENV.delete("PLUSHIE_WIDGETS")
     end
   end
 
-  def test_configured_extensions_resolves_class_names
-    ENV["PLUSHIE_EXTENSIONS"] = "FakeSparkline"
+  def test_configured_widgets_resolves_class_names
+    ENV["PLUSHIE_WIDGETS"] = "FakeSparkline"
     begin
-      exts = Build.configured_extensions
+      exts = Build.configured_widgets
       assert_equal [FakeSparkline], exts
     ensure
-      ENV.delete("PLUSHIE_EXTENSIONS")
+      ENV.delete("PLUSHIE_WIDGETS")
     end
   end
 
-  def test_configured_extensions_rejects_non_native
+  def test_configured_widgets_rejects_non_native
     klass = Class.new do
-      include Plushie::Extension
+      include Plushie::Widget
 
       widget :gauge
       prop :value, :number, default: 0
@@ -317,13 +317,13 @@ class TestExtensionBuild < Minitest::Test
     # Assign a name we can look up
     Object.const_set(:TestPureGaugeForBuild, klass) unless defined?(TestPureGaugeForBuild)
 
-    ENV["PLUSHIE_EXTENSIONS"] = "TestPureGaugeForBuild"
+    ENV["PLUSHIE_WIDGETS"] = "TestPureGaugeForBuild"
     begin
       assert_raises(Plushie::Error) do
-        Build.configured_extensions
+        Build.configured_widgets
       end
     ensure
-      ENV.delete("PLUSHIE_EXTENSIONS")
+      ENV.delete("PLUSHIE_WIDGETS")
     end
   end
 end

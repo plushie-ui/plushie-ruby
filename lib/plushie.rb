@@ -76,8 +76,8 @@ require_relative "plushie/widget/stack"
 # Canvas shapes
 require_relative "plushie/canvas/shape"
 
-# Extension system
-require_relative "plushie/extension"
+# Custom widget system
+require_relative "plushie/widget"
 require_relative "plushie/canvas_widget"
 
 require_relative "plushie/ui"
@@ -129,11 +129,11 @@ module Plushie
   #     config.source_path = "~/projects/plushie"
   #   end
   #
-  # @example With extensions
+  # @example With custom widgets
   #   Plushie.configure do |config|
-  #     config.extensions = [MyGauge, MyChart]
+  #     config.widgets = [MyGauge, MyChart]
   #     config.build_name = "my-dashboard-plushie"
-  #     config.extension_config = {
+  #     config.widget_config = {
   #       "sparkline" => {"max_samples" => 1000}
   #     }
   #   end
@@ -149,20 +149,20 @@ module Plushie
     # @return [String, nil]
     attr_accessor :source_path
 
-    # Custom binary name for extension builds.
+    # Custom binary name for native widget builds.
     # Defaults to "plushie-custom". Used as the Cargo binary target name
     # and the installed filename.
     # @return [String]
     attr_accessor :build_name
 
-    # Extension classes to include in custom builds.
+    # Widget classes to include in custom builds.
     # @return [Array<Class>]
-    attr_accessor :extensions
+    attr_accessor :widgets
 
-    # Runtime configuration map passed to widget extensions via
-    # the Settings wire message. Keyed by extension widget type.
+    # Runtime configuration map passed to native widgets via
+    # the Settings wire message. Keyed by widget type.
     # @return [Hash]
-    attr_accessor :extension_config
+    attr_accessor :widget_config
 
     # Test backend (:mock, :headless, :windowed).
     # Equivalent to PLUSHIE_TEST_BACKEND env var.
@@ -191,8 +191,8 @@ module Plushie
       @binary_path = nil
       @source_path = nil
       @build_name = "plushie-custom"
-      @extensions = []
-      @extension_config = {}
+      @widgets = []
+      @widget_config = {}
       @test_backend = nil
       @artifacts = [:bin]
       @bin_file = nil

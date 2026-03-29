@@ -6,7 +6,7 @@ class DocsExtensionsTest < Minitest::Test
   # -- Extension widget declaration from extensions.md --
 
   class MySparkline
-    include Plushie::Extension
+    include Plushie::Widget
 
     widget :sparkline
 
@@ -94,7 +94,7 @@ class DocsExtensionsTest < Minitest::Test
   # -- Pure Ruby composite extension from extensions.md --
 
   class CardExtension
-    include Plushie::Extension
+    include Plushie::Widget
     include Plushie::UI
 
     widget :card, kind: :widget, container: true
@@ -135,7 +135,7 @@ class DocsExtensionsTest < Minitest::Test
   def test_extension_rejects_unknown_prop_type
     assert_raises(ArgumentError) do
       Class.new do
-        include Plushie::Extension
+        include Plushie::Widget
 
         widget :bad
         prop :value, :unknown_type
@@ -148,7 +148,7 @@ class DocsExtensionsTest < Minitest::Test
   def test_extension_rejects_reserved_prop_name
     assert_raises(ArgumentError) do
       Class.new do
-        include Plushie::Extension
+        include Plushie::Widget
 
         widget :bad
         prop :id, :string

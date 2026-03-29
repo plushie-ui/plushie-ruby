@@ -4,7 +4,7 @@ require "test_helper"
 
 # A simple extension for testing: a gauge widget.
 class TestGauge
-  include Plushie::Extension
+  include Plushie::Widget
 
   widget :gauge
   prop :value, :number, default: 0
@@ -14,7 +14,7 @@ end
 
 # A composite extension that defines render.
 class TestLabeledValue
-  include Plushie::Extension
+  include Plushie::Widget
   include Plushie::UI
 
   widget :labeled_value
@@ -104,7 +104,7 @@ class TestExtension < Minitest::Test
   def test_reserved_prop_name_raises
     assert_raises(ArgumentError) do
       Class.new do
-        include Plushie::Extension
+        include Plushie::Widget
 
         widget :bad
         prop :id, :string
@@ -115,7 +115,7 @@ class TestExtension < Minitest::Test
   def test_unsupported_prop_type_raises
     assert_raises(ArgumentError) do
       Class.new do
-        include Plushie::Extension
+        include Plushie::Widget
 
         widget :bad
         prop :thing, :unicorn
