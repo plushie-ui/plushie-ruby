@@ -5,12 +5,16 @@ require "logger"
 module Plushie
   # Renderer lifecycle manager.
   #
-  # Wraps a Connection with restart logic and state preservation.
-  # When the renderer crashes, the Bridge reconnects with exponential
-  # backoff and re-sends settings + the last snapshot.
+  # Wraps a Connection with restart logic. When the renderer crashes,
+  # the Bridge reconnects with exponential backoff and notifies the
+  # Runtime via the event queue. The Runtime owns the resync flow:
+  # it re-sends settings, renders a fresh snapshot, and re-syncs
+  # subscriptions after a successful restart.
   #
-  # The Bridge pushes decoded events to the Runtime's event queue.
-  # On disconnect, it pushes [:renderer_exited, reason].
+  # The Bridge pushes decoded events to the Runtime's event queue:
+  # - +[:renderer_event, msg]+ for normal protocol messages
+  # - +[:renderer_exited, reason]+ when the connection drops
+  # - +[:renderer_restarted]+ after a successful reconnect
   class Bridge
     # Exponential backoff parameters
     BACKOFF_BASE_MS = 100
@@ -44,7 +48,6 @@ module Plushie
       @connection = nil
       @retry_count = 0
       @settings = {}
-      @last_snapshot = nil
       @logger = Logger.new($stderr, level: :warn, progname: "plushie")
     end
 
@@ -61,13 +64,6 @@ module Plushie
     # @param data [String] encoded message bytes
     def send_encoded(data)
       @connection&.send_encoded(data)
-    end
-
-    # Store the last snapshot for re-sending after restart.
-    #
-    # @param snapshot_data [String] encoded snapshot message
-    def remember_snapshot(snapshot_data)
-      @last_snapshot = snapshot_data
     end
 
     # Register an effect stub with the renderer.
@@ -161,17 +157,12 @@ module Plushie
       @connection&.close
 
       connect!
-      resend_state
+      # Notify the runtime that the renderer is back. The runtime owns
+      # the resync flow: re-send settings, render, sync subscriptions.
+      @event_queue.push([:renderer_restarted])
     rescue => e
       @logger.error("plushie: restart failed: #{e.class}: #{e.message}")
       @event_queue.push([:renderer_exited, e]) if @retry_count >= MAX_RETRIES
-    end
-
-    def resend_state
-      # Re-send the last snapshot so the renderer has the current tree
-      if @last_snapshot
-        @connection.send_encoded(@last_snapshot)
-      end
     end
 
     def handle_connect_failure(error)

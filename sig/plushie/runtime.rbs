@@ -57,7 +57,6 @@ module Plushie
     private
 
     # Lifecycle
-    def start_bridge: () -> void
     def start_dev_server: () -> void
     def initialize_app: () -> void
 
@@ -89,14 +88,24 @@ module Plushie
     # Effect handling
     def handle_effect_timeout: (String id) -> void
 
-    # Renderer exit
+    def start_bridge: () -> void
+    def build_settings: () -> Hash[Symbol, untyped]
+
+    # Renderer exit / restart
     def handle_renderer_exit: (untyped reason) -> void
+    def handle_renderer_restarted: () -> void
     def fail_pending_interact: (String reason) -> void
 
     # Error handling
     def handle_callback_error: (String callback_name, Exception error, ?hint: String?) -> void
     def handle_view_error: (Exception error) -> void
     def resend_last_snapshot: () -> void
+
+    # Resync helpers
+    def send_settings: () -> void
+    def flush_pending_effects_on_exit: () -> void
+    def flush_pending_stub_acks: () -> void
+    def reset_renderer_subscriptions: () -> void
 
     # Shutdown
     def shutdown: () -> void

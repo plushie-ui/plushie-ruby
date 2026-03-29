@@ -181,11 +181,15 @@ module Plushie
         log_level: @log_level,
         token: @token
       )
+      bridge = @bridge or raise Plushie::Error, "bridge not started"
+      bridge.start(settings: build_settings)
+    end
+
+    def build_settings
       settings = @app.settings
       wc = Plushie.configuration.widget_config
       settings = settings.merge(extension_config: wc) if wc && !wc.empty?
-      bridge = @bridge or raise Plushie::Error, "bridge not started"
-      bridge.start(settings: settings)
+      settings
     end
 
     def start_dev_server
@@ -219,6 +223,8 @@ module Plushie
           dispatch_event(event)
         in [:renderer_exited, reason]
           handle_renderer_exit(reason)
+        in [:renderer_restarted]
+          handle_renderer_restarted
         in [:async_result, tag, nonce, result]
           handle_async_result(tag, nonce, result)
         in [:stream_value, tag, nonce, value]
@@ -333,7 +339,6 @@ module Plushie
       encoded = Protocol::Encode.encode_snapshot(wire, @format)
       bridge = @bridge or raise Plushie::Error, "bridge not started"
       bridge.send_encoded(encoded)
-      bridge.remember_snapshot(encoded)
       @consecutive_view_errors = 0
     rescue => e
       handle_view_error(e)
@@ -353,7 +358,6 @@ module Plushie
         encoded = Protocol::Encode.encode_snapshot(wire, @format)
         bridge = @bridge or raise Plushie::Error, "bridge not started"
         bridge.send_encoded(encoded)
-        bridge.remember_snapshot(encoded)
       else
         ops = Tree.diff(@previous_tree, new_tree)
         @previous_tree = new_tree
@@ -361,9 +365,6 @@ module Plushie
         unless ops.empty?
           bridge = @bridge or raise Plushie::Error, "bridge not started"
           bridge.send_encoded(Protocol::Encode.encode_patch(ops, @format))
-          # Also remember the current tree as a snapshot for restart
-          wire = Tree.node_to_wire(new_tree)
-          bridge.remember_snapshot(Protocol::Encode.encode_snapshot(wire, @format))
         end
       end
       @consecutive_view_errors = 0
@@ -465,11 +466,35 @@ module Plushie
 
     def handle_renderer_exit(reason)
       @logger.warn("plushie: renderer exited: #{reason}")
-      fail_pending_interact("renderer_restarted")
-      @canvas_widgets = {} # Registry re-derived on next render
+      fail_pending_interact("renderer_exited")
+      flush_pending_effects_on_exit
+      flush_pending_stub_acks
+      @canvas_widgets = {}
       @model = @app.handle_renderer_exit(@model, reason)
-      @previous_tree = nil # Force full snapshot on reconnect
+      @previous_tree = nil
       @running = false unless @daemon
+    end
+
+    def handle_renderer_restarted
+      @logger.info("plushie: renderer restarted -- re-sending settings and snapshot")
+
+      # Clear stale interaction state from the old renderer.
+      fail_pending_interact("renderer_restarted")
+      flush_pending_effects_on_exit
+      flush_pending_stub_acks
+      @canvas_widgets = {}
+      @previous_tree = nil
+
+      # The new renderer expects Settings as the first message.
+      send_settings
+
+      # Re-render to get a fresh tree and send a full snapshot.
+      render_and_snapshot
+
+      # Reset renderer subscriptions so sync sees them as new and
+      # re-sends subscribe messages to the fresh renderer.
+      reset_renderer_subscriptions
+      sync_subscriptions
     end
 
     # -- Error handling ------------------------------------------------------
@@ -573,6 +598,38 @@ module Plushie
       return unless pending
 
       pending[:result_queue]&.push({error: reason})
+    end
+
+    # -- Resync helpers -------------------------------------------------------
+
+    # Send app settings to the renderer. Used after a restart so the
+    # new renderer has the app's configuration.
+    def send_settings
+      bridge = @bridge or return
+      bridge.send_encoded(Protocol::Encode.encode_settings(build_settings, @format))
+    end
+
+    # Flush pending effect requests -- the renderer that would have
+    # responded is gone. Deliver timeout errors so callers don't hang.
+    def flush_pending_effects_on_exit
+      @pending_effects.each_value(&:kill)
+      @pending_effects.clear
+    end
+
+    # Flush pending stub ack queues so callers don't hang.
+    def flush_pending_stub_acks
+      @pending_stub_acks.each_value { |q| q.push(:ok) }
+      @pending_stub_acks.clear
+    end
+
+    # Clear renderer-side subscriptions so sync_subscriptions sees them
+    # as new and re-sends subscribe messages to the fresh renderer.
+    def reset_renderer_subscriptions
+      @subscriptions.each do |key, entry|
+        next unless entry[:sub_type] == :renderer
+        @subscriptions.delete(key)
+      end
+      @subscription_keys = @subscriptions.keys.sort_by(&:to_s)
     end
 
     # -- Shutdown ------------------------------------------------------------

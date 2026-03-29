@@ -15,7 +15,6 @@ module Plushie
     @connection: Connection?
     @retry_count: Integer
     @settings: Hash[Symbol, untyped]
-    @last_snapshot: String?
     @logger: Logger
 
     def initialize: (
@@ -29,7 +28,8 @@ module Plushie
 
     def start: (?settings: Hash[Symbol, untyped]) -> void
     def send_encoded: (String data) -> void
-    def remember_snapshot: (String snapshot_data) -> void
+    def send_register_effect_stub: (String kind, untyped response) -> void
+    def send_unregister_effect_stub: (String kind) -> void
     def stop: () -> void
 
     private
@@ -37,7 +37,6 @@ module Plushie
     def connect!: () -> void
     def start_forwarder: (Thread::Queue conn_queue) -> Thread
     def attempt_restart: () -> void
-    def resend_state: () -> void
     def handle_connect_failure: (Exception error) -> void
   end
 end
