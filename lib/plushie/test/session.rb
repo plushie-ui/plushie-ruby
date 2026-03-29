@@ -251,6 +251,16 @@ module Plushie
       # -- Interaction protocol ------------------------------------------------
 
       def interact(action, selector, **payload)
+        # For widget-targeted actions, validate the selector resolves in the
+        # local tree before sending the interact request. Fail fast with a
+        # clear error instead of silently producing no events.
+        if selector && !find_in_local_tree(selector)
+          all_ids = @tree ? Tree.ids(@tree) : []
+          err = "Widget not found: #{selector.inspect}. The #{action} action requires a valid widget selector."
+          err << "\n  Current tree IDs: #{all_ids.join(", ")}" if all_ids.any?
+          raise Plushie::Error, err
+        end
+
         id = SecureRandom.hex(4)
         msg = {type: "interact", id: id, action: action, payload: payload}
         msg[:selector] = build_selector(selector) if selector
