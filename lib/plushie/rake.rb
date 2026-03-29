@@ -44,7 +44,7 @@ namespace :plushie do
     end
   end
 
-  desc "Build the plushie renderer from Rust source (with extensions if configured)"
+  desc "Build the plushie renderer (stock or with native widgets if configured)"
   task :build, [:profile] do |_t, args|
     require "plushie"
 
@@ -56,56 +56,16 @@ namespace :plushie do
       abort "cargo not found. Install Rust via https://rustup.rs"
     end
 
-    # Check for configured native widgets
+    # Unified build: always generate a workspace. Stock builds (no
+    # native widgets) produce a vanilla plushie-renderer. Custom builds
+    # include each widget's Rust crate. Both work with crates.io deps
+    # (no source checkout needed) or local source if available.
     require "plushie/widget/native_build"
     widgets = Plushie::Widget::NativeBuild.configured_widgets
 
-    if widgets.any?
-      Plushie::Widget::NativeBuild.build_with_widgets(
-        widgets, release: release
-      )
-    else
-      # Stock build: requires source checkout
-      source_dir = ENV["PLUSHIE_SOURCE_PATH"] || Plushie.configuration.source_path
-      unless source_dir && File.directory?(source_dir)
-        abort "Plushie Rust source not found. Set PLUSHIE_SOURCE_PATH env var " \
-          "or Plushie.configuration.source_path to the plushie repo checkout."
-      end
-
-      cmd_args = ["cargo", "build", "-p", "plushie-renderer"]
-      cmd_args << "--release" if release
-
-      label = release ? " (release)" : ""
-      puts "Building plushie#{label}..."
-
-      unless system(*cmd_args, chdir: source_dir)
-        abort "cargo build failed"
-      end
-
-      puts "Build succeeded."
-
-      # Install binary
-      profile_dir = release ? "release" : "debug"
-      src = File.join(source_dir, "target", profile_dir, "plushie-renderer")
-
-      unless File.exist?(src)
-        abort "Build succeeded but binary not found at #{src}"
-      end
-
-      bin_file = ENV["PLUSHIE_BIN_FILE"] || Plushie.configuration.bin_file
-      if bin_file
-        dest = bin_file
-        FileUtils.mkdir_p(File.dirname(dest))
-      else
-        dest_dir = File.join("_build", "plushie", "bin")
-        FileUtils.mkdir_p(dest_dir)
-        dest = File.join(dest_dir, Plushie::Binary.binary_name)
-      end
-      FileUtils.cp(src, dest)
-      File.chmod(0o755, dest)
-
-      puts "Installed to #{dest}"
-    end
+    Plushie::Widget::NativeBuild.build_with_widgets(
+      widgets, release: release
+    )
   end
 
   desc "Run a Plushie app (e.g. rake plushie:run[Counter] or plushie:run[Counter,dev] or plushie:run[Counter,json])"

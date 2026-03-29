@@ -5,14 +5,24 @@ require "pathname"
 
 module Plushie
   module Widget
-    # Build pipeline for native Rust widgets.
+    # Build pipeline for the plushie renderer binary.
     #
-    # Generates a custom Cargo workspace that registers each widget's
-    # crate and builds a combined binary.
+    # Generates a Cargo workspace and builds a renderer binary. Works in
+    # two modes:
+    #
+    # - **Stock build**: no native widgets. Generates a minimal workspace
+    #   that depends on plushie-renderer from crates.io (or local source
+    #   if PLUSHIE_SOURCE_PATH is set).
+    # - **Custom build**: with native widgets. Each widget's Rust crate is
+    #   included in the workspace and registered in the generated main.rs.
+    #
+    # Source checkout is optional. Without PLUSHIE_SOURCE_PATH, dependencies
+    # are pulled from crates.io using BINARY_VERSION.
     module NativeBuild
-      # Template for generated Rust constructor code.
+      # Matches Rust constructor expressions including turbofish generics.
+      # Valid: MyExt::new(), sparkline::Ext::<Config>::new(), create()
       # @api private
-      RUST_CONSTRUCTOR_PATTERN = /\A[A-Za-z_][A-Za-z0-9_:]*(\([^)]*\))?\z/
+      RUST_CONSTRUCTOR_PATTERN = /\A[A-Za-z_][A-Za-z0-9_:<>, ]*(\([^)]*\))?\z/
 
       module_function
 
@@ -22,12 +32,14 @@ module Plushie
       # 1. Plushie.configuration.widgets (set via Plushie.configure block)
       # 2. PLUSHIE_WIDGETS env var (comma-separated class names, for CI)
       #
+      # Non-native widgets in the list are skipped with a warning.
+      #
       # @return [Array<Class>] native widget classes
       def configured_widgets
         # Priority 1: Plushie.configure block
         from_config = Plushie.configuration.widgets
         if from_config.is_a?(Array) && from_config.any?
-          return validate_widgets(from_config)
+          return filter_native(from_config)
         end
 
         # Priority 2: env var (for CI / one-off builds)
@@ -43,21 +55,23 @@ module Plushie
               "Ensure the class is defined and the file is required before running the build."
           end
         }
-        validate_widgets(classes)
+        filter_native(classes)
       end
 
-      # Validate that each class is a native widget.
+      # Filter to native-only widgets, skipping non-native with a warning.
       #
       # @param classes [Array<Class>]
       # @return [Array<Class>]
-      def validate_widgets(classes)
-        classes.each do |mod|
-          mod.finalize! if mod.respond_to?(:finalize!)
-          unless mod.respond_to?(:native?) && mod.native?
-            raise Error, "#{mod.name} is configured as a widget but is not a native_widget"
+      def filter_native(classes)
+        classes.each { |mod| mod.finalize! if mod.respond_to?(:finalize!) }
+        classes.select do |mod|
+          if mod.respond_to?(:native?) && mod.native?
+            true
+          else
+            warn "plushie: skipping #{mod.name} (not a native_widget)"
+            false
           end
         end
-        classes
       end
 
       # Validate no type name collisions between widgets.
@@ -120,6 +134,8 @@ module Plushie
       end
 
       # Validate a Rust constructor expression is safe for codegen.
+      # Allows identifiers, paths (::), turbofish generics (<>), and
+      # simple invocations (parentheses).
       #
       # @param mod [Class] the widget class (for error messages)
       # @param constructor [String] the Rust expression
@@ -128,22 +144,82 @@ module Plushie
 
         raise Error, "Widget #{mod.name} rust_constructor #{constructor.inspect} " \
           "contains invalid characters. Expected a Rust identifier, path (::), " \
-          "or simple invocation (e.g. \"MyWidget::new()\")"
+          "or simple invocation (e.g. \"MyWidget::new()\" or \"MyWidget::<Config>::new()\")"
       end
 
-      # Generate the Cargo.toml content for the custom workspace.
+      # Check that native widget crates depend on a compatible plushie-ext
+      # version. Reads each crate's Cargo.toml and compares against
+      # BINARY_VERSION. Warns on mismatch to prevent confusing Cargo errors.
+      #
+      # @param crate_paths [Hash{Class => String}]
+      # @return [void]
+      def check_widget_versions!(crate_paths)
+        expected = Plushie::BINARY_VERSION
+        expected_parts = expected.split(".").map(&:to_i)
+
+        crate_paths.each do |mod, crate_path|
+          cargo_toml = File.join(crate_path, "Cargo.toml")
+          next unless File.exist?(cargo_toml)
+
+          content = File.read(cargo_toml)
+          dep_version = extract_plushie_ext_version(content, crate_path)
+          next unless dep_version
+
+          # Strip leading operators (^, ~, >=, =)
+          base = dep_version.gsub(/\A[^0-9]*/, "")
+          dep_parts = base.split(".").map(&:to_i)
+
+          # Pre-1.0: major AND minor must match. 1.0+: major must match.
+          compatible = if expected_parts[0] == 0
+            dep_parts[0] == expected_parts[0] && dep_parts[1] == expected_parts[1]
+          else
+            dep_parts[0] == expected_parts[0]
+          end
+
+          unless compatible
+            warn "plushie: widget #{mod.name} depends on plushie-ext #{dep_version}, " \
+              "but this project targets #{expected}. " \
+              "Update the widget's Rust crate to a compatible version."
+          end
+        end
+      end
+
+      # Generate the Cargo.toml content for the workspace.
+      #
+      # When source_path is set, uses local path dependencies and adds a
+      # [patch.crates-io] section so widget crates that depend on plushie-ext
+      # from crates.io get redirected to the same local checkout.
+      #
+      # When source_path is not set, uses crates.io version dependencies.
       def generate_cargo_toml(build_dir, bin_name, widgets, crate_paths)
         source_path = ENV["PLUSHIE_SOURCE_PATH"] || Plushie.configuration.source_path
 
-        core_dep, bin_dep = if source_path && File.directory?(source_path)
+        core_dep, bin_dep, patch_section = if source_path && File.directory?(source_path)
           core_rel = relative_path(File.join(source_path, "plushie-ext"), build_dir)
           bin_rel = relative_path(File.join(source_path, "plushie-renderer"), build_dir)
+
+          # Patch section redirects crates.io deps to local source so
+          # widget crates that depend on plushie-ext from crates.io get
+          # the same local checkout. Without this, Cargo treats them as
+          # different crates and trait impls don't match.
+          ext_abs = File.expand_path(File.join(source_path, "plushie-ext"))
+          renderer_abs = File.expand_path(File.join(source_path, "plushie-renderer"))
+
+          patch = <<~TOML
+
+            [patch.crates-io]
+            plushie-ext = { path = "#{ext_abs}" }
+            plushie-renderer = { path = "#{renderer_abs}" }
+          TOML
+
           [%(plushie-ext = { path = "#{core_rel}" }),
-            %(plushie-renderer = { path = "#{bin_rel}" })]
+            %(plushie-renderer = { path = "#{bin_rel}" }),
+            patch]
         else
           version = Plushie::BINARY_VERSION
           [%(plushie-ext = "#{version}"),
-            %(plushie-renderer = "#{version}")]
+            %(plushie-renderer = "#{version}"),
+            ""]
         end
 
         ext_deps = widgets.map { |mod|
@@ -169,48 +245,76 @@ module Plushie
           #{core_dep}
           #{bin_dep}
           #{ext_deps}
+          #{patch_section}
         TOML
       end
 
       # Generate main.rs with widget registrations.
       def generate_main_rs(widgets)
-        registrations = widgets.map { |mod|
-          constructor = mod.rust_constructor_expr
-          validate_rust_constructor!(mod, constructor)
-          "        .extension(#{constructor})"
-        }.join("\n")
+        builder_expr = if widgets.empty?
+          "PlushieAppBuilder::new()"
+        else
+          registrations = widgets.map { |mod|
+            constructor = mod.rust_constructor_expr
+            validate_rust_constructor!(mod, constructor)
+            "        .extension(#{constructor})"
+          }.join("\n")
+          "PlushieAppBuilder::new()\n#{registrations}"
+        end
 
         <<~RUST
           // Auto-generated by rake plushie:build
           // Do not edit manually.
 
           use plushie_ext::app::PlushieAppBuilder;
-          use plushie_ext::iced;
 
-          fn main() -> iced::Result {
-              let builder = PlushieAppBuilder::new()
-          #{registrations};
+          fn main() -> plushie_ext::iced::Result {
+              let builder = #{builder_expr};
               plushie_renderer::run(builder)
           }
         RUST
       end
 
-      # Generate the workspace and build the custom binary.
-      def build_with_widgets(widgets, release: false, verbose: false)
-        build_dir = File.join("_build", "plushie", "custom")
+      # Build the renderer binary. Works for both stock builds (no native
+      # widgets) and custom builds (with native widgets).
+      #
+      # @param widgets [Array<Class>] native widget classes (may be empty)
+      # @param release [Boolean] build with optimizations
+      # @param verbose [Boolean] print cargo output on success
+      # @param bin_name [String, nil] override binary name
+      # @return [String] path to the installed binary
+      # @raise [Plushie::Error] on build failure
+      def build_with_widgets(widgets, release: false, verbose: false, bin_name: nil)
+        build_dir = File.join("_build", "plushie", "workspace")
         FileUtils.mkdir_p(build_dir)
 
-        bin_name = ENV["PLUSHIE_BUILD_NAME"] || Plushie.configuration.build_name
+        bin_name ||= if widgets.empty?
+          "plushie-renderer"
+        else
+          ENV["PLUSHIE_BUILD_NAME"] || Plushie.configuration.build_name
+        end
+
         crate_paths = resolve_crate_paths(widgets)
 
-        check_collisions!(widgets)
-        check_crate_name_collisions!(widgets)
+        if widgets.any?
+          check_collisions!(widgets)
+          check_crate_name_collisions!(widgets)
+          check_widget_versions!(crate_paths)
+        end
 
         generate_workspace(build_dir, bin_name, widgets, crate_paths)
 
-        widget_names = widgets.map(&:name).join(", ")
-        puts "Generated custom build workspace at #{build_dir} " \
-          "with widgets: #{widget_names}"
+        source_path = ENV["PLUSHIE_SOURCE_PATH"] || Plushie.configuration.source_path
+        source_info = if source_path && File.directory?(source_path)
+          "local source"
+        else
+          "crates.io v#{Plushie::BINARY_VERSION}"
+        end
+
+        puts "Source: #{source_info}"
+        if widgets.any?
+          puts "Widgets: #{widgets.map(&:name).join(", ")}"
+        end
 
         release_flags = release ? ["--release"] : []
         profile = release ? "release" : "debug"
@@ -219,7 +323,7 @@ module Plushie
         puts "Building #{bin_name}#{label}..."
 
         unless system("cargo", "build", *release_flags, chdir: build_dir)
-          raise Error, "cargo build failed for custom build workspace"
+          raise Error, "cargo build failed"
         end
 
         puts "Build succeeded."
@@ -232,7 +336,7 @@ module Plushie
         install_binary(binary_src)
       end
 
-      # Generate a Cargo workspace for widget builds.
+      # Generate a Cargo workspace.
       # @api private
       def generate_workspace(build_dir, bin_name, widgets, crate_paths)
         cargo = generate_cargo_toml(build_dir, bin_name, widgets, crate_paths)
@@ -244,7 +348,7 @@ module Plushie
         File.write(File.join(src_dir, "main.rs"), main)
       end
 
-      # Install the built widget binary.
+      # Install the built binary.
       # @api private
       def install_binary(src)
         bin_file = ENV["PLUSHIE_BIN_FILE"] || Plushie.configuration.bin_file
@@ -268,6 +372,33 @@ module Plushie
       def relative_path(target, from)
         Pathname.new(File.expand_path(target))
           .relative_path_from(Pathname.new(File.expand_path(from))).to_s
+      end
+
+      # Extract plushie-ext version from a Cargo.toml content string.
+      # @api private
+      def extract_plushie_ext_version(content, crate_path)
+        # Inline: plushie-ext = "0.5.0"
+        if (match = content.match(/plushie-ext\s*=\s*"([^"]+)"/))
+          return match[1]
+        end
+
+        # Table with version: plushie-ext = { version = "0.5.0", ... }
+        if (match = content.match(/plushie-ext\s*=\s*\{[^}]*version\s*=\s*"([^"]+)"/))
+          return match[1]
+        end
+
+        # Table with path: plushie-ext = { path = "..." }
+        if (match = content.match(/plushie-ext\s*=\s*\{[^}]*path\s*=\s*"([^"]+)"/))
+          target_toml = File.join(File.expand_path(match[1], crate_path), "Cargo.toml")
+          if File.exist?(target_toml)
+            pkg_content = File.read(target_toml)
+            if (pkg_match = pkg_content.match(/\[package\][^\[]*version\s*=\s*"([^"]+)"/m))
+              return pkg_match[1]
+            end
+          end
+        end
+
+        nil
       end
     end
   end

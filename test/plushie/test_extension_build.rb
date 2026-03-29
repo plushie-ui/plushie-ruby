@@ -307,7 +307,7 @@ class TestExtensionBuild < Minitest::Test
     end
   end
 
-  def test_configured_widgets_rejects_non_native
+  def test_configured_widgets_filters_non_native
     klass = Class.new do
       include Plushie::Widget
 
@@ -319,11 +319,78 @@ class TestExtensionBuild < Minitest::Test
 
     ENV["PLUSHIE_WIDGETS"] = "TestPureGaugeForBuild"
     begin
-      assert_raises(Plushie::Error) do
-        Build.configured_widgets
-      end
+      # Non-native widgets are filtered out (with a warning), not rejected
+      result = Build.configured_widgets
+      assert_equal [], result
     ensure
       ENV.delete("PLUSHIE_WIDGETS")
+    end
+  end
+
+  # -- Rust constructor validation --
+
+  def test_validate_rust_constructor_accepts_turbofish
+    Build.validate_rust_constructor!(FakeSparkline, "MyExt::<Config>::new()")
+  end
+
+  def test_validate_rust_constructor_accepts_turbofish_with_multiple_params
+    Build.validate_rust_constructor!(FakeSparkline, "MyExt::<Config, State>::new()")
+  end
+
+  # -- main.rs generation for stock build --
+
+  def test_generate_main_rs_without_widgets
+    rs = Build.generate_main_rs([])
+    assert_includes rs, "PlushieAppBuilder::new();"
+    assert_includes rs, "plushie_renderer::run(builder)"
+    refute_includes rs, ".extension("
+  end
+
+  # -- Version compatibility --
+
+  def test_check_widget_versions_warns_on_mismatch
+    Dir.mktmpdir do |tmpdir|
+      crate_dir = File.join(tmpdir, "native", "sparkline")
+      FileUtils.mkdir_p(crate_dir)
+      File.write(File.join(crate_dir, "Cargo.toml"), <<~TOML)
+        [package]
+        name = "sparkline"
+        version = "0.1.0"
+
+        [dependencies]
+        plushie-ext = "0.1.0"
+      TOML
+
+      # Should warn but not raise
+      output = capture_io do
+        Build.check_widget_versions!({FakeSparkline => crate_dir})
+      end
+      assert_match(/depends on plushie-ext/, output[1])
+    end
+  end
+
+  # -- Cargo.toml generation with patch section --
+
+  def test_generate_cargo_toml_with_source_path_includes_patch
+    Dir.mktmpdir do |tmpdir|
+      FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie-ext"))
+      FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie-renderer"))
+      FileUtils.mkdir_p(File.join(tmpdir, "native", "sparkline"))
+
+      build_dir = File.join(tmpdir, "_build", "plushie", "workspace")
+      FileUtils.mkdir_p(build_dir)
+
+      crate_paths = {FakeSparkline => File.join(tmpdir, "native", "sparkline")}
+
+      ENV["PLUSHIE_SOURCE_PATH"] = File.join(tmpdir, "source")
+      begin
+        toml = Build.generate_cargo_toml(build_dir, "plushie-custom", [FakeSparkline], crate_paths)
+      ensure
+        ENV.delete("PLUSHIE_SOURCE_PATH")
+      end
+
+      assert_includes toml, "[patch.crates-io]"
+      assert_includes toml, "plushie-ext = { path ="
     end
   end
 end
