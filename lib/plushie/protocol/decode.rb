@@ -211,7 +211,8 @@ module Plushie
             modifiers: parse_modifiers(msg["modifiers"] || kd["modifiers"] || {}),
             text: kd["text"],
             repeat: kd["repeat"] || false,
-            captured: msg["captured"] || false
+            captured: msg["captured"] || false,
+            window_id: msg["window_id"]
           )
 
         when "key_release"
@@ -225,7 +226,8 @@ module Plushie
             modifiers: parse_modifiers(msg["modifiers"] || kd["modifiers"] || {}),
             text: nil,     # key_release never carries text
             repeat: false, # key_release never carries repeat
-            captured: msg["captured"] || false
+            captured: msg["captured"] || false,
+            window_id: msg["window_id"]
           )
 
         # -- Modifier events -> Event::Modifiers ------------------------------
@@ -233,7 +235,8 @@ module Plushie
         when "modifiers_changed"
           Event::Modifiers.new(
             modifiers: parse_modifiers(msg["modifiers"] || data["modifiers"] || {}),
-            captured: msg["captured"] || false
+            captured: msg["captured"] || false,
+            window_id: msg["window_id"]
           )
 
         # -- Mouse subscription events -> Event::Mouse -----------------------
@@ -242,27 +245,32 @@ module Plushie
           Event::Mouse.new(
             type: :moved,
             x: data["x"], y: data["y"],
-            captured: msg["captured"] || false
+            captured: msg["captured"] || false,
+            window_id: msg["window_id"]
           )
 
         when "cursor_entered"
-          Event::Mouse.new(type: :entered, captured: msg["captured"] || false)
+          Event::Mouse.new(type: :entered, captured: msg["captured"] || false,
+            window_id: msg["window_id"])
 
         when "cursor_left"
-          Event::Mouse.new(type: :left, captured: msg["captured"] || false)
+          Event::Mouse.new(type: :left, captured: msg["captured"] || false,
+            window_id: msg["window_id"])
 
         when "button_pressed"
           Event::Mouse.new(
             type: :button_pressed,
             button: Parsers.parse_mouse_button(msg["value"]),
-            captured: msg["captured"] || false
+            captured: msg["captured"] || false,
+            window_id: msg["window_id"]
           )
 
         when "button_released"
           Event::Mouse.new(
             type: :button_released,
             button: Parsers.parse_mouse_button(msg["value"]),
-            captured: msg["captured"] || false
+            captured: msg["captured"] || false,
+            window_id: msg["window_id"]
           )
 
         when "wheel_scrolled"
@@ -270,7 +278,8 @@ module Plushie
             type: :wheel_scrolled,
             delta_x: data["delta_x"], delta_y: data["delta_y"],
             unit: Parsers.parse_scroll_unit(data["unit"]),
-            captured: msg["captured"] || false
+            captured: msg["captured"] || false,
+            window_id: msg["window_id"]
           )
 
         # -- Touch events -> Event::Touch -------------------------------------
@@ -281,14 +290,16 @@ module Plushie
             type: type,
             finger_id: data["id"],
             x: data["x"], y: data["y"],
-            captured: msg["captured"] || false
+            captured: msg["captured"] || false,
+            window_id: msg["window_id"]
           )
 
         # -- IME events -> Event::Ime -----------------------------------------
 
         when "ime_opened"
           id, scope = split_scoped_id(msg["id"])
-          Event::Ime.new(type: :opened, id: id, scope: scope, captured: msg["captured"] || false)
+          Event::Ime.new(type: :opened, id: id, scope: scope,
+            captured: msg["captured"] || false, window_id: msg["window_id"])
 
         when "ime_preedit"
           id, scope = split_scoped_id(msg["id"])
@@ -296,7 +307,8 @@ module Plushie
             type: :preedit, id: id, scope: scope,
             text: data["text"],
             cursor: parse_ime_cursor(data["cursor"]),
-            captured: msg["captured"] || false
+            captured: msg["captured"] || false,
+            window_id: msg["window_id"]
           )
 
         when "ime_commit"
@@ -304,12 +316,14 @@ module Plushie
           Event::Ime.new(
             type: :commit, id: id, scope: scope,
             text: data["text"],
-            captured: msg["captured"] || false
+            captured: msg["captured"] || false,
+            window_id: msg["window_id"]
           )
 
         when "ime_closed"
           id, scope = split_scoped_id(msg["id"])
-          Event::Ime.new(type: :closed, id: id, scope: scope, captured: msg["captured"] || false)
+          Event::Ime.new(type: :closed, id: id, scope: scope,
+            captured: msg["captured"] || false, window_id: msg["window_id"])
 
         # -- Window subscription events -> Event::Window ----------------------
 

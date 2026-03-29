@@ -31,8 +31,9 @@ module Plushie
       attr_reader text: String?
       attr_reader repeat: bool
       attr_reader captured: bool
+      attr_reader window_id: String?
 
-      def initialize: (type: Symbol, key: String, ?modified_key: String?, ?physical_key: String?, ?location: Symbol, ?modifiers: Hash[Symbol, bool], ?text: String?, ?repeat: bool, ?captured: bool) -> void
+      def initialize: (type: Symbol, key: String, ?modified_key: String?, ?physical_key: String?, ?location: Symbol, ?modifiers: Hash[Symbol, bool], ?text: String?, ?repeat: bool, ?captured: bool, ?window_id: String?) -> void
     end
 
     class Mouse
@@ -44,8 +45,9 @@ module Plushie
       attr_reader delta_y: Numeric?
       attr_reader unit: Symbol?
       attr_reader captured: bool
+      attr_reader window_id: String?
 
-      def initialize: (type: Symbol, ?x: Numeric?, ?y: Numeric?, ?button: Symbol?, ?delta_x: Numeric?, ?delta_y: Numeric?, ?unit: Symbol?, ?captured: bool) -> void
+      def initialize: (type: Symbol, ?x: Numeric?, ?y: Numeric?, ?button: Symbol?, ?delta_x: Numeric?, ?delta_y: Numeric?, ?unit: Symbol?, ?captured: bool, ?window_id: String?) -> void
     end
 
     class Touch
@@ -54,8 +56,9 @@ module Plushie
       attr_reader x: Numeric?
       attr_reader y: Numeric?
       attr_reader captured: bool
+      attr_reader window_id: String?
 
-      def initialize: (type: Symbol, ?finger_id: Integer?, ?x: Numeric?, ?y: Numeric?, ?captured: bool) -> void
+      def initialize: (type: Symbol, ?finger_id: Integer?, ?x: Numeric?, ?y: Numeric?, ?captured: bool, ?window_id: String?) -> void
     end
 
     class Ime
@@ -65,8 +68,9 @@ module Plushie
       attr_reader text: String?
       attr_reader cursor: [Integer, Integer]?
       attr_reader captured: bool
+      attr_reader window_id: String?
 
-      def initialize: (type: Symbol, ?id: String?, ?scope: Array[String], ?text: String?, ?cursor: [Integer, Integer]?, ?captured: bool) -> void
+      def initialize: (type: Symbol, ?id: String?, ?scope: Array[String], ?text: String?, ?cursor: [Integer, Integer]?, ?captured: bool, ?window_id: String?) -> void
     end
 
     class Window
@@ -177,8 +181,9 @@ module Plushie
     class Modifiers
       attr_reader modifiers: Hash[Symbol, bool]
       attr_reader captured: bool
+      attr_reader window_id: String?
 
-      def initialize: (modifiers: Hash[Symbol, bool], ?captured: bool) -> void
+      def initialize: (modifiers: Hash[Symbol, bool], ?captured: bool, ?window_id: String?) -> void
     end
 
     class Effect

@@ -47,15 +47,17 @@ module Plushie
     # @!attribute [r] text [String, nil] text produced by the key event (nil for non-printable keys)
     # @!attribute [r] repeat [Boolean] true if this is a key-repeat event
     # @!attribute [r] captured [Boolean] true if a widget consumed this event
+    # @!attribute [r] window_id [String, nil] window that was focused when the event fired
     #
     # @example Key press with modifier
     #   in Event::Key[type: :press, key: "s", modifiers: { command: true }]
     # @example Any key release
     #   in Event::Key[type: :release, key:]
     Key = Data.define(:type, :key, :modified_key, :physical_key,
-      :location, :modifiers, :text, :repeat, :captured) do
+      :location, :modifiers, :text, :repeat, :captured, :window_id) do
       def initialize(type:, key:, modified_key: nil, physical_key: nil,
-        location: :standard, modifiers: {}, text: nil, repeat: false, captured: false)
+        location: :standard, modifiers: {}, text: nil, repeat: false,
+        captured: false, window_id: nil)
         super
       end
     end
@@ -72,14 +74,15 @@ module Plushie
     # @!attribute [r] delta_y [Float, nil] scroll delta y (for :wheel_scrolled)
     # @!attribute [r] unit [Symbol, nil] scroll unit (:line, :pixel)
     # @!attribute [r] captured [Boolean] true if a widget consumed this event
+    # @!attribute [r] window_id [String, nil] window that was focused when the event fired
     #
     # @example Mouse button press
     #   in Event::Mouse[type: :button_pressed, button: :left, x:, y:]
     # @example Scroll wheel
     #   in Event::Mouse[type: :wheel_scrolled, delta_y:]
-    Mouse = Data.define(:type, :x, :y, :button, :delta_x, :delta_y, :unit, :captured) do
+    Mouse = Data.define(:type, :x, :y, :button, :delta_x, :delta_y, :unit, :captured, :window_id) do
       def initialize(type:, x: nil, y: nil, button: nil,
-        delta_x: nil, delta_y: nil, unit: nil, captured: false)
+        delta_x: nil, delta_y: nil, unit: nil, captured: false, window_id: nil)
         super
       end
     end
@@ -93,13 +96,14 @@ module Plushie
     # @!attribute [r] x [Float, nil] touch x position
     # @!attribute [r] y [Float, nil] touch y position
     # @!attribute [r] captured [Boolean] true if a widget consumed this event
+    # @!attribute [r] window_id [String, nil] window that was focused when the event fired
     #
     # @example Finger press
     #   in Event::Touch[type: :finger_pressed, finger_id:, x:, y:]
     # @example Finger lifted
     #   in Event::Touch[type: :finger_lifted, finger_id:]
-    Touch = Data.define(:type, :finger_id, :x, :y, :captured) do
-      def initialize(type:, finger_id: nil, x: nil, y: nil, captured: false)
+    Touch = Data.define(:type, :finger_id, :x, :y, :captured, :window_id) do
+      def initialize(type:, finger_id: nil, x: nil, y: nil, captured: false, window_id: nil)
         super
       end
     end
@@ -114,13 +118,15 @@ module Plushie
     # @!attribute [r] text [String, nil] composed or committed text
     # @!attribute [r] cursor [Array<Integer>, nil] cursor position within preedit
     # @!attribute [r] captured [Boolean] true if a widget consumed this event
+    # @!attribute [r] window_id [String, nil] window that was focused when the event fired
     #
     # @example IME commit
     #   in Event::Ime[type: :commit, text:]
     # @example Preedit composition
     #   in Event::Ime[type: :preedit, text:, cursor:]
-    Ime = Data.define(:type, :id, :scope, :text, :cursor, :captured) do
-      def initialize(type:, id: nil, scope: [], text: nil, cursor: nil, captured: false)
+    Ime = Data.define(:type, :id, :scope, :text, :cursor, :captured, :window_id) do
+      def initialize(type:, id: nil, scope: [], text: nil, cursor: nil,
+        captured: false, window_id: nil)
         super
       end
     end
@@ -247,11 +253,12 @@ module Plushie
     #
     # @!attribute [r] modifiers [Hash] current modifier state ({shift: true, control: false, alt: false, command: false})
     # @!attribute [r] captured [Boolean] true if a widget consumed this event
+    # @!attribute [r] window_id [String, nil] window that was focused when the event fired
     #
     # @example Modifiers changed
     #   in Event::Modifiers[modifiers: { shift: true }]
-    Modifiers = Data.define(:modifiers, :captured) do
-      def initialize(modifiers:, captured: false)
+    Modifiers = Data.define(:modifiers, :captured, :window_id) do
+      def initialize(modifiers:, captured: false, window_id: nil)
         super
       end
     end
