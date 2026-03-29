@@ -86,6 +86,7 @@ module Plushie
       def split_scoped_id: (String? full_id) -> [String, Array[String]]
       def parse_modifiers: (Hash[String, untyped]? mods) -> Hash[Symbol, bool]
       def parse_ime_cursor: (Hash[String, untyped] | Array[Integer] | nil cursor) -> [Integer, Integer]?
+      def parse_canvas_button: (String? button) -> Symbol
       def require_window_id!: (Hash[String, untyped] msg, String family) -> String
 
       def self.decode: (String data, ?Symbol format) -> Hash[String, untyped]
@@ -110,6 +111,7 @@ module Plushie
       def self.split_scoped_id: (String? full_id) -> [String, Array[String]]
       def self.parse_modifiers: (Hash[String, untyped]? mods) -> Hash[Symbol, bool]
       def self.parse_ime_cursor: (Hash[String, untyped] | Array[Integer] | nil cursor) -> [Integer, Integer]?
+      def self.parse_canvas_button: (String? button) -> Symbol
       def self.require_window_id!: (Hash[String, untyped] msg, String family) -> String
     end
   end

@@ -103,97 +103,95 @@ module Plushie
             scope: scope, data: msg["data"]
           )
 
-        # -- Mouse area events -> Event::MouseArea ----------------------------
+        # -- Mouse area events -> Event::Widget --------------------------------
 
         when "mouse_right_press", "mouse_right_release",
           "mouse_middle_press", "mouse_middle_release",
           "mouse_double_click", "mouse_enter", "mouse_exit"
           id, scope = split_scoped_id(msg["id"])
-          type = family.delete_prefix("mouse_").to_sym
-          Event::MouseArea.new(
-            type: type, id: id, window_id: require_window_id!(msg, family), scope: scope
+          Event::Widget.new(
+            type: family.to_sym, id: id, window_id: require_window_id!(msg, family), scope: scope
           )
 
         when "mouse_move"
           id, scope = split_scoped_id(msg["id"])
-          Event::MouseArea.new(
-            type: :move, id: id, window_id: require_window_id!(msg, family), scope: scope,
-            x: data["x"], y: data["y"]
+          Event::Widget.new(
+            type: :mouse_move, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            data: {x: data["x"], y: data["y"]}
           )
 
         when "mouse_scroll"
           id, scope = split_scoped_id(msg["id"])
-          Event::MouseArea.new(
-            type: :scroll, id: id, window_id: require_window_id!(msg, family), scope: scope,
-            delta_x: data["delta_x"], delta_y: data["delta_y"]
+          Event::Widget.new(
+            type: :mouse_scroll, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            data: {delta_x: data["delta_x"], delta_y: data["delta_y"]}
           )
 
-        # -- Canvas events -> Event::Canvas -----------------------------------
+        # -- Canvas events -> Event::Widget ------------------------------------
 
         when "canvas_press", "canvas_release"
           id, scope = split_scoped_id(msg["id"])
-          type = (family == "canvas_press") ? :press : :release
-          Event::Canvas.new(
-            type: type, id: id, window_id: require_window_id!(msg, family), scope: scope,
-            x: data["x"], y: data["y"],
-            button: data["button"] || "left"
+          Event::Widget.new(
+            type: family.to_sym, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            data: {x: data["x"], y: data["y"], button: parse_canvas_button(data["button"])}
           )
 
         when "canvas_move"
           id, scope = split_scoped_id(msg["id"])
-          Event::Canvas.new(
-            type: :move, id: id, window_id: require_window_id!(msg, family), scope: scope,
-            x: data["x"], y: data["y"]
+          Event::Widget.new(
+            type: :canvas_move, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            data: {x: data["x"], y: data["y"]}
           )
 
         when "canvas_scroll"
           id, scope = split_scoped_id(msg["id"])
-          Event::Canvas.new(
-            type: :scroll, id: id, window_id: require_window_id!(msg, family), scope: scope,
-            x: data["x"], y: data["y"],
-            delta_x: data["delta_x"], delta_y: data["delta_y"]
+          Event::Widget.new(
+            type: :canvas_scroll, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            data: {x: data["x"], y: data["y"], delta_x: data["delta_x"], delta_y: data["delta_y"]}
           )
 
-        # -- Pane events -> Event::Pane ---------------------------------------
+        # -- Pane events -> Event::Widget --------------------------------------
 
         when "pane_resized"
           id, scope = split_scoped_id(msg["id"])
-          Event::Pane.new(
-            type: :resized, id: id, window_id: require_window_id!(msg, family), scope: scope,
-            split: data["split"], ratio: data["ratio"]
+          Event::Widget.new(
+            type: :pane_resized, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            data: {split: data["split"], ratio: data["ratio"]}
           )
 
         when "pane_dragged"
           id, scope = split_scoped_id(msg["id"])
-          Event::Pane.new(
-            type: :dragged, id: id, window_id: require_window_id!(msg, family), scope: scope,
-            pane: data["pane"], target: data["target"],
-            action: Parsers.parse_pane_action(data["action"]),
-            region: Parsers.parse_pane_region(data["region"]),
-            edge: Parsers.parse_pane_region(data["edge"])
+          Event::Widget.new(
+            type: :pane_dragged, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            data: {
+              pane: data["pane"], target: data["target"],
+              action: Parsers.parse_pane_action(data["action"]),
+              region: Parsers.parse_pane_region(data["region"]),
+              edge: Parsers.parse_pane_region(data["edge"])
+            }
           )
 
         when "pane_clicked"
           id, scope = split_scoped_id(msg["id"])
-          Event::Pane.new(
-            type: :clicked, id: id, window_id: require_window_id!(msg, family), scope: scope,
-            pane: data["pane"]
+          Event::Widget.new(
+            type: :pane_clicked, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            data: {pane: data["pane"]}
           )
 
         when "pane_focus_cycle"
           id, scope = split_scoped_id(msg["id"])
-          Event::Pane.new(
-            type: :focus_cycle, id: id, window_id: require_window_id!(msg, family), scope: scope,
-            pane: data["pane"]
+          Event::Widget.new(
+            type: :pane_focus_cycle, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            data: {pane: data["pane"]}
           )
 
-        # -- Sensor events -> Event::Sensor -----------------------------------
+        # -- Sensor events -> Event::Widget ------------------------------------
 
         when "sensor_resize"
           id, scope = split_scoped_id(msg["id"])
-          Event::Sensor.new(
-            type: :resize, id: id, window_id: require_window_id!(msg, family), scope: scope,
-            width: data["width"], height: data["height"]
+          Event::Widget.new(
+            type: :sensor_resize, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            data: {width: data["width"], height: data["height"]}
           )
 
         # -- Keyboard events -> Event::Key ------------------------------------
@@ -668,6 +666,18 @@ module Plushie
           logo: mods["logo"] || false,
           command: mods["command"] || false
         }.freeze
+      end
+
+      # Parse a canvas button string to a symbol.
+      # @param button [String, nil]
+      # @return [Symbol]
+      def parse_canvas_button(button)
+        case button
+        when "left", nil then :left
+        when "right" then :right
+        when "middle" then :middle
+        else button.to_sym
+        end
       end
 
       # Parse an IME cursor position from the wire format.

@@ -44,7 +44,7 @@ module ColorPickerWidget
 
   def handle_event(event, state)
     case event
-    in Event::Canvas[type: :press, x:, y:, button: "left"]
+    in Event::Widget[type: :canvas_press, data: {x:, y:, button: :left}]
       dx = x - CX
       dy = y - CY
       dist = Math.sqrt(dx * dx + dy * dy)
@@ -59,7 +59,7 @@ module ColorPickerWidget
         [:consumed, state]
       end
 
-    in Event::Canvas[type: :move, x:, y:]
+    in Event::Widget[type: :canvas_move, data: {x:, y:}]
       case state[:drag]
       when :ring
         new_state = state.merge(hue: hue_from_point(x - CX, y - CY))
@@ -71,7 +71,7 @@ module ColorPickerWidget
         [:consumed, state]
       end
 
-    in Event::Canvas[type: :release]
+    in Event::Widget[type: :canvas_release]
       [:update_state, state.merge(drag: :none)]
 
     in Event::Widget[type: :canvas_element_key_press, data:]

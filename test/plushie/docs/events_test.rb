@@ -232,12 +232,12 @@ class DocsEventsTest < Minitest::Test
     end
   end
 
-  # -- Mouse area events --
+  # -- Mouse area events (now Widget with prefixed types) --
 
   def test_events_mouse_area_enter_match
-    event = E::MouseArea.new(type: :enter, id: "hover_zone")
+    event = E::Widget.new(type: :mouse_enter, id: "hover_zone")
     case event
-    in E::MouseArea[type: :enter, id: "hover_zone"]
+    in E::Widget[type: :mouse_enter, id: "hover_zone"]
       pass
     else
       flunk "expected mouse area enter event to match"
@@ -245,9 +245,9 @@ class DocsEventsTest < Minitest::Test
   end
 
   def test_events_mouse_area_move_match
-    event = E::MouseArea.new(type: :move, id: "canvas_area", x: 100.5, y: 200.3)
+    event = E::Widget.new(type: :mouse_move, id: "canvas_area", data: {x: 100.5, y: 200.3})
     case event
-    in E::MouseArea[type: :move, id: "canvas_area", x:, y:]
+    in E::Widget[type: :mouse_move, id: "canvas_area", data: {x:, y:}]
       assert_equal 100.5, x
       assert_equal 200.3, y
     else
@@ -255,12 +255,12 @@ class DocsEventsTest < Minitest::Test
     end
   end
 
-  # -- Canvas events --
+  # -- Canvas events (now Widget with prefixed types) --
 
   def test_events_canvas_press_match
-    event = E::Canvas.new(type: :press, id: "draw_area", x: 50.0, y: 75.0, button: "left")
+    event = E::Widget.new(type: :canvas_press, id: "draw_area", data: {x: 50.0, y: 75.0, button: :left})
     case event
-    in E::Canvas[type: :press, id: "draw_area", x:, y:, button: "left"]
+    in E::Widget[type: :canvas_press, id: "draw_area", data: {x:, y:, button: :left}]
       assert_equal 50.0, x
       assert_equal 75.0, y
     else
@@ -269,9 +269,9 @@ class DocsEventsTest < Minitest::Test
   end
 
   def test_events_canvas_move_match
-    event = E::Canvas.new(type: :move, id: "draw_area", x: 60.0, y: 80.0)
+    event = E::Widget.new(type: :canvas_move, id: "draw_area", data: {x: 60.0, y: 80.0})
     case event
-    in E::Canvas[type: :move, id: "draw_area", x:, y:]
+    in E::Widget[type: :canvas_move, id: "draw_area", data: {x:, y:}]
       assert_equal 60.0, x
       assert_equal 80.0, y
     else
@@ -279,12 +279,12 @@ class DocsEventsTest < Minitest::Test
     end
   end
 
-  # -- Sensor resize event --
+  # -- Sensor resize event (now Widget) --
 
   def test_events_sensor_resize_match
-    event = E::Sensor.new(type: :resize, id: "content_area", width: 800.0, height: 600.0)
+    event = E::Widget.new(type: :sensor_resize, id: "content_area", data: {width: 800.0, height: 600.0})
     case event
-    in E::Sensor[type: :resize, id: "content_area", width:, height:]
+    in E::Widget[type: :sensor_resize, id: "content_area", data: {width:, height:}]
       assert_equal 800.0, width
       assert_equal 600.0, height
     else
@@ -292,12 +292,12 @@ class DocsEventsTest < Minitest::Test
     end
   end
 
-  # -- Pane events --
+  # -- Pane events (now Widget with prefixed types) --
 
   def test_events_pane_resized_match
-    event = E::Pane.new(type: :resized, id: "editor", split: :horizontal, ratio: 0.5)
+    event = E::Widget.new(type: :pane_resized, id: "editor", data: {split: :horizontal, ratio: 0.5})
     case event
-    in E::Pane[type: :resized, id: "editor", split:, ratio:]
+    in E::Widget[type: :pane_resized, id: "editor", data: {split:, ratio:}]
       assert_equal :horizontal, split
       assert_equal 0.5, ratio
     else
@@ -306,9 +306,9 @@ class DocsEventsTest < Minitest::Test
   end
 
   def test_events_pane_clicked_match
-    event = E::Pane.new(type: :clicked, id: "editor", pane: "left")
+    event = E::Widget.new(type: :pane_clicked, id: "editor", data: {pane: "left"})
     case event
-    in E::Pane[type: :clicked, id: "editor", pane:]
+    in E::Widget[type: :pane_clicked, id: "editor", data: {pane:}]
       assert_equal "left", pane
     else
       flunk "expected pane clicked event to match"

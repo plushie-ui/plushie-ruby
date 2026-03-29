@@ -14,20 +14,37 @@ module Plushie
   #   end
   #
   module Event
-    # Widget interaction events (clicks, input, toggles, selects, etc.)
-    # Delivered to update when users interact with widgets.
+    # All widget interaction events: clicks, input, toggles, canvas interactions,
+    # mouse area events, sensor resizes, pane events, and custom widget events.
     #
-    # @!attribute [r] type [Symbol] event kind (:click, :input, :submit, :toggle, :select, :slide, etc.)
+    # Built-in types include standard widget events (:click, :input, :submit, etc.),
+    # canvas events (:canvas_press, :canvas_move, etc.), mouse area events
+    # (:mouse_enter, :mouse_exit, etc.), sensor events (:sensor_resize), and
+    # pane events (:pane_resized, :pane_dragged, :pane_clicked).
+    #
+    # The `data` field carries type-specific payload as a Hash with symbol keys.
+    # For example, :canvas_press has `data: {x:, y:, button:}` and :sensor_resize
+    # has `data: {width:, height:}`.
+    #
+    # @!attribute [r] type [Symbol] event kind
     # @!attribute [r] id [String] widget ID that produced the event
     # @!attribute [r] value [Object, nil] event value (text for :input, boolean for :toggle, etc.)
     # @!attribute [r] window_id [String, nil] window that produced the event
     # @!attribute [r] scope [Array<String>] reversed ancestor scope chain (immediate parent first)
-    # @!attribute [r] data [Hash, nil] additional event data
+    # @!attribute [r] data [Hash, nil] type-specific event data
     #
     # @example Click
     #   in Event::Widget[type: :click, id: "save"]
     # @example Input with value
     #   in Event::Widget[type: :input, id: "search", value:]
+    # @example Canvas press
+    #   in Event::Widget[type: :canvas_press, id: "chart", data: {x:, y:}]
+    # @example Mouse area enter
+    #   in Event::Widget[type: :mouse_enter, id: "hover_zone"]
+    # @example Sensor resize
+    #   in Event::Widget[type: :sensor_resize, id: "content", data: {width:, height:}]
+    # @example Pane resized
+    #   in Event::Widget[type: :pane_resized, id: "editor", data: {ratio:}]
     Widget = Data.define(:type, :id, :value, :window_id, :scope, :data) do
       def initialize(type:, id:, value: nil, window_id: nil, scope: [], data: nil)
         super
@@ -152,97 +169,6 @@ module Plushie
       :scale_factor, :path) do
       def initialize(type:, window_id: nil, x: nil, y: nil,
         width: nil, height: nil, scale_factor: nil, path: nil)
-        super
-      end
-    end
-
-    # Canvas interaction events for shapes drawn in canvas/layer blocks.
-    # Triggered by mouse interactions with canvas shapes that have IDs.
-    #
-    # @!attribute [r] type [Symbol] :click, :press, :release, :enter, :exit, :move, :scroll
-    # @!attribute [r] id [String] canvas shape ID that produced the event
-    # @!attribute [r] x [Float, nil] interaction x position within the canvas
-    # @!attribute [r] y [Float, nil] interaction y position within the canvas
-    # @!attribute [r] button [Symbol, nil] mouse button (:left, :right, :middle)
-    # @!attribute [r] delta_x [Float, nil] scroll delta x
-    # @!attribute [r] delta_y [Float, nil] scroll delta y
-    # @!attribute [r] window_id [String, nil] window that produced the event
-    # @!attribute [r] scope [Array<String>] reversed ancestor scope chain
-    #
-    # @example Canvas shape click
-    #   in Event::Canvas[type: :click, id: "my_circle", x:, y:]
-    # @example Canvas scroll
-    #   in Event::Canvas[type: :scroll, id:, delta_y:]
-    Canvas = Data.define(:type, :id, :x, :y, :button, :delta_x, :delta_y, :window_id, :scope) do
-      def initialize(type:, id:, x: nil, y: nil, button: nil,
-        delta_x: nil, delta_y: nil, window_id: nil, scope: [])
-        super
-      end
-    end
-
-    # Mouse area events for regions defined by the mouse_area widget.
-    # Triggered by mouse interactions within a mouse_area boundary.
-    #
-    # @!attribute [r] type [Symbol] :enter, :exit, :move, :press, :release
-    # @!attribute [r] id [String] mouse area widget ID
-    # @!attribute [r] x [Float, nil] mouse x position relative to the area
-    # @!attribute [r] y [Float, nil] mouse y position relative to the area
-    # @!attribute [r] delta_x [Float, nil] movement delta x (for :move)
-    # @!attribute [r] delta_y [Float, nil] movement delta y (for :move)
-    # @!attribute [r] window_id [String, nil] window that produced the event
-    # @!attribute [r] scope [Array<String>] reversed ancestor scope chain
-    #
-    # @example Mouse entered area
-    #   in Event::MouseArea[type: :enter, id: "hover_zone"]
-    # @example Mouse moved within area
-    #   in Event::MouseArea[type: :move, id:, x:, y:]
-    MouseArea = Data.define(:type, :id, :x, :y, :delta_x, :delta_y, :window_id, :scope) do
-      def initialize(type:, id:, x: nil, y: nil, delta_x: nil, delta_y: nil, window_id: nil, scope: [])
-        super
-      end
-    end
-
-    # Pane grid events for split-pane container interactions.
-    # Triggered by drag-to-resize, pane splits, and pane close actions.
-    #
-    # @!attribute [r] type [Symbol] :dragged, :dropped, :resized, :clicked, :split, :close
-    # @!attribute [r] id [String] pane grid widget ID
-    # @!attribute [r] pane [Object, nil] source pane identifier
-    # @!attribute [r] target [Object, nil] target pane identifier (for drop/split)
-    # @!attribute [r] split [Symbol, nil] split direction (:horizontal, :vertical)
-    # @!attribute [r] ratio [Float, nil] resize ratio
-    # @!attribute [r] window_id [String, nil] window that produced the event
-    # @!attribute [r] scope [Array<String>] reversed ancestor scope chain
-    # @!attribute [r] action [Symbol, nil] pane action type
-    # @!attribute [r] region [Symbol, nil] drop region (:center, :left, :right, :top, :bottom)
-    # @!attribute [r] edge [Symbol, nil] resize edge
-    #
-    # @example Pane resized
-    #   in Event::Pane[type: :resized, id: "editor_panes", ratio:]
-    # @example Pane split
-    #   in Event::Pane[type: :split, pane:, split: :horizontal]
-    Pane = Data.define(:type, :id, :pane, :target, :split, :ratio, :window_id, :scope,
-      :action, :region, :edge) do
-      def initialize(type:, id:, pane: nil, target: nil, split: nil, ratio: nil,
-        window_id: nil, scope: [], action: nil, region: nil, edge: nil)
-        super
-      end
-    end
-
-    # Sensor events for detecting widget size changes.
-    # Triggered when a sensor widget's measured dimensions change.
-    #
-    # @!attribute [r] type [Symbol] :resized
-    # @!attribute [r] id [String] sensor widget ID
-    # @!attribute [r] width [Float, nil] measured width
-    # @!attribute [r] height [Float, nil] measured height
-    # @!attribute [r] window_id [String, nil] window that produced the event
-    # @!attribute [r] scope [Array<String>] reversed ancestor scope chain
-    #
-    # @example Sensor resized
-    #   in Event::Sensor[type: :resized, id: "content_area", width:, height:]
-    Sensor = Data.define(:type, :id, :width, :height, :window_id, :scope) do
-      def initialize(type:, id:, width: nil, height: nil, window_id: nil, scope: [])
         super
       end
     end
