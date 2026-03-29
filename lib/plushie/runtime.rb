@@ -52,6 +52,7 @@ module Plushie
       @subscription_keys = []  # sorted keys for short-circuit
       @canvas_widgets = {}     # "#{window_id}\0#{scoped_id}" -> CanvasWidget::RegistryEntry
       @consecutive_errors = 0
+      @consecutive_view_errors = 0
       @diagnostics = []        # accumulated prop validation diagnostics
       @diagnostics_mutex = Mutex.new
       @pending_stub_acks = {}  # kind -> Queue (for sync ack round-trip)
@@ -333,8 +334,9 @@ module Plushie
       bridge = @bridge or raise Plushie::Error, "bridge not started"
       bridge.send_encoded(encoded)
       bridge.remember_snapshot(encoded)
+      @consecutive_view_errors = 0
     rescue => e
-      handle_callback_error("view", e)
+      handle_view_error(e)
     end
 
     def render_and_patch
@@ -361,8 +363,9 @@ module Plushie
           bridge.remember_snapshot(Protocol::Encode.encode_snapshot(wire, @format))
         end
       end
+      @consecutive_view_errors = 0
     rescue => e
-      handle_callback_error("view", e)
+      handle_view_error(e)
     end
 
     def normalize_view_tree(view_tree)
@@ -463,6 +466,14 @@ module Plushie
         error.backtrace&.first(5)&.each { |line| @logger.error("  #{line}") }
       elsif (@consecutive_errors % 1000).zero?
         @logger.error("plushie: #{@consecutive_errors} consecutive errors in #{callback_name} (suppressing)")
+      end
+    end
+
+    def handle_view_error(error)
+      @consecutive_view_errors += 1
+      handle_callback_error("view", error)
+      if @consecutive_view_errors == 5
+        @logger.warn("plushie: view has failed 5 consecutive times -- UI is stale")
       end
     end
 

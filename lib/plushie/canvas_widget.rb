@@ -263,6 +263,13 @@ module Plushie
       # Render with local ID -- scoping applied by caller
       rendered = widget_module.render(local_id, widget_props, state)
 
+      # Auto-apply standard options (a11y, event_rate) from caller props
+      # into the rendered node so widget authors don't need to forward them.
+      auto_props = {}
+      auto_props[:a11y] = widget_props[:a11y] if widget_props.key?(:a11y)
+      auto_props[:event_rate] = widget_props[:event_rate] if widget_props.key?(:event_rate)
+      rendered = rendered.with(props: rendered.props.merge(auto_props)) unless auto_props.empty?
+
       # Attach metadata for registry derivation
       widget_meta = {
         META_KEY => widget_module,
