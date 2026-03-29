@@ -67,7 +67,7 @@ class TestProtocolDecode < Minitest::Test
   def test_decode_canvas_element_click
     event = D.decode_event(windowed({"family" => "canvas_element_click", "id" => "chart", "data" => {"element_id" => "bar1"}}))
     assert_equal :canvas_element_click, event.type
-    assert_equal "bar1", event.data["element_id"]
+    assert_equal "bar1", event.data[:element_id]
   end
 
   def test_decode_paste
@@ -526,7 +526,7 @@ class TestProtocolDecode < Minitest::Test
     assert_equal :canvas_element_key_press, event.type
     assert_equal "node1", event.id
     assert_equal ["chart"], event.scope
-    assert_equal "ArrowRight", event.data["key"]
+    assert_equal :arrow_right, event.data[:key]
   end
 
   def test_decode_canvas_element_key_release

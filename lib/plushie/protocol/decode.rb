@@ -91,16 +91,59 @@ module Plushie
 
         when "click", "input", "submit", "toggle", "select",
           "slide", "slide_release", "paste", "option_hovered",
-          "open", "close", "key_binding", "sort", "scroll",
-          "canvas_element_enter", "canvas_element_leave",
-          "canvas_element_click", "canvas_element_drag",
-          "canvas_element_drag_end", "canvas_element_focused",
-          "canvas_element_key_press", "canvas_element_key_release"
+          "open", "close", "key_binding", "sort", "scroll"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: family.to_sym, id: id,
             value: msg["value"], window_id: require_window_id!(msg, family),
             scope: scope, data: msg["data"]
+          )
+
+        # -- Canvas element events -> Event::Widget (parsed data) ---------------
+
+        when "canvas_element_enter", "canvas_element_leave",
+          "canvas_element_drag_end", "canvas_element_focused",
+          "canvas_element_blurred", "canvas_focused", "canvas_blurred",
+          "canvas_group_focused", "canvas_group_blurred"
+          id, scope = split_scoped_id(msg["id"])
+          Event::Widget.new(
+            type: family.to_sym, id: id,
+            window_id: require_window_id!(msg, family),
+            scope: scope, data: atomize_data(data)
+          )
+
+        when "canvas_element_click"
+          id, scope = split_scoped_id(msg["id"])
+          parsed = atomize_data(data) || {}
+          parsed[:button] = parse_canvas_button(parsed[:button]) if parsed.key?(:button)
+          Event::Widget.new(
+            type: :canvas_element_click, id: id,
+            window_id: require_window_id!(msg, family),
+            scope: scope, data: parsed
+          )
+
+        when "canvas_element_drag"
+          id, scope = split_scoped_id(msg["id"])
+          Event::Widget.new(
+            type: :canvas_element_drag, id: id,
+            window_id: require_window_id!(msg, family),
+            scope: scope, data: {x: data["x"], y: data["y"], dx: data["dx"], dy: data["dy"]}
+          )
+
+        when "canvas_element_key_press"
+          id, scope = split_scoped_id(msg["id"])
+          Event::Widget.new(
+            type: :canvas_element_key_press, id: id,
+            window_id: require_window_id!(msg, family),
+            scope: scope, data: parse_canvas_key_data(data, :press)
+          )
+
+        when "canvas_element_key_release"
+          id, scope = split_scoped_id(msg["id"])
+          Event::Widget.new(
+            type: :canvas_element_key_release, id: id,
+            window_id: require_window_id!(msg, family),
+            scope: scope, data: parse_canvas_key_data(data, :release)
           )
 
         # -- Mouse area events -> Event::Widget --------------------------------
@@ -426,43 +469,6 @@ module Plushie
             data: data["reason"] || data
           )
 
-        # -- Canvas element/group focus events -> Event::Widget ----------------
-
-        when "canvas_element_blurred"
-          id, scope = split_scoped_id(msg["id"])
-          Event::Widget.new(
-            type: :canvas_element_blurred, id: id,
-            value: nil, window_id: require_window_id!(msg, family), scope: scope, data: data
-          )
-
-        when "canvas_focused"
-          id, scope = split_scoped_id(msg["id"])
-          Event::Widget.new(
-            type: :canvas_focused, id: id,
-            value: nil, window_id: require_window_id!(msg, family), scope: scope, data: nil
-          )
-
-        when "canvas_blurred"
-          id, scope = split_scoped_id(msg["id"])
-          Event::Widget.new(
-            type: :canvas_blurred, id: id,
-            value: nil, window_id: require_window_id!(msg, family), scope: scope, data: nil
-          )
-
-        when "canvas_group_focused"
-          id, scope = split_scoped_id(msg["id"])
-          Event::Widget.new(
-            type: :canvas_group_focused, id: id,
-            value: nil, window_id: require_window_id!(msg, family), scope: scope, data: data
-          )
-
-        when "canvas_group_blurred"
-          id, scope = split_scoped_id(msg["id"])
-          Event::Widget.new(
-            type: :canvas_group_blurred, id: id,
-            value: nil, window_id: require_window_id!(msg, family), scope: scope, data: data
-          )
-
         # -- Diagnostic events -> Event::System ---------------------------------
 
         when "diagnostic"
@@ -678,6 +684,27 @@ module Plushie
         when "middle" then :middle
         else button.to_sym
         end
+      end
+
+      # Convert string-keyed wire data to symbol-keyed hash.
+      # @param data [Hash, nil]
+      # @return [Hash, nil]
+      def atomize_data(data)
+        return nil unless data.is_a?(Hash)
+        data.transform_keys(&:to_sym)
+      end
+
+      # Parse canvas element key event data with proper key and modifier types.
+      # @param data [Hash] raw wire data
+      # @param type [:press, :release]
+      # @return [Hash] parsed data with symbol keys
+      def parse_canvas_key_data(data, type)
+        {
+          type: type,
+          element_id: data["element_id"],
+          key: Keys.parse_key(data["key"]),
+          modifiers: parse_modifiers(data["modifiers"])
+        }
       end
 
       # Parse an IME cursor position from the wire format.

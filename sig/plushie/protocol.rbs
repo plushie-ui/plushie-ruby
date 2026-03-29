@@ -87,6 +87,8 @@ module Plushie
       def parse_modifiers: (Hash[String, untyped]? mods) -> Hash[Symbol, bool]
       def parse_ime_cursor: (Hash[String, untyped] | Array[Integer] | nil cursor) -> [Integer, Integer]?
       def parse_canvas_button: (String? button) -> Symbol
+      def atomize_data: (Hash[String, untyped]? data) -> Hash[Symbol, untyped]?
+      def parse_canvas_key_data: (Hash[String, untyped] data, Symbol type) -> Hash[Symbol, untyped]
       def require_window_id!: (Hash[String, untyped] msg, String family) -> String
 
       def self.decode: (String data, ?Symbol format) -> Hash[String, untyped]
@@ -112,6 +114,8 @@ module Plushie
       def self.parse_modifiers: (Hash[String, untyped]? mods) -> Hash[Symbol, bool]
       def self.parse_ime_cursor: (Hash[String, untyped] | Array[Integer] | nil cursor) -> [Integer, Integer]?
       def self.parse_canvas_button: (String? button) -> Symbol
+      def self.atomize_data: (Hash[String, untyped]? data) -> Hash[Symbol, untyped]?
+      def self.parse_canvas_key_data: (Hash[String, untyped] data, Symbol type) -> Hash[Symbol, untyped]
       def self.require_window_id!: (Hash[String, untyped] msg, String family) -> String
     end
   end
