@@ -68,7 +68,7 @@ Plushie.configure do |config|
 end
 ```
 
-See [Running](running.md) and [Extensions](extensions.md) for the
+See [Running](running.md) and [Widgets](widgets.md) for the
 full list of configuration options.
 
 ## Your first app: a counter
@@ -212,18 +212,22 @@ Edit any `.rb` file in `lib/`, save, and the GUI updates in place.
 The model is preserved -- only `view` is re-evaluated with the new
 code.
 
-## Extensions
+## Custom Widgets
 
-Plushie supports custom Rust-backed widgets via the extension system.
-You write the widget logic in Rust (implementing the `WidgetExtension`
-trait from `plushie-ext`) and declare the Ruby-side interface with
-`include Plushie::Widget`. The build system compiles a custom
-renderer binary that includes your extensions.
+Plushie supports custom widgets at three levels:
 
-Pure Ruby composite widgets are also supported -- compose existing
-Plushie widgets into reusable components without touching Rust.
+- **Render-only composites** -- compose existing widgets into reusable
+  components. No Rust, no state management, no binary rebuild.
+- **Stateful widgets** -- widgets with internal state and event
+  handling. The runtime manages the state lifecycle and dispatches
+  events through your `handle_event` callback.
+- **Native widgets** -- Rust-backed widgets implementing the
+  `WidgetExtension` trait from `plushie-ext`. The build system
+  compiles a custom renderer binary that includes your widgets.
 
-See [Writing widget extensions](extensions.md) for the full guide.
+All three use `include Plushie::Widget`.
+
+See [Writing custom widgets](widgets.md) for the full guide.
 
 ## Next steps
 

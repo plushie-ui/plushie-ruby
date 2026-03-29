@@ -8,27 +8,31 @@ require "plushie"
 # smiley; dark mode shows the face rotated upside down. The face rotates
 # during the transition. Animation is managed internally.
 #
-#   ThemeToggle.new("my-toggle")
+#   ThemeToggle.new("my-toggle").build
 #
 # Events:
-# - :toggle with {"value" => bool} when the user clicks the switch
-module ThemeToggle
-  include Plushie::CanvasWidget
-  extend self
+# - :toggle with {value: bool} when the user clicks the switch
+class ThemeToggle
+  include Plushie::Widget
 
-  canvas_widget :theme_toggle
+  widget :theme_toggle
+
+  state :progress, default: 0.0
+  state :target, default: 0.0
+
+  event :toggle
 
   TRACK_W = 64
   TRACK_H = 32
   THUMB_R = 13
 
-  def init
+  def self.init
     {progress: 0.0, target: 0.0}
   end
 
   # -- Event transformation --------------------------------------------------
 
-  def handle_event(event, state)
+  def self.handle_event(event, state)
     case event
     in Event::Widget[type: :canvas_element_click, data: {element_id: "switch", **}]
       new_target = (state[:target] == 0.0) ? 1.0 : 0.0
@@ -45,7 +49,7 @@ module ThemeToggle
 
   # -- Widget-scoped subscriptions -------------------------------------------
 
-  def subscribe(_props, state)
+  def self.subscribe(_props, state)
     if state[:progress] != state[:target]
       [Plushie::Subscription.every(16, :animate)]
     else
@@ -55,7 +59,7 @@ module ThemeToggle
 
   # -- Rendering -------------------------------------------------------------
 
-  def render(id, _props, state)
+  def self.render(id, _props, state)
     include Plushie::UI
 
     progress = state[:progress]
@@ -96,7 +100,7 @@ module ThemeToggle
     end
   end
 
-  def approach(current, target, step)
+  def self.approach(current, target, step)
     if current < target
       [current + step, target].min
     elsif current > target
@@ -106,25 +110,25 @@ module ThemeToggle
     end
   end
 
-  def smoothstep(t)
+  def self.smoothstep(t)
     return 0.0 if t <= 0.0
     return 1.0 if t >= 1.0
 
     t * t * (3 - 2 * t)
   end
 
-  def lerp(a, b, t)
+  def self.lerp(a, b, t)
     a + (b - a) * t
   end
 
-  def lerp_color(rgb1, rgb2, t)
+  def self.lerp_color(rgb1, rgb2, t)
     r = lerp(rgb1[0], rgb2[0], t).round
     g = lerp(rgb1[1], rgb2[1], t).round
     b = lerp(rgb1[2], rgb2[2], t).round
     "#%02x%02x%02x" % [r, g, b]
   end
 
-  def smile_path
+  def self.smile_path
     [
       Plushie::Canvas::Shape.move_to(-5, 1),
       Plushie::Canvas::Shape.line_to(-3, 5),
@@ -133,9 +137,5 @@ module ThemeToggle
     ]
   end
 
-  # -- Public builder --------------------------------------------------------
-
-  def self.new(id, **props)
-    Plushie::CanvasWidget.build(ThemeToggle, id, props)
-  end
+  private_class_method :approach, :smoothstep, :lerp, :lerp_color, :smile_path
 end

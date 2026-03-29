@@ -338,7 +338,13 @@ module Plushie
             CanvasWidget::META_KEY => widget_class,
             CanvasWidget::PROPS_KEY => props_hash
           }.freeze
-          Plushie::Node.new(id: @id, type: "canvas", props: {}, meta: meta)
+          node = Plushie::Node.new(id: @id, type: "canvas", props: {}, meta: meta)
+
+          # Add to UI context when called inside a DSL block.
+          parent = Plushie::UI::Context.current
+          parent << node if parent
+
+          node
         end
       end
 
@@ -355,12 +361,18 @@ module Plushie
           props_hash[:a11y] = @a11y unless @a11y.nil?
           props_hash[:event_rate] = @event_rate unless @event_rate.nil?
 
-          if respond_to?(:render)
+          node = if respond_to?(:render)
             render(@id, props_hash)
           else
             type_str = self.class.type_names.first.to_s
             Plushie::Node.new(id: @id, type: type_str, props: props_hash)
           end
+
+          # Add to UI context when called inside a DSL block.
+          parent = Plushie::UI::Context.current
+          parent << node if parent
+
+          node
         end
       end
     end

@@ -170,7 +170,7 @@ Plushie follows the Elm architecture. Your app implements four callbacks:
 - [Testing](docs/testing.md) -- mock, headless, and windowed backends
 - [Composition patterns](docs/composition-patterns.md) -- tabs, modals, forms, lists
 - [Accessibility](docs/accessibility.md) -- screen reader support, roles, labels
-- [Extensions](docs/extensions.md) -- Ruby composites and native Rust widgets
+- [Widgets](docs/widgets.md) -- Ruby composites and native Rust widgets
 - [DSL internals](docs/dsl-internals.md) -- how the UI builder works under the hood
 
 **API reference:** [rubydoc.info/gems/plushie](https://www.rubydoc.info/gems/plushie)

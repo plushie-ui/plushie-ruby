@@ -8,26 +8,32 @@ require "plushie"
 # rate, hover to preview, Tab/arrow to navigate, Enter/Space to select).
 # Pass readonly: true for a display-only version.
 #
-#   StarRating.new("my-rating", rating: model.rating, theme_progress: p)
-#   StarRating.new("review-stars", rating: 4, readonly: true, scale: 0.5)
+#   StarRating.new("my-rating", rating: model.rating, theme_progress: p).build
+#   StarRating.new("review-stars", rating: 4, readonly: true, scale: 0.5).build
 #
 # Events:
-# - :select with {"value" => n} when the user clicks a star
-module StarRating
-  include Plushie::CanvasWidget
-  extend self
+# - :select with {value: n} when the user clicks a star
+class StarRating
+  include Plushie::Widget
 
-  canvas_widget :star_rating
+  widget :star_rating
+
+  prop :rating, :number, default: 0
+  prop :readonly, :boolean, default: false
+  prop :scale, :number, default: 1.0
+  prop :theme_progress, :number, default: 0.0
+
+  state :hover, default: nil
+
+  event :select
 
   STAR_COUNT = 5
 
-  def init
-    {hover: nil}
-  end
+  def self.init = {hover: nil}
 
   # -- Event transformation --------------------------------------------------
 
-  def handle_event(event, state)
+  def self.handle_event(event, state)
     case event
     in Event::Widget[type: :canvas_element_click, data:]
       n = parse_star_index(data)
@@ -47,7 +53,7 @@ module StarRating
 
   # -- Rendering -------------------------------------------------------------
 
-  def render(id, props, state)
+  def self.render(id, props, state)
     include Plushie::UI
 
     rating = props[:rating] || 0
@@ -107,14 +113,14 @@ module StarRating
     end
   end
 
-  def parse_star_index(data)
-    element_id = data && data["element_id"]
+  def self.parse_star_index(data)
+    element_id = data && (data[:element_id] || data["element_id"])
     return nil unless element_id.is_a?(String) && element_id.start_with?("star-")
 
     element_id.delete_prefix("star-").to_i
   end
 
-  def star_commands(outer_r, inner_r)
+  def self.star_commands(outer_r, inner_r)
     points = (0..9).map do |i|
       angle = i * Math::PI / 5 - Math::PI / 2
       r = i.even? ? outer_r : inner_r
@@ -126,7 +132,7 @@ module StarRating
     [Plushie::Canvas::Shape.move_to(fx, fy), *rest, Plushie::Canvas::Shape.close]
   end
 
-  def star_color(filled, preview, progress)
+  def self.star_color(filled, preview, progress)
     if preview
       fade([255, 200, 50], [200, 160, 80], progress)
     elsif filled
@@ -136,16 +142,12 @@ module StarRating
     end
   end
 
-  def fade(rgb1, rgb2, t)
+  def self.fade(rgb1, rgb2, t)
     r = (rgb1[0] + (rgb2[0] - rgb1[0]) * t).round
     g = (rgb1[1] + (rgb2[1] - rgb1[1]) * t).round
     b = (rgb1[2] + (rgb2[2] - rgb1[2]) * t).round
     "#%02x%02x%02x" % [r, g, b]
   end
 
-  # -- Public builder --------------------------------------------------------
-
-  def self.new(id, **props)
-    Plushie::CanvasWidget.build(StarRating, id, props)
-  end
+  private_class_method :parse_star_index, :star_commands, :star_color, :fade
 end

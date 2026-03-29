@@ -249,7 +249,7 @@ end
 ```
 
 Each extension receives its own section via the `InitCtx` passed to the
-Rust-side `init` trait method. See [Extensions](extensions.md) for
+Rust-side `init` trait method. See [Widgets](widgets.md) for
 details.
 
 To follow the OS light/dark preference automatically, set the window

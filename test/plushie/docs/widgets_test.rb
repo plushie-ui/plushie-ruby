@@ -2,8 +2,8 @@
 
 require "test_helper"
 
-class DocsExtensionsTest < Minitest::Test
-  # -- Extension widget declaration from extensions.md --
+class DocsWidgetsTest < Minitest::Test
+  # -- Widget declaration from widgets.md --
 
   class MySparkline
     include Plushie::Widget
@@ -30,7 +30,7 @@ class DocsExtensionsTest < Minitest::Test
     assert_includes names, :event_rate
   end
 
-  # -- Extension new with defaults from extensions.md --
+  # -- Widget new with defaults from widgets.md --
 
   def test_extension_new_with_defaults
     widget = MySparkline.new("spark-1")
@@ -45,7 +45,7 @@ class DocsExtensionsTest < Minitest::Test
     assert_equal 50, widget.capacity
   end
 
-  # -- Extension build produces Node from extensions.md --
+  # -- Widget build produces Node from widgets.md --
 
   def test_extension_build_produces_node
     widget = MySparkline.new("spark-1", data: 42)
@@ -62,7 +62,7 @@ class DocsExtensionsTest < Minitest::Test
     assert_equal "#ff0000", node.props[:color]
   end
 
-  # -- Extension setter chain from extensions.md --
+  # -- Widget setter chain from widgets.md --
 
   def test_extension_setter_chain
     widget = MySparkline.new("spark-1")
@@ -91,7 +91,7 @@ class DocsExtensionsTest < Minitest::Test
     assert_equal 30, with_rate.event_rate
   end
 
-  # -- Pure Ruby composite extension from extensions.md --
+  # -- Pure Ruby composite widget from widgets.md --
 
   class CardExtension
     include Plushie::Widget
@@ -130,7 +130,7 @@ class DocsExtensionsTest < Minitest::Test
     assert_equal "info", node.id
   end
 
-  # -- Unsupported prop type raises from extensions.md --
+  # -- Unsupported prop type raises from widgets.md --
 
   def test_extension_rejects_unknown_prop_type
     assert_raises(ArgumentError) do
@@ -143,7 +143,7 @@ class DocsExtensionsTest < Minitest::Test
     end
   end
 
-  # -- Reserved prop name raises from extensions.md --
+  # -- Reserved prop name raises from widgets.md --
 
   def test_extension_rejects_reserved_prop_name
     assert_raises(ArgumentError) do

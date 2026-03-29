@@ -353,4 +353,4 @@ reaching the wire:
 - [Getting started](getting-started.md) -- setup, first app
 - [Commands and subscriptions](commands.md) -- event rate limiting details
 - [Testing](testing.md) -- three-backend test framework
-- [Extensions](extensions.md) -- custom widgets
+- [Widgets](widgets.md) -- custom widgets
