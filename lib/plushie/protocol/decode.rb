@@ -79,11 +79,18 @@ module Plushie
 
       # Decode an event message into the appropriate Event struct.
       #
+      # Events from the main protocol stream always include window_id.
+      # Events embedded in interact_response/interact_step may omit it
+      # (the mock renderer doesn't always include it). Pass
+      # +require_window_id: false+ when decoding embedded events.
+      #
       # @param msg [Hash] deserialized event message
+      # @param require_window_id [Boolean] raise on missing window_id (default: true)
       # @return [Event::*, nil]
-      def decode_event(msg)
+      def decode_event(msg, require_window_id: true)
         family = msg["family"]
         data = msg["data"] || {}
+        window_id_fn = require_window_id ? method(:require_window_id!) : method(:optional_window_id)
 
         case family
 
@@ -95,7 +102,7 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: family.to_sym, id: id,
-            value: msg["value"], window_id: require_window_id!(msg, family),
+            value: msg["value"], window_id: window_id_fn.call(msg, family),
             scope: scope, data: msg["data"]
           )
 
@@ -108,7 +115,7 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: family.to_sym, id: id,
-            window_id: require_window_id!(msg, family),
+            window_id: window_id_fn.call(msg, family),
             scope: scope, data: atomize_data(data)
           )
 
@@ -118,7 +125,7 @@ module Plushie
           parsed[:button] = parse_canvas_button(parsed[:button]) if parsed.key?(:button)
           Event::Widget.new(
             type: :canvas_element_click, id: id,
-            window_id: require_window_id!(msg, family),
+            window_id: window_id_fn.call(msg, family),
             scope: scope, data: parsed
           )
 
@@ -126,7 +133,7 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :canvas_element_drag, id: id,
-            window_id: require_window_id!(msg, family),
+            window_id: window_id_fn.call(msg, family),
             scope: scope, data: {x: data["x"], y: data["y"], dx: data["dx"], dy: data["dy"]}
           )
 
@@ -134,7 +141,7 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :canvas_element_key_press, id: id,
-            window_id: require_window_id!(msg, family),
+            window_id: window_id_fn.call(msg, family),
             scope: scope, data: parse_canvas_key_data(data, :press)
           )
 
@@ -142,7 +149,7 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :canvas_element_key_release, id: id,
-            window_id: require_window_id!(msg, family),
+            window_id: window_id_fn.call(msg, family),
             scope: scope, data: parse_canvas_key_data(data, :release)
           )
 
@@ -153,20 +160,20 @@ module Plushie
           "mouse_double_click", "mouse_enter", "mouse_exit"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: family.to_sym, id: id, window_id: require_window_id!(msg, family), scope: scope
+            type: family.to_sym, id: id, window_id: window_id_fn.call(msg, family), scope: scope
           )
 
         when "mouse_move"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :mouse_move, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            type: :mouse_move, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             data: {x: data["x"], y: data["y"]}
           )
 
         when "mouse_scroll"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :mouse_scroll, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            type: :mouse_scroll, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             data: {delta_x: data["delta_x"], delta_y: data["delta_y"]}
           )
 
@@ -175,21 +182,21 @@ module Plushie
         when "canvas_press", "canvas_release"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: family.to_sym, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            type: family.to_sym, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             data: {x: data["x"], y: data["y"], button: parse_canvas_button(data["button"])}
           )
 
         when "canvas_move"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :canvas_move, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            type: :canvas_move, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             data: {x: data["x"], y: data["y"]}
           )
 
         when "canvas_scroll"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :canvas_scroll, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            type: :canvas_scroll, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             data: {x: data["x"], y: data["y"], delta_x: data["delta_x"], delta_y: data["delta_y"]}
           )
 
@@ -198,14 +205,14 @@ module Plushie
         when "pane_resized"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :pane_resized, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            type: :pane_resized, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             data: {split: data["split"], ratio: data["ratio"]}
           )
 
         when "pane_dragged"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :pane_dragged, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            type: :pane_dragged, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             data: {
               pane: data["pane"], target: data["target"],
               action: Parsers.parse_pane_action(data["action"]),
@@ -217,14 +224,14 @@ module Plushie
         when "pane_clicked"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :pane_clicked, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            type: :pane_clicked, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             data: {pane: data["pane"]}
           )
 
         when "pane_focus_cycle"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :pane_focus_cycle, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            type: :pane_focus_cycle, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             data: {pane: data["pane"]}
           )
 
@@ -233,7 +240,7 @@ module Plushie
         when "sensor_resize"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :sensor_resize, id: id, window_id: require_window_id!(msg, family), scope: scope,
+            type: :sensor_resize, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             data: {width: data["width"], height: data["height"]}
           )
 
@@ -481,7 +488,7 @@ module Plushie
             id, scope = split_scoped_id(msg["id"])
             Event::Widget.new(
               type: family&.to_sym, id: id,
-              value: msg["value"], window_id: require_window_id!(msg, family),
+              value: msg["value"], window_id: window_id_fn.call(msg, family),
               scope: scope, data: msg["data"]
             )
           end
@@ -567,7 +574,7 @@ module Plushie
       # @param msg [Hash]
       # @return [Hash] with :type, :id, :session, :events
       def decode_interact_response(msg)
-        events = (msg["events"] || []).filter_map { |e| decode_event(e) }
+        events = (msg["events"] || []).filter_map { |e| decode_event(e, require_window_id: false) }
         {
           type: :interact_response,
           id: msg["id"],
@@ -582,7 +589,7 @@ module Plushie
       # @param msg [Hash]
       # @return [Hash] with :type, :id, :session, :events
       def decode_interact_step(msg)
-        events = (msg["events"] || []).filter_map { |e| decode_event(e) }
+        events = (msg["events"] || []).filter_map { |e| decode_event(e, require_window_id: false) }
         {
           type: :interact_step,
           id: msg["id"],
@@ -657,6 +664,17 @@ module Plushie
         return window_id if window_id.is_a?(String) && !window_id.empty?
 
         raise ArgumentError, "event family #{family.inspect} is missing required window_id"
+      end
+
+      # Lenient window_id extraction for events embedded in interact
+      # responses where the mock renderer may omit window_id.
+      #
+      # @param msg [Hash]
+      # @param _family [String]
+      # @return [String, nil]
+      def optional_window_id(msg, _family)
+        window_id = msg["window_id"]
+        (window_id.is_a?(String) && !window_id.empty?) ? window_id : nil
       end
 
       # Parse a modifiers hash from the wire format.

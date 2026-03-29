@@ -73,7 +73,7 @@ module Plushie
       def decode: (String data, ?Symbol format) -> Hash[String, untyped]
       def decode_message: (String data, ?Symbol format) -> (untyped | nil)
       def dispatch_message: (Hash[String, untyped] msg) -> (untyped | nil)
-      def decode_event: (Hash[String, untyped] msg) -> untyped
+      def decode_event: (Hash[String, untyped] msg, ?require_window_id: bool) -> untyped
       def decode_hello: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
       def decode_effect_response: (Hash[String, untyped] msg) -> Event::Effect
       def decode_query_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
@@ -90,6 +90,7 @@ module Plushie
       def atomize_data: (Hash[String, untyped]? data) -> Hash[Symbol, untyped]?
       def parse_canvas_key_data: (Hash[String, untyped] data, Symbol type) -> Hash[Symbol, untyped]
       def require_window_id!: (Hash[String, untyped] msg, String family) -> String
+      def optional_window_id: (Hash[String, untyped] msg, String family) -> String?
 
       def self.decode: (String data, ?Symbol format) -> Hash[String, untyped]
       def self.decode_message: (String data, ?Symbol format) -> (untyped | nil)
@@ -117,6 +118,7 @@ module Plushie
       def self.atomize_data: (Hash[String, untyped]? data) -> Hash[Symbol, untyped]?
       def self.parse_canvas_key_data: (Hash[String, untyped] data, Symbol type) -> Hash[Symbol, untyped]
       def self.require_window_id!: (Hash[String, untyped] msg, String family) -> String
+      def self.optional_window_id: (Hash[String, untyped] msg, String family) -> String?
     end
   end
 end
