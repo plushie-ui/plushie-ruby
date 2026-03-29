@@ -277,14 +277,27 @@ module Plushie
         return
       end
 
-      # Intercept interact_step / interact_response for pending interact
-      if event.is_a?(Hash) && @pending_interact
+      # Intercept interact_step / interact_response for pending interact.
+      # Check the response ID matches the pending interact to reject stale
+      # responses from timed-out interactions. Events from stale responses
+      # are still dispatched through update -- only the caller completion
+      # is skipped.
+      if event.is_a?(Hash)
         event_type = (event[:type] || event["type"])&.to_sym
-        if event_type == :interact_step
-          handle_interact_step(event)
-          return
-        elsif event_type == :interact_response
-          handle_interact_response(event)
+        response_id = event[:id] || event["id"]
+        pending = @pending_interact
+        if event_type == :interact_step || event_type == :interact_response
+          if pending && response_id == pending[:id]
+            if event_type == :interact_step
+              handle_interact_step(event)
+            else
+              handle_interact_response(event)
+            end
+          else
+            # Stale or orphaned response. Dispatch events through update
+            # but don't complete any pending interact.
+            extract_interact_events(event).each { |ev| dispatch_event(ev) }
+          end
           return
         end
       end

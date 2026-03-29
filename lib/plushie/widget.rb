@@ -247,6 +247,11 @@ module Plushie
               "native_widget #{name} requires a `rust_constructor` declaration"
           end
         end
+
+        if stateful? && !respond_to?(:render)
+          raise ArgumentError,
+            "stateful widget #{name} requires a `def self.render(id, props, state)` class method"
+        end
       end
 
       # Provide default implementations for stateful callbacks.

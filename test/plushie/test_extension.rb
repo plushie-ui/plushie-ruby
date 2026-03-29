@@ -123,6 +123,18 @@ class TestExtension < Minitest::Test
     end
   end
 
+  def test_stateful_widget_without_render_raises
+    assert_raises(ArgumentError, /requires.*def self.render/) do
+      klass = Class.new do
+        include Plushie::Widget
+
+        widget :broken
+        state :count, default: 0
+      end
+      klass.finalize!
+    end
+  end
+
   # -- Stateful widgets --------------------------------------------------------
 
   def test_state_declaration_makes_widget_stateful
@@ -132,6 +144,8 @@ class TestExtension < Minitest::Test
       widget :counter
       prop :label, :string, default: ""
       state :count, default: 0
+
+      def self.render(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
     end
     klass.finalize!
     assert klass.stateful?
@@ -165,6 +179,8 @@ class TestExtension < Minitest::Test
       widget :toggle
       state :on, default: false
       state :count, default: 0
+
+      def self.render(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
     end
     klass.finalize!
     assert_equal({on: false, count: 0}, klass.init)
@@ -177,6 +193,8 @@ class TestExtension < Minitest::Test
       widget :toggle
       state :on, default: false
       event :toggled
+
+      def self.render(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
     end
     klass.finalize!
     # Widgets with event declarations default to :consumed
@@ -190,6 +208,8 @@ class TestExtension < Minitest::Test
 
       widget :wrapper
       state :expanded, default: true
+
+      def self.render(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
     end
     klass.finalize!
     # Widgets without event declarations default to :ignored
@@ -204,6 +224,8 @@ class TestExtension < Minitest::Test
       widget :picker
       event :select
       event :change
+
+      def self.render(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
     end
     klass.finalize!
     assert_equal [:select, :change], klass.widget_events
@@ -220,9 +242,12 @@ class TestExtension < Minitest::Test
       include Plushie::Widget
 
       widget :interceptor
+
       def self.handle_event(_event, state)
         [:ignored, state]
       end
+
+      def self.render(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
     end
     klass.finalize!
     assert klass.stateful?
