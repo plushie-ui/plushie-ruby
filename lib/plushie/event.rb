@@ -56,9 +56,9 @@ module Plushie
     # Subscribe via Subscription.on_key_press or Subscription.on_key_release.
     #
     # @!attribute [r] type [Symbol] :press or :release
-    # @!attribute [r] key [String] logical key name ("a", "Enter", "ArrowUp", etc.)
-    # @!attribute [r] modified_key [String, nil] key with modifiers applied (e.g. "S" for shift+s)
-    # @!attribute [r] physical_key [String, nil] hardware scan code name
+    # @!attribute [r] key [Symbol, String] logical key name (:escape, :enter, "a", "s", etc.)
+    # @!attribute [r] modified_key [Symbol, String, nil] key with modifiers applied
+    # @!attribute [r] physical_key [Symbol, String, nil] hardware scan code name
     # @!attribute [r] location [Symbol] key location (:standard, :left, :right, :numpad)
     # @!attribute [r] modifiers [Hash] active modifier state ({shift: true, command: false, ...})
     # @!attribute [r] text [String, nil] text produced by the key event (nil for non-printable keys)

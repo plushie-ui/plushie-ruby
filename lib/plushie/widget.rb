@@ -338,7 +338,7 @@ module Plushie
             CanvasWidget::META_KEY => widget_class,
             CanvasWidget::PROPS_KEY => props_hash
           }.freeze
-          node = Plushie::Node.new(id: @id, type: "canvas", props: {}, meta: meta)
+          node = Plushie::Node.new(id: @id, type: "widget_placeholder", props: {}, meta: meta)
 
           # Add to UI context when called inside a DSL block.
           parent = Plushie::UI::Context.current

@@ -87,7 +87,7 @@ module Plushie
         META_KEY => widget_module,
         PROPS_KEY => props
       }.freeze
-      Node.new(id: id, type: "canvas", props: {}, meta: meta)
+      Node.new(id: id, type: "widget_placeholder", props: {}, meta: meta)
     end
 
     # Check if a node is a canvas widget placeholder.

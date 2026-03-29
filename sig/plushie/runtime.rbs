@@ -25,6 +25,7 @@ module Plushie
     @subscription_keys: Array[untyped]
     @canvas_widgets: Hash[String, CanvasWidget::RegistryEntry]
     @consecutive_errors: Integer
+    @consecutive_view_errors: Integer
     @diagnostics: Array[Event::System]
     @diagnostics_mutex: Mutex
     @pending_stub_acks: Hash[String, Thread::Queue[untyped]]

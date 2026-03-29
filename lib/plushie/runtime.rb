@@ -624,11 +624,12 @@ module Plushie
 
     # Clear renderer-side subscriptions so sync_subscriptions sees them
     # as new and re-sends subscribe messages to the fresh renderer.
+    # Timer subscriptions are kept alive -- they run locally.
     def reset_renderer_subscriptions
-      @subscriptions.each do |key, entry|
-        next unless entry[:sub_type] == :renderer
-        @subscriptions.delete(key)
+      renderer_keys = @subscriptions.each_with_object([]) do |(key, entry), keys|
+        keys << key if entry[:sub_type] == :renderer
       end
+      renderer_keys.each { |key| @subscriptions.delete(key) }
       @subscription_keys = @subscriptions.keys.sort_by(&:to_s)
     end
 

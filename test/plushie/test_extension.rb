@@ -153,7 +153,7 @@ class TestExtension < Minitest::Test
 
     node = klass.new("c1").build
     assert_instance_of Plushie::Node, node
-    assert_equal "canvas", node.type
+    assert_equal "widget_placeholder", node.type
     assert node.meta.key?(Plushie::CanvasWidget::META_KEY)
     assert_equal klass, node.meta[Plushie::CanvasWidget::META_KEY]
   end

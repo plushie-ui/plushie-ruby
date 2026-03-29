@@ -43,7 +43,7 @@ module Plushie
     def self.safe_handle_event: (RegistryEntry entry, untyped event, String widget_id) -> [untyped, untyped]
     def self.resolve_emit_identity: (untyped event, String widget_id) -> [String, String, Array[String]]
     def self.split_widget_id: (String widget_id) -> [String, Array[String]]
-    def self.normalize_emit_data: (untyped data) -> Hash[String, untyped]
+    def self.normalize_emit_data: (untyped data) -> Hash[Symbol, untyped]
     def self.scope_to_widget_ids: (Array[String] scope) -> Array[String]
     def self.scope_to_id: (Array[String] scope, String id) -> String
     def self.namespace_tag: (Subscription::Sub sub, String widget_id) -> Subscription::Sub
