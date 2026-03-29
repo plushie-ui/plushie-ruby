@@ -8,33 +8,30 @@ module Plushie
 
       def widget: (Symbol type_name, **untyped opts) -> void
 
-      def rust_crate: (String path) -> void
+      def prop: (Symbol name, Symbol type, **untyped opts) -> void
+      def state: (Symbol name, ?default: untyped) -> void
+      def event: (Symbol name) -> void
+      def command: (Symbol name, **Symbol params) -> void
 
+      def rust_crate: (String path) -> void
       def rust_constructor: (String expr) -> void
 
       def native_crate: () -> String?
-
       def rust_constructor_expr: () -> String?
-
       def native?: () -> bool
-
-      def prop: (Symbol name, Symbol type, **untyped opts) -> void
-
-      def command: (Symbol name, **Symbol params) -> void
+      def stateful?: () -> bool
 
       def type_names: () -> Array[Symbol]
-
       def prop_names: () -> Array[Symbol]
-
       def widget_props: () -> Array[Hash[Symbol, untyped]]
-
+      def widget_state_fields: () -> Array[Hash[Symbol, untyped]]
+      def widget_events: () -> Array[Symbol]
       def container?: () -> bool
 
       def finalize!: () -> void
     end
 
     def self.finalize_on_new: (Class base) -> void
-
     def self.included: (Class base) -> void
   end
 end

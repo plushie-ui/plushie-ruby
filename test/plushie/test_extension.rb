@@ -122,4 +122,109 @@ class TestExtension < Minitest::Test
       end
     end
   end
+
+  # -- Stateful widgets --------------------------------------------------------
+
+  def test_state_declaration_makes_widget_stateful
+    klass = Class.new do
+      include Plushie::Widget
+
+      widget :counter
+      prop :label, :string, default: ""
+      state :count, default: 0
+    end
+    klass.finalize!
+    assert klass.stateful?
+  end
+
+  def test_stateful_widget_build_returns_placeholder
+    klass = Class.new do
+      include Plushie::Widget
+
+      widget :counter
+      state :count, default: 0
+
+      def self.init = {count: 0}
+
+      def self.render(id, _props, state)
+        Plushie::Node.new(id: id, type: "text", props: {content: state[:count].to_s})
+      end
+    end
+
+    node = klass.new("c1").build
+    assert_instance_of Plushie::Node, node
+    assert_equal "canvas", node.type
+    assert node.meta.key?(Plushie::CanvasWidget::META_KEY)
+    assert_equal klass, node.meta[Plushie::CanvasWidget::META_KEY]
+  end
+
+  def test_stateful_widget_auto_init_from_state_fields
+    klass = Class.new do
+      include Plushie::Widget
+
+      widget :toggle
+      state :on, default: false
+      state :count, default: 0
+    end
+    klass.finalize!
+    assert_equal({on: false, count: 0}, klass.init)
+  end
+
+  def test_stateful_widget_default_handle_event_with_events
+    klass = Class.new do
+      include Plushie::Widget
+
+      widget :toggle
+      state :on, default: false
+      event :toggled
+    end
+    klass.finalize!
+    # Widgets with event declarations default to :consumed
+    result = klass.handle_event(:some_event, {on: false})
+    assert_equal [:consumed, {on: false}], result
+  end
+
+  def test_stateful_widget_default_handle_event_without_events
+    klass = Class.new do
+      include Plushie::Widget
+
+      widget :wrapper
+      state :expanded, default: true
+    end
+    klass.finalize!
+    # Widgets without event declarations default to :ignored
+    result = klass.handle_event(:some_event, {expanded: true})
+    assert_equal [:ignored, {expanded: true}], result
+  end
+
+  def test_event_declaration
+    klass = Class.new do
+      include Plushie::Widget
+
+      widget :picker
+      event :select
+      event :change
+    end
+    klass.finalize!
+    assert_equal [:select, :change], klass.widget_events
+    assert klass.stateful?
+  end
+
+  def test_render_only_widget_is_not_stateful
+    refute TestGauge.stateful?
+    refute TestLabeledValue.stateful?
+  end
+
+  def test_handle_event_makes_widget_stateful
+    klass = Class.new do
+      include Plushie::Widget
+
+      widget :interceptor
+      def self.handle_event(_event, state)
+        [:ignored, state]
+      end
+    end
+    klass.finalize!
+    assert klass.stateful?
+  end
 end
