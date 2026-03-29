@@ -337,6 +337,9 @@ module Plushie
       @consecutive_view_errors = 0
     rescue => e
       handle_view_error(e)
+      # Send the last known snapshot as a fallback. Without this,
+      # interact_step callers hang waiting for a snapshot response.
+      resend_last_snapshot
     end
 
     def render_and_patch
@@ -370,6 +373,19 @@ module Plushie
 
     def normalize_view_tree(view_tree)
       Tree.normalize_view(view_tree, registry: @canvas_widgets)
+    end
+
+    # Re-send the last known snapshot. Used as a fallback when view
+    # fails during interact_step -- the renderer expects a snapshot
+    # response and will hang without one.
+    def resend_last_snapshot
+      tree = @previous_tree
+      bridge = @bridge
+      return unless tree && bridge
+      wire = Tree.node_to_wire(tree)
+      bridge.send_encoded(Protocol::Encode.encode_snapshot(wire, @format))
+    rescue => e
+      @logger.error("plushie: failed to resend fallback snapshot: #{e.class}: #{e.message}")
     end
 
     # -- Result validation ---------------------------------------------------

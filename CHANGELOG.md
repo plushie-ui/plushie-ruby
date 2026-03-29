@@ -35,9 +35,9 @@ Initial release. Targets plushie-renderer 0.5.0.
   generates Cargo workspace, validates crate paths and constructors,
   detects type name and crate collisions, builds custom renderer binary
 - `Plushie.configure` block for SDK-wide configuration: `binary_path`,
-  `source_path`, `build_name`, `extensions`, `extension_config`,
+  `source_path`, `build_name`, `widgets`, `widget_config`,
   `test_backend`
-- `extension_config` runtime configuration passed to Rust extensions
+- `widget_config` runtime configuration passed to native widgets
   via the Settings wire message and `InitCtx`
 - WASM renderer download via `rake plushie:download[wasm]`
 - `PLUSHIE_BIN_FILE` and `PLUSHIE_WASM_DIR` env vars for overriding

@@ -23,9 +23,9 @@ module Plushie
 
     class Key
       attr_reader type: Symbol
-      attr_reader key: String
-      attr_reader modified_key: String?
-      attr_reader physical_key: String?
+      attr_reader key: Symbol | String
+      attr_reader modified_key: (Symbol | String)?
+      attr_reader physical_key: (Symbol | String)?
       attr_reader location: Symbol
       attr_reader modifiers: Hash[Symbol, bool]
       attr_reader text: String?
@@ -33,7 +33,7 @@ module Plushie
       attr_reader captured: bool
       attr_reader window_id: String?
 
-      def initialize: (type: Symbol, key: String, ?modified_key: String?, ?physical_key: String?, ?location: Symbol, ?modifiers: Hash[Symbol, bool], ?text: String?, ?repeat: bool, ?captured: bool, ?window_id: String?) -> void
+      def initialize: (type: Symbol, key: Symbol | String, ?modified_key: (Symbol | String)?, ?physical_key: (Symbol | String)?, ?location: Symbol, ?modifiers: Hash[Symbol, bool], ?text: String?, ?repeat: bool, ?captured: bool, ?window_id: String?) -> void
     end
 
     class Mouse

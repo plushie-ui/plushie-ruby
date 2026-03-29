@@ -236,13 +236,13 @@ Supported keys:
 - `scale_factor` -- number (default `1.0`). Global UI scale factor applied
   to all windows.
 
-The runtime also merges `extension_config` from `Plushie.configure`
+The runtime also merges `widget_config` from `Plushie.configure`
 into the Settings wire message. This provides runtime configuration
-to native widget extensions without changing your `settings` callback:
+to native widgets without changing your `settings` callback:
 
 ```ruby
 Plushie.configure do |config|
-  config.extension_config = {
+  config.widget_config = {
     "sparkline" => {"max_samples" => 1000}
   }
 end
@@ -334,8 +334,8 @@ Plushie.configure do |config|
   config.binary_path = "/opt/plushie/bin/plushie"
   config.source_path = "~/projects/plushie"
   config.build_name = "my-app-plushie"
-  config.extensions = [MyGauge]
-  config.extension_config = {"gauge" => {"precision" => 2}}
+  config.widgets = [MyGauge]
+  config.widget_config = {"gauge" => {"precision" => 2}}
   config.test_backend = :headless
 end
 ```
@@ -344,9 +344,9 @@ end
 |---|---|---|---|
 | `binary_path` | `String` | `nil` | Explicit path to the plushie binary. Overrides all resolution. Equivalent to `PLUSHIE_BINARY_PATH` env var. |
 | `source_path` | `String` | `nil` | Path to the plushie Rust source checkout. Used by `rake plushie:build`. Equivalent to `PLUSHIE_SOURCE_PATH` env var. |
-| `build_name` | `String` | `"plushie-custom"` | Custom binary name for extension builds. |
-| `extensions` | `Array<Class>` | `[]` | Extension classes to include in custom builds. |
-| `extension_config` | `Hash` | `{}` | Configuration hash passed to widget extensions at runtime via the Settings wire message. |
+| `build_name` | `String` | `"plushie-custom"` | Custom binary name for native widget builds. |
+| `widgets` | `Array<Class>` | `[]` | Widget classes to include in custom builds. |
+| `widget_config` | `Hash` | `{}` | Configuration hash passed to native widgets at runtime via the Settings wire message. |
 | `test_backend` | `Symbol` | `nil` | Test backend (`:mock`, `:headless`, `:windowed`). Equivalent to `PLUSHIE_TEST_BACKEND` env var. |
 | `test_format` | `:json`, `:msgpack` | `:msgpack` | Wire format for test sessions. Set to `:json` for easier debugging. |
 

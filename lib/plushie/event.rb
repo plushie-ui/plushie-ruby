@@ -129,7 +129,7 @@ module Plushie
     # Triggered by IME composition sessions (CJK input, accent composition, etc.).
     # Subscribe via Subscription.on_ime.
     #
-    # @!attribute [r] type [Symbol] :enabled, :preedit, :commit, :disabled
+    # @!attribute [r] type [Symbol] :opened, :preedit, :commit, :closed
     # @!attribute [r] id [String, nil] widget ID that has IME focus
     # @!attribute [r] scope [Array<String>] reversed ancestor scope chain
     # @!attribute [r] text [String, nil] composed or committed text

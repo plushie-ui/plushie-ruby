@@ -17,7 +17,7 @@ repository:
 
 An extension has two halves:
 
-1. **Ruby side:** use `include Plushie::Extension`. This declares the widget's
+1. **Ruby side:** use `include Plushie::Widget`. This declares the widget's
    props, commands, and (for native widgets) the Rust crate and constructor.
 
 2. **Rust side:** implement the `WidgetExtension` trait from `plushie-ext`. This
@@ -26,7 +26,7 @@ An extension has two halves:
 ```ruby
 # lib/my_sparkline/extension.rb
 class MySparkline
-  include Plushie::Extension
+  include Plushie::Widget
 
   widget :sparkline, kind: :native_widget
 
@@ -80,7 +80,7 @@ crate. Requires `rust_crate` and `rust_constructor` declarations.
 
 ```ruby
 class MyApp::HexView
-  include Plushie::Extension
+  include Plushie::Widget
 
   widget :hex_view, kind: :native_widget
   rust_crate "native/hex_view"
@@ -98,7 +98,7 @@ existing Plushie widgets. No Rust code needed. Define a `render` method.
 
 ```ruby
 class MyApp::Card
-  include Plushie::Extension
+  include Plushie::Widget
 
   widget :card, kind: :widget, container: true
 
@@ -222,7 +222,7 @@ nested block construction for that prop:
 
 ```ruby
 class MyApp::Card
-  include Plushie::Extension
+  include Plushie::Widget
 
   widget :card, kind: :widget, container: true
 
@@ -449,7 +449,7 @@ for the full working project.
 ```ruby
 # lib/sparkline_extension.rb
 class SparklineExtension
-  include Plushie::Extension
+  include Plushie::Widget
 
   widget :sparkline, kind: :native_widget
   rust_crate "native/sparkline"
@@ -604,7 +604,7 @@ plushie-ext = "0.5.1"
 ```ruby
 # Configure the extension
 Plushie.configure do |config|
-  config.extensions = [SparklineExtension]
+  config.widgets = [SparklineExtension]
 end
 
 # Build the custom binary
@@ -667,7 +667,7 @@ for the full working project.
 ```ruby
 # lib/gauge_extension.rb
 class GaugeExtension
-  include Plushie::Extension
+  include Plushie::Widget
 
   widget :gauge, kind: :native_widget
   rust_crate "native/gauge"
@@ -1772,9 +1772,9 @@ Register extensions and pass runtime configuration using `Plushie.configure`:
 
 ```ruby
 Plushie.configure do |config|
-  config.extensions = [MyGauge, MyChart]
+  config.widgets = [MyGauge, MyChart]
   config.build_name = "my-dashboard-plushie"
-  config.extension_config = {
+  config.widget_config = {
     "sparkline" => {"max_samples" => 1000},
     "terminal" => {"shell" => "/bin/bash"}
   }
@@ -1785,16 +1785,16 @@ end
 |---|---|---|---|
 | `binary_path` | `String` | `nil` | Path to the plushie binary (overrides all resolution). Equivalent to `PLUSHIE_BINARY_PATH` env var. |
 | `source_path` | `String` | `nil` | Path to the plushie Rust source checkout. Used by `rake plushie:build`. Equivalent to `PLUSHIE_SOURCE_PATH` env var. |
-| `build_name` | `String` | `"plushie-custom"` | Custom binary name for extension builds. Used as the Cargo target name and installed filename. |
-| `extensions` | `Array<Class>` | `[]` | Extension classes to include in custom builds. |
-| `extension_config` | `Hash` | `{}` | Runtime config passed to extensions via the Settings wire message, keyed by `config_key`. |
+| `build_name` | `String` | `"plushie-custom"` | Custom binary name for native widget builds. Used as the Cargo target name and installed filename. |
+| `widgets` | `Array<Class>` | `[]` | Widget classes to include in custom builds. |
+| `widget_config` | `Hash` | `{}` | Runtime config passed to native widgets via the Settings wire message, keyed by `config_key`. |
 | `test_backend` | `Symbol` | `nil` | Test backend (`:mock`, `:headless`, `:windowed`). Equivalent to `PLUSHIE_TEST_BACKEND` env var. |
 | `artifacts` | `Array<Symbol>` | `[:bin]` | Which artifacts to install: `:bin`, `:wasm`, or both. |
 | `bin_file` | `String` | `nil` | Override binary destination for download/build. Equivalent to `PLUSHIE_BIN_FILE` env var. |
 | `wasm_dir` | `String` | `nil` | Override WASM output directory. Equivalent to `PLUSHIE_WASM_DIR` env var. |
 
-The `extension_config` hash is sent to the renderer on startup. Each
-extension receives its own section via the `InitCtx` passed to the `init`
+The `widget_config` hash is sent to the renderer on startup. Each
+widget receives its own section via the `InitCtx` passed to the `init`
 trait method. Use this for runtime tuning (buffer sizes, feature flags,
 backend URLs) that should not be baked into the binary.
 

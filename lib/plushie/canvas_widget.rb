@@ -392,9 +392,9 @@ module Plushie
 
       def normalize_emit_data(data)
         if data.is_a?(Hash)
-          data.transform_keys(&:to_s)
+          data.transform_keys(&:to_sym)
         else
-          {"value" => data}
+          {value: data}
         end
       end
 
