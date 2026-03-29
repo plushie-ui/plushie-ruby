@@ -203,10 +203,10 @@ class DocsCommandsTest < Minitest::Test
     assert_equal "preview", cmd.payload[:handle]
   end
 
-  # -- Extension commands --
+  # -- Widget commands --
 
-  def test_commands_extension_command_construct
-    cmd = C.extension_command("term-1", "write", {data: "hello"})
+  def test_commands_widget_command_construct
+    cmd = C.widget_command("term-1", "write", {data: "hello"})
     assert_equal :extension_command, cmd.type
     assert_equal "term-1", cmd.payload[:node_id]
     assert_equal "write", cmd.payload[:op]

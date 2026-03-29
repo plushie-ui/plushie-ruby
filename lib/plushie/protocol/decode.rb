@@ -392,11 +392,11 @@ module Plushie
 
         when "error"
           if msg["id"] == "extension_command"
-            Event::ExtensionCommandError.new(
+            Event::WidgetCommandError.new(
               reason: data["reason"] || "",
               node_id: data["node_id"],
               op: data["op"],
-              extension: data["extension"],
+              widget_type: data["extension"],
               message: data["message"]
             )
           else

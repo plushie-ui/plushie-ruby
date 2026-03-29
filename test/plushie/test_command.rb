@@ -294,16 +294,16 @@ class TestCommand < Minitest::Test
     assert_equal "Item saved", cmd.payload[:text]
   end
 
-  # -- Extension -----------------------------------------------------------
+  # -- Widget commands ------------------------------------------------------
 
-  def test_extension_command
-    cmd = C.extension_command("chart-1", "append", {values: [1, 2]})
+  def test_widget_command
+    cmd = C.widget_command("chart-1", "append", {values: [1, 2]})
     assert_equal :extension_command, cmd.type
     assert_equal "chart-1", cmd.payload[:node_id]
   end
 
-  def test_extension_commands
-    cmd = C.extension_commands([{node_id: "a", op: "push", payload: {}}])
+  def test_widget_commands
+    cmd = C.widget_commands([{node_id: "a", op: "push", payload: {}}])
     assert_equal :extension_commands, cmd.type
   end
 

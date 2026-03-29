@@ -578,7 +578,7 @@ class TestProtocolDecode < Minitest::Test
         "message" => "no extension handles node `g1`"
       }
     })
-    assert_instance_of Plushie::Event::ExtensionCommandError, event
+    assert_instance_of Plushie::Event::WidgetCommandError, event
     assert_equal "unknown_node", event.reason
     assert_equal "g1", event.node_id
     assert_equal "set_value", event.op

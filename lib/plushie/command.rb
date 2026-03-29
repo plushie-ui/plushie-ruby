@@ -424,17 +424,17 @@ module Plushie
     # Extension
     # -------------------------------------------------------------------
 
-    # Send a command to a native extension widget.
+    # Send a command to a native widget.
     # @param node_id [String]
     # @param op [String]
     # @param payload [Hash]
     # @return [Cmd]
-    def self.extension_command(node_id, op, payload = {}) = Cmd.new(type: :extension_command, payload: {node_id:, op:, data: payload})
+    def self.widget_command(node_id, op, payload = {}) = Cmd.new(type: :extension_command, payload: {node_id:, op:, data: payload})
 
-    # Batch multiple extension commands.
+    # Batch multiple widget commands.
     # @param commands [Array<Hash>] each with :node_id, :op, :payload
     # @return [Cmd]
-    def self.extension_commands(commands) = Cmd.new(type: :extension_commands, payload: {commands:})
+    def self.widget_commands(commands) = Cmd.new(type: :extension_commands, payload: {commands:})
 
     # -------------------------------------------------------------------
     # Test / headless

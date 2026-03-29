@@ -101,18 +101,18 @@ module Plushie
       def initialize: (request_id: String, result: untyped) -> void
     end
 
-    class ExtensionCommandError
+    class WidgetCommandError
       attr_reader reason: String
       attr_reader node_id: String?
       attr_reader op: String?
-      attr_reader extension: String?
+      attr_reader widget_type: String?
       attr_reader message: String?
 
       def initialize: (
         reason: String,
         ?node_id: String?,
         ?op: String?,
-        ?extension: String?,
+        ?widget_type: String?,
         ?message: String?
       ) -> void
     end

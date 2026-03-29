@@ -101,9 +101,9 @@ module Plushie
     # Accessibility
     def self.announce: (String text) -> Cmd
 
-    # Extension
-    def self.extension_command: (String node_id, String op, ?Hash[Symbol, untyped] payload) -> Cmd
-    def self.extension_commands: (Array[Hash[Symbol, untyped]] commands) -> Cmd
+    # Widget commands
+    def self.widget_command: (String node_id, String op, ?Hash[Symbol, untyped] payload) -> Cmd
+    def self.widget_commands: (Array[Hash[Symbol, untyped]] commands) -> Cmd
 
     # Test
     def self.advance_frame: (Integer timestamp) -> Cmd
