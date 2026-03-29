@@ -68,6 +68,7 @@ module Plushie
       # @param tree [Hash, Node] the tree to snapshot
       # @param path [String] path to the golden file (relative or absolute)
       def assert_tree_snapshot(tree, path)
+        tree = strip_meta(tree) unless tree.is_a?(String)
         json = tree.is_a?(String) ? tree : JSON.pretty_generate(tree)
         hash = Digest::SHA256.hexdigest(json)
 
@@ -83,6 +84,23 @@ module Plushie
       end
 
       private
+
+      # Strip :meta from tree structures before snapshotting.
+      # Meta contains internal SDK bookkeeping (widget state, event specs)
+      # that isn't sent over the wire.
+      def strip_meta(tree)
+        case tree
+        when Plushie::Node
+          Tree.node_to_wire(tree)
+        when Hash
+          result = tree.reject { |k, _| k == :meta || k == "meta" }
+          result.transform_values { |v| strip_meta(v) }
+        when Array
+          tree.map { |v| strip_meta(v) }
+        else
+          tree
+        end
+      end
 
       def _assert_golden_hash(path, hash, update_env:)
         if !File.exist?(path) || ENV[update_env]

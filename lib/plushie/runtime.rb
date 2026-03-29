@@ -229,15 +229,25 @@ module Plushie
         in [:effect_timeout, id]
           handle_effect_timeout(id)
         in [:register_effect_stub, kind, response, ack_queue]
-          @bridge.send_register_effect_stub(kind, response)
-          @pending_stub_acks[kind] = ack_queue
+          if @pending_stub_acks.key?(kind)
+            ack_queue.push({error: "stub ack already pending for #{kind}"})
+          else
+            @bridge.send_register_effect_stub(kind, response)
+            @pending_stub_acks[kind] = ack_queue
+          end
         in [:unregister_effect_stub, kind, ack_queue]
-          @bridge.send_unregister_effect_stub(kind)
-          @pending_stub_acks[kind] = ack_queue
+          if @pending_stub_acks.key?(kind)
+            ack_queue.push({error: "stub ack already pending for #{kind}"})
+          else
+            @bridge.send_unregister_effect_stub(kind)
+            @pending_stub_acks[kind] = ack_queue
+          end
         in [:interact, action, selector, payload, result_queue]
           handle_interact_request(action, selector, payload, result_queue)
         in [:await_async, tag, ack_queue]
-          if @async_tasks.key?(tag)
+          if @pending_await_async.key?(tag)
+            ack_queue.push({error: "await already in progress for #{tag}"})
+          elsif @async_tasks.key?(tag)
             @pending_await_async[tag] = ack_queue
           else
             ack_queue.push(:ok)
