@@ -91,9 +91,9 @@ for the full event taxonomy. Common families:
 - `Event::Key[type: :release, ...]` -- keyboard release (via subscription)
 - `Event::Window[type: :close_requested, window_id: id]` -- window close requested
 - `Event::Window[type: :resized, window_id: id, width: w, height: h]` -- window resized
-- `Event::Canvas[type: :press, id: id, x: x, y: y, button: btn]` -- canvas interaction
-- `Event::Sensor[type: :resize, id: id, width: w, height: h]` -- sensor size change
-- `Event::Pane[type: :clicked, id: id, pane: pane]` -- pane grid click
+- `Event::Widget[type: :canvas_press, id: id, data: {x:, y:, button:}]` -- canvas interaction
+- `Event::Widget[type: :sensor_resize, id: id, data: {width:, height:}]` -- sensor size change
+- `Event::Widget[type: :pane_clicked, id: id, data: {pane:}]` -- pane grid click
 
 ### view
 

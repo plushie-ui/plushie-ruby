@@ -267,8 +267,8 @@ in Event::Widget[type: :canvas_move, id: "draw_area", data: {x:, y:}]
 
 When a canvas contains elements with an `interactive` field, the renderer
 handles hit testing locally and emits semantic element events. These arrive
-as `Event::Widget` (not `Event::Canvas`). The `id` is the canvas widget
-ID; `data["element_id"]` identifies the element.
+as `Event::Widget`. The `id` is the canvas widget
+ID; `data[:element_id]` identifies the element.
 
 <!-- test: events_canvas_element_click_match, events_canvas_element_enter_match -- keep this code block in sync with the test -->
 ```ruby

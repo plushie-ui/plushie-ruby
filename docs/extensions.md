@@ -144,11 +144,11 @@ module StarRating
 
   def self.handle_event(event, state)
     case event
-    in Event::Canvas[type: :element_enter, id: star_id]
+    in Event::Widget[type: :canvas_element_enter, data: {element_id: star_id}]
       [:update_state, state.merge(hover: star_id)]
-    in Event::Canvas[type: :element_leave]
+    in Event::Widget[type: :canvas_element_leave]
       [:update_state, state.merge(hover: nil)]
-    in Event::Canvas[type: :element_click, id: star_id]
+    in Event::Widget[type: :canvas_element_click, data: {element_id: star_id}]
       [:emit, :select, star_id, state]
     else
       [:ignored, state]

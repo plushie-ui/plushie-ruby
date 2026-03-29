@@ -78,11 +78,7 @@ Plushie::Event.target(event)
 
 ## Which event types carry scope
 
-- `Plushie::Event::Widget`
-- `Plushie::Event::Canvas`
-- `Plushie::Event::MouseArea`
-- `Plushie::Event::Pane`
-- `Plushie::Event::Sensor`
+- `Plushie::Event::Widget` (all widget interactions including canvas, mouse area, pane, sensor)
 
 Subscription events (Key, Mouse, Touch, IME, Modifiers) are global and
 do not carry scope.
@@ -106,14 +102,14 @@ Events from interactive canvas elements follow the same pattern:
 
 ```ruby
 # Canvas element click arrives as:
-# Event::Canvas[type: :element_click, id: "handle", scope: ["drawing"]]
+# Event::Widget[type: :canvas_element_click, id: "handle", scope: ["drawing"]]
 
 # Match with scope context:
-in Event::Canvas[type: :element_click, id: "handle", scope: ["drawing", *]]
+in Event::Widget[type: :canvas_element_click, id: "handle", scope: ["drawing", *]]
   # handle in drawing canvas
 
 # Bind the canvas ID for dynamic canvases:
-in Event::Canvas[type: :element_click, id: "handle", scope: [canvas_id, *]]
+in Event::Widget[type: :canvas_element_click, id: "handle", scope: [canvas_id, *]]
   handle_click(model, canvas_id)
 ```
 
@@ -227,7 +223,7 @@ All scoped event types include the full path in debug output:
 
 ```
 #<Event::Widget type=:click id="sidebar/form/save">
-#<Event::Canvas type=:press id="panel/drawing" x=42 y=100>
+#<Event::Widget type=:canvas_press id="panel/drawing" data={x: 42, y: 100, button: :left}>
 ```
 
 Use `Plushie::Event.target(event)` to get the same string programmatically.
