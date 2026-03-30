@@ -15,13 +15,13 @@ class TestCounterExample < Minitest::Test
 
   def test_increment
     model = @app.init({})
-    model = @app.update(model, Plushie::Event::Widget.new(type: :click, id: "increment"))
+    model = @app.update(model, Plushie::Event::Widget.new(type: :click, id: "inc"))
     assert_equal 1, model.count
   end
 
   def test_decrement
     model = @app.init({})
-    model = @app.update(model, Plushie::Event::Widget.new(type: :click, id: "decrement"))
+    model = @app.update(model, Plushie::Event::Widget.new(type: :click, id: "dec"))
     assert_equal(-1, model.count)
   end
 
@@ -45,7 +45,7 @@ class TestCounterExample < Minitest::Test
 
   def test_view_after_increments
     model = @app.init({})
-    3.times { model = @app.update(model, Plushie::Event::Widget.new(type: :click, id: "increment")) }
+    3.times { model = @app.update(model, Plushie::Event::Widget.new(type: :click, id: "inc")) }
 
     tree = @app.view(model)
     count_node = Plushie::Tree.find(tree, "count")

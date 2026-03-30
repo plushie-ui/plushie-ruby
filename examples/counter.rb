@@ -11,9 +11,9 @@ class Counter
 
   def update(model, event)
     case event
-    in Event::Widget[type: :click, id: "increment"]
+    in Event::Widget[type: :click, id: "inc"]
       model.with(count: model.count + 1)
-    in Event::Widget[type: :click, id: "decrement"]
+    in Event::Widget[type: :click, id: "dec"]
       model.with(count: model.count - 1)
     else
       model
@@ -25,8 +25,8 @@ class Counter
       column(padding: 16, spacing: 8) do
         text("count", "Count: #{model.count}")
         row(spacing: 8) do
-          button("increment", "+")
-          button("decrement", "-")
+          button("inc", "+")
+          button("dec", "-")
         end
       end
     end
