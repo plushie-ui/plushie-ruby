@@ -17,7 +17,6 @@ module Plushie
   #   env = RendererEnv.build(log_level: :debug)
   #   Open3.popen2(env, "plushie", "--mock")
   #
-  # @see ~/projects/toddy-elixir/lib/plushie/renderer_env.ex
   module RendererEnv
     # Exact environment variable names to pass through.
     ALLOWED_VARS = %w[

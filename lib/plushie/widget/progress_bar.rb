@@ -18,43 +18,12 @@ module Plushie
     # - vertical (boolean) -- render vertically.
     # - label (string) -- accessible label.
     # - a11y (hash) -- accessibility overrides.
-    class ProgressBar
-      # Supported property keys for this widget.
-      # @api private
-      PROPS = %i[range value width height style vertical label a11y].freeze
-
-      # @!parse
-      #   attr_reader :id, :range, :value, :width, :height, :style, :vertical, :label, :a11y
-      class_eval { attr_reader :id, *PROPS }
-
-      # @param id [String] widget identifier
-      # @param range [Array<Numeric>] [min, max] range
-      # @param value [Numeric] current progress value
-      # @param opts [Hash] optional properties
-      def initialize(id, range, value, **opts)
-        @id = id.to_s
-        @range = range
-        @value = value
-        PROPS.each { |k| instance_variable_set(:"@#{k}", opts[k]) if opts.key?(k) }
-        @range = opts[:range] if opts.key?(:range)
-        @value = opts[:value] if opts.key?(:value)
-      end
-
-      PROPS.each do |prop|
-        define_method(:"set_#{prop}") do |value|
-          dup.tap { _1.instance_variable_set(:"@#{prop}", value) }
-        end
-      end
-
-      # @return [Plushie::Node]
-      def build
-        props = {}
-        PROPS.each do |key|
-          val = instance_variable_get(:"@#{key}")
-          Build.put_if(props, key, val)
-        end
-        Node.new(id: @id, type: "progress_bar", props: props)
-      end
+    class ProgressBar < BuiltIn
+      wire_type :progress_bar
+      children :none
+      positional :range
+      positional :value
+      prop :range, :value, :width, :height, :style, :vertical, :label, :a11y
     end
   end
 end

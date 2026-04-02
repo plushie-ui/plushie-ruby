@@ -18,52 +18,12 @@ module Plushie
     # - delay (integer) -- delay in ms before showing.
     # - style (symbol|hash) -- named style or style map.
     # - a11y (hash) -- accessibility overrides.
-    class Tooltip
-      # Supported property keys for this widget.
-      # @api private
-      PROPS = %i[tip position gap padding snap_within_viewport delay
-        style a11y].freeze
-
-      # @!parse
-      #   attr_reader :id, :children, :tip, :position, :gap, :padding, :snap_within_viewport, :delay, :style, :a11y
-      class_eval { attr_reader :id, :children, *PROPS }
-
-      # @param id [String] widget identifier
-      # @param tip [String] tooltip text
-      # @param opts [Hash] optional properties
-      def initialize(id, tip = nil, **opts)
-        @id = id.to_s
-        @tip = tip
-        @children = opts.delete(:children) || []
-        PROPS.each { |k| instance_variable_set(:"@#{k}", opts[k]) if opts.key?(k) }
-        @tip = opts[:tip] if opts.key?(:tip)
-      end
-
-      PROPS.each do |prop|
-        define_method(:"set_#{prop}") do |value|
-          dup.tap { _1.instance_variable_set(:"@#{prop}", value) }
-        end
-      end
-
-      # Append a child widget.
-      # @param child [Plushie::Node, #build] child widget
-      # @return [Tooltip] new instance with the child appended
-      def push(child)
-        dup.tap { _1.instance_variable_set(:@children, @children + [child]) }
-      end
-
-      # @return [Plushie::Node]
-      # @raise [ArgumentError] if more than 1 child
-      def build
-        Build.validate_single_child!(@id, "tooltip", @children)
-        props = {}
-        PROPS.each do |key|
-          val = instance_variable_get(:"@#{key}")
-          Build.put_if(props, key, val)
-        end
-        Node.new(id: @id, type: "tooltip", props: props,
-          children: Build.children_to_nodes(@children))
-      end
+    class Tooltip < BuiltIn
+      wire_type :tooltip
+      children :single
+      positional :tip, default: nil
+      prop :tip, :position, :gap, :padding, :snap_within_viewport, :delay,
+        :style, :a11y
     end
   end
 end

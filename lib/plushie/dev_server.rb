@@ -20,7 +20,6 @@ module Plushie
   #   dev.start
   #   dev.stop
   #
-  # @see ~/projects/toddy-elixir/lib/plushie/dev_server.ex
   class DevServer
     # @param event_queue [Thread::Queue] runtime event queue for :force_rerender
     # @param dirs [Array<String>] directories to watch (default: ["lib/"])

@@ -20,6 +20,8 @@ module Plushie
     @running: bool
     @async_tasks: Hash[Symbol, Hash[Symbol, untyped]]
     @pending_effects: Hash[String, Thread]
+    @effect_tags: Hash[Symbol, String]
+    @effect_ids: Hash[String, Symbol]
     @pending_timers: Hash[untyped, Thread]
     @subscriptions: Hash[untyped, Hash[Symbol, untyped]]
     @subscription_keys: Array[untyped]
@@ -100,6 +102,7 @@ module Plushie
     # Error handling
     def handle_callback_error: (String callback_name, Exception error, ?hint: String?) -> void
     def handle_view_error: (Exception error) -> void
+    def rerender_after_widget_state_change: (Hash[String, CanvasWidget::RegistryEntry] widgets_before) -> void
     def resend_last_snapshot: () -> void
 
     # Resync helpers

@@ -9,7 +9,6 @@ module Plushie
     # Timer subscriptions run locally; renderer subscriptions are
     # forwarded to the bridge.
     #
-    # @see ~/projects/toddy-elixir/lib/plushie/runtime/subscriptions.ex
     module Subscriptions
       private
 

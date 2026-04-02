@@ -6,11 +6,8 @@ module Plushie
   module Protocol
     # Inbound message decoding from the wire protocol.
     #
-    # Handles all response types and event families as defined
-    # in protocol.md. The canonical reference is:
-    # ~/projects/toddy-elixir/lib/plushie/protocol/decode.ex
-    #
-    # @see ~/projects/plushie-renderer/docs/protocol.md "Outgoing messages"
+    # Handles all response types and event families as defined in
+    # the wire protocol (~/projects/plushie-renderer/docs/protocol.md).
     module Decode
       module_function
 

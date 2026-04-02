@@ -18,41 +18,12 @@ module Plushie
     # - alt (string) -- accessible label.
     # - description (string) -- extended accessible description.
     # - a11y (hash) -- accessibility overrides.
-    class QrCode
-      # Supported property keys for this widget.
-      # @api private
-      PROPS = %i[data cell_size cell_color background error_correction
-        alt description a11y].freeze
-
-      # @!parse
-      #   attr_reader :id, :data, :cell_size, :cell_color, :background, :error_correction, :alt, :description, :a11y
-      class_eval { attr_reader :id, *PROPS }
-
-      # @param id [String] widget identifier
-      # @param data [String] data to encode
-      # @param opts [Hash] optional properties
-      def initialize(id, data = nil, **opts)
-        @id = id.to_s
-        @data = data
-        PROPS.each { |k| instance_variable_set(:"@#{k}", opts[k]) if opts.key?(k) }
-        @data = opts[:data] if opts.key?(:data)
-      end
-
-      PROPS.each do |prop|
-        define_method(:"set_#{prop}") do |value|
-          dup.tap { _1.instance_variable_set(:"@#{prop}", value) }
-        end
-      end
-
-      # @return [Plushie::Node]
-      def build
-        props = {}
-        PROPS.each do |key|
-          val = instance_variable_get(:"@#{key}")
-          Build.put_if(props, key, val)
-        end
-        Node.new(id: @id, type: "qr_code", props: props)
-      end
+    class QrCode < BuiltIn
+      wire_type :qr_code
+      children :none
+      positional :data, default: nil
+      prop :data, :cell_size, :cell_color, :background, :error_correction,
+        :alt, :description, :a11y
     end
   end
 end

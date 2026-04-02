@@ -18,7 +18,6 @@ module Plushie
     #     end
     #   end
     #
-    # @see ~/projects/toddy-elixir/lib/plushie/test/helpers.ex
     module Helpers
       # @return [Session] the current test session
       def session

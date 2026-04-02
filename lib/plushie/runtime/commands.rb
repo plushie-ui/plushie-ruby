@@ -7,7 +7,6 @@ module Plushie
     # Handles all Command::Cmd types returned by app.update and app.init.
     # Included into Runtime as a mixin.
     #
-    # @see ~/projects/toddy-elixir/lib/plushie/runtime/commands.ex
     module Commands
       private
 

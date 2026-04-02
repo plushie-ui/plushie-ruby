@@ -21,41 +21,12 @@ module Plushie
     # - link_color (string) -- link color override.
     # - code_theme (string) -- syntax highlighting theme for code blocks.
     # - a11y (hash) -- accessibility overrides.
-    class Markdown
-      # Supported property keys for this widget.
-      # @api private
-      PROPS = %i[content width text_size h1_size h2_size h3_size code_size
-        spacing link_color code_theme a11y].freeze
-
-      # @!parse
-      #   attr_reader :id, :content, :width, :text_size, :h1_size, :h2_size, :h3_size, :code_size, :spacing, :link_color, :code_theme, :a11y
-      class_eval { attr_reader :id, *PROPS }
-
-      # @param id [String] widget identifier
-      # @param content [String] raw markdown text
-      # @param opts [Hash] optional properties
-      def initialize(id, content = nil, **opts)
-        @id = id.to_s
-        @content = content
-        PROPS.each { |k| instance_variable_set(:"@#{k}", opts[k]) if opts.key?(k) }
-        @content = opts[:content] if opts.key?(:content)
-      end
-
-      PROPS.each do |prop|
-        define_method(:"set_#{prop}") do |value|
-          dup.tap { _1.instance_variable_set(:"@#{prop}", value) }
-        end
-      end
-
-      # @return [Plushie::Node]
-      def build
-        props = {}
-        PROPS.each do |key|
-          val = instance_variable_get(:"@#{key}")
-          Build.put_if(props, key, val)
-        end
-        Node.new(id: @id, type: "markdown", props: props)
-      end
+    class Markdown < BuiltIn
+      wire_type :markdown
+      children :none
+      positional :content, default: nil
+      prop :content, :width, :text_size, :h1_size, :h2_size, :h3_size,
+        :code_size, :spacing, :link_color, :code_theme, :a11y
     end
   end
 end

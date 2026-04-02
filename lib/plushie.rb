@@ -34,6 +34,7 @@ require_relative "plushie/dsl/buildable"
 
 # Widget builder modules (Layer 2 API)
 require_relative "plushie/widget/build"
+require_relative "plushie/widget/built_in"
 require_relative "plushie/widget/button"
 require_relative "plushie/widget/text"
 require_relative "plushie/widget/text_input"

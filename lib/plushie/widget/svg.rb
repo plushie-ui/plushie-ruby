@@ -21,41 +21,12 @@ module Plushie
     # - description (string) -- extended accessible description.
     # - decorative (boolean) -- hide from assistive technology.
     # - a11y (hash) -- accessibility overrides.
-    class Svg
-      # Supported property keys for this widget.
-      # @api private
-      PROPS = %i[source width height content_fit rotation opacity color
-        alt description decorative a11y].freeze
-
-      # @!parse
-      #   attr_reader :id, :source, :width, :height, :content_fit, :rotation, :opacity, :color, :alt, :description, :decorative, :a11y
-      class_eval { attr_reader :id, *PROPS }
-
-      # @param id [String] widget identifier
-      # @param source [String] path to SVG file
-      # @param opts [Hash] optional properties
-      def initialize(id, source = nil, **opts)
-        @id = id.to_s
-        @source = source
-        PROPS.each { |k| instance_variable_set(:"@#{k}", opts[k]) if opts.key?(k) }
-        @source = opts[:source] if opts.key?(:source)
-      end
-
-      PROPS.each do |prop|
-        define_method(:"set_#{prop}") do |value|
-          dup.tap { _1.instance_variable_set(:"@#{prop}", value) }
-        end
-      end
-
-      # @return [Plushie::Node]
-      def build
-        props = {}
-        PROPS.each do |key|
-          val = instance_variable_get(:"@#{key}")
-          Build.put_if(props, key, val)
-        end
-        Node.new(id: @id, type: "svg", props: props)
-      end
+    class Svg < BuiltIn
+      wire_type :svg
+      children :none
+      positional :source, default: nil
+      prop :source, :width, :height, :content_fit, :rotation, :opacity,
+        :color, :alt, :description, :decorative, :a11y
     end
   end
 end

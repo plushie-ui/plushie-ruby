@@ -6,7 +6,6 @@ require_relative "test/helpers"
 require_relative "test/case"
 require_relative "test/rspec"
 require_relative "test/snapshot"
-require_relative "test/event_decoder"
 require_relative "test/script"
 require_relative "test/script/runner"
 

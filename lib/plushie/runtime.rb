@@ -12,7 +12,6 @@ module Plushie
   # Processes events sequentially from a thread-safe queue. All state is
   # owned by the runtime thread -- no shared mutable state.
   #
-  # @see ~/projects/toddy-elixir/lib/plushie/runtime.ex
   class Runtime
     include Commands
     include Subscriptions

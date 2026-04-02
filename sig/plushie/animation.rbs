@@ -1,38 +1,76 @@
 module Plushie
-  class Animation
-    class State
-      attr_reader from: Numeric
-      attr_reader to: Numeric
-      attr_reader duration: Integer
-      attr_reader started_at: Integer?
-      attr_reader easing: Symbol | Proc
-      attr_reader value: Numeric
+  module Animation
+    SPRING_PRESETS: Hash[Symbol, Hash[Symbol, Numeric]]
 
-      def initialize: (from: Numeric, to: Numeric, duration: Integer, started_at: Integer?, easing: Symbol | Proc, value: Numeric) -> void
+    class Tween
+      class State
+        attr_reader from: Numeric
+        attr_reader to: Numeric
+        attr_reader duration: Integer
+        attr_reader started_at: Integer?
+        attr_reader easing: Symbol | Proc
+        attr_reader value: Numeric
 
-      def with: (**untyped changes) -> State
+        def initialize: (from: Numeric, to: Numeric, duration: Integer, started_at: Integer?, easing: Symbol | Proc, value: Numeric) -> void
+        def with: (**untyped changes) -> State
+      end
+
+      EASINGS: Hash[Symbol, ^(Float) -> Float]
+
+      def self.linear: (Float t) -> Float
+      def self.ease_in: (Float t) -> Float
+      def self.ease_out: (Float t) -> Float
+      def self.ease_in_out: (Float t) -> Float
+      def self.ease_in_quad: (Float t) -> Float
+      def self.ease_out_quad: (Float t) -> Float
+      def self.ease_in_out_quad: (Float t) -> Float
+      def self.spring: (Float t) -> Float
+
+      def self.interpolate: (Numeric from, Numeric to, Numeric t, ?Symbol | Proc easing) -> Float
+      def self.new: (Numeric from, Numeric to, Integer duration_ms, ?easing: Symbol | Proc) -> State
+      def self.start: (State anim, Integer timestamp) -> State
+      def self.advance: (State anim, Integer timestamp) -> [Numeric, State | Symbol]
+      def self.finished?: (State anim) -> bool
+      def self.value: (State anim) -> Numeric
     end
 
-    EASINGS: Hash[Symbol, ^(Float) -> Float]
+    class Transition
+      attr_reader to: untyped
+      attr_reader duration: Integer?
+      attr_reader easing: Symbol
+      attr_reader delay: Integer
+      attr_reader from: untyped
+      attr_reader repeat: Integer | Symbol | nil
+      attr_reader auto_reverse: bool
+      attr_reader on_complete: Symbol?
 
-    # Easing functions
-    def self.linear: (Float t) -> Float
-    def self.ease_in: (Float t) -> Float
-    def self.ease_out: (Float t) -> Float
-    def self.ease_in_out: (Float t) -> Float
-    def self.ease_in_quad: (Float t) -> Float
-    def self.ease_out_quad: (Float t) -> Float
-    def self.ease_in_out_quad: (Float t) -> Float
-    def self.spring: (Float t) -> Float
+      def initialize: (to: untyped, ?duration: Integer?, ?easing: Symbol, ?delay: Integer, ?from: untyped, ?repeat: Integer | Symbol | nil, ?auto_reverse: bool, ?on_complete: Symbol?) -> void
+      def to_wire: () -> Hash[Symbol, untyped]
+      def self.new: (?Integer? duration, **untyped opts) -> Transition
+      def self.loop: (Integer duration, ?cycles: Integer?, ?reverse: bool, **untyped opts) -> Transition
+    end
 
-    # Interpolation
-    def self.interpolate: (Numeric from, Numeric to, Numeric t, ?Symbol | Proc easing) -> Float
+    class Spring
+      attr_reader to: untyped
+      attr_reader from: untyped
+      attr_reader stiffness: Numeric
+      attr_reader damping: Numeric
+      attr_reader mass: Numeric
+      attr_reader velocity: Numeric
+      attr_reader on_complete: Symbol?
 
-    # Lifecycle
-    def self.new: (Numeric from, Numeric to, Integer duration_ms, ?easing: Symbol | Proc) -> State
-    def self.start: (State anim, Integer timestamp) -> State
-    def self.advance: (State anim, Integer timestamp) -> [Numeric, State | Symbol]
-    def self.finished?: (State anim) -> bool
-    def self.value: (State anim) -> Numeric
+      def initialize: (to: untyped, ?from: untyped, ?stiffness: Numeric, ?damping: Numeric, ?mass: Numeric, ?velocity: Numeric, ?on_complete: Symbol?) -> void
+      def to_wire: () -> Hash[Symbol, untyped]
+      def self.new: (**untyped opts) -> Spring
+    end
+
+    class Sequence
+      attr_reader steps: Array[Transition | Spring]
+      attr_reader on_complete: Symbol?
+
+      def initialize: (steps: Array[Transition | Spring], ?on_complete: Symbol?) -> void
+      def to_wire: () -> Hash[Symbol, untyped]
+      def self.new: (Array[Transition | Spring] steps, **untyped opts) -> Sequence
+    end
   end
 end

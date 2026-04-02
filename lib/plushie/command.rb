@@ -15,7 +15,6 @@ module Plushie
   # @example Multiple commands
   #   [model, Command.batch([Command.focus("input"), Command.send_after(3000, :auto_save)])]
   #
-  # @see ~/projects/toddy-elixir/lib/plushie/command.ex (reference: 72+ constructors)
   class Command
     # The immutable command data object. All constructors return this.
     Cmd = Data.define(:type, :payload)

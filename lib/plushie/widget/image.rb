@@ -25,40 +25,13 @@ module Plushie
     # - description (string) -- longer description for accessibility.
     # - decorative (boolean) -- mark as decorative (hidden from a11y tree).
     # - a11y (hash) -- accessibility overrides.
-    class Image
-      # Supported property keys for the image widget.
-      PROPS = %i[source width height content_fit rotation opacity border_radius
-        filter_method expand scale crop alt description decorative a11y].freeze
-
-      # @!parse
-      #   attr_reader :id, :source, :width, :height, :content_fit, :rotation, :opacity, :border_radius, :filter_method, :expand, :scale, :crop, :alt, :description, :decorative, :a11y
-      class_eval { attr_reader :id, *PROPS }
-
-      # @param id [String] widget identifier
-      # @param source [String, nil] image file path or URL
-      # @param opts [Hash] optional properties matching PROPS keys
-      def initialize(id, source = nil, **opts)
-        @id = id.to_s
-        @source = source
-        PROPS.each { |k| instance_variable_set(:"@#{k}", opts[k]) if opts.key?(k) }
-        @source = opts[:source] if opts.key?(:source)
-      end
-
-      PROPS.each do |prop|
-        define_method(:"set_#{prop}") do |value|
-          dup.tap { _1.instance_variable_set(:"@#{prop}", value) }
-        end
-      end
-
-      # @return [Plushie::Node]
-      def build
-        props = {}
-        PROPS.each do |key|
-          val = instance_variable_get(:"@#{key}")
-          Build.put_if(props, key, val)
-        end
-        Node.new(id: @id, type: "image", props: props)
-      end
+    class Image < BuiltIn
+      wire_type :image
+      children :none
+      positional :source, default: nil
+      prop :source, :width, :height, :content_fit, :rotation, :opacity,
+        :border_radius, :filter_method, :expand, :scale, :crop,
+        :alt, :description, :decorative, :a11y
     end
   end
 end

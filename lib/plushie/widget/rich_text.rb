@@ -20,38 +20,11 @@ module Plushie
     # - wrapping (symbol) -- text wrapping mode.
     # - ellipsis (string) -- text ellipsis mode.
     # - a11y (hash) -- accessibility overrides.
-    class RichText
-      # Supported property keys for this widget.
-      # @api private
-      PROPS = %i[spans width height size font color line_height wrapping
-        ellipsis a11y].freeze
-
-      # @!parse
-      #   attr_reader :id, :spans, :width, :height, :size, :font, :color, :line_height, :wrapping, :ellipsis, :a11y
-      class_eval { attr_reader :id, *PROPS }
-
-      # @param id [String] widget identifier
-      # @param opts [Hash] optional properties
-      def initialize(id, **opts)
-        @id = id.to_s
-        PROPS.each { |k| instance_variable_set(:"@#{k}", opts[k]) if opts.key?(k) }
-      end
-
-      PROPS.each do |prop|
-        define_method(:"set_#{prop}") do |value|
-          dup.tap { _1.instance_variable_set(:"@#{prop}", value) }
-        end
-      end
-
-      # @return [Plushie::Node]
-      def build
-        props = {}
-        PROPS.each do |key|
-          val = instance_variable_get(:"@#{key}")
-          Build.put_if(props, key, val)
-        end
-        Node.new(id: @id, type: "rich_text", props: props)
-      end
+    class RichText < BuiltIn
+      wire_type :rich_text
+      children :none
+      prop :spans, :width, :height, :size, :font, :color, :line_height,
+        :wrapping, :ellipsis, :a11y
     end
   end
 end

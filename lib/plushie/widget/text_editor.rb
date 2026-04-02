@@ -29,40 +29,13 @@ module Plushie
     # - placeholder_color (string) -- placeholder text color.
     # - selection_color (string) -- selection highlight color.
     # - a11y (hash) -- accessibility overrides.
-    class TextEditor
-      # Supported property keys for this widget.
-      # @api private
-      PROPS = %i[content placeholder width height min_height max_height font
-        size line_height padding wrapping ime_purpose highlight_syntax
-        highlight_theme style key_bindings placeholder_color selection_color
-        a11y].freeze
-
-      # @!parse
-      #   attr_reader :id, :content, :placeholder, :width, :height, :min_height, :max_height, :font, :size, :line_height, :padding, :wrapping, :ime_purpose, :highlight_syntax, :highlight_theme, :style, :key_bindings, :placeholder_color, :selection_color, :a11y
-      class_eval { attr_reader :id, *PROPS }
-
-      # @param id [String] widget identifier
-      # @param opts [Hash] optional properties
-      def initialize(id, **opts)
-        @id = id.to_s
-        PROPS.each { |k| instance_variable_set(:"@#{k}", opts[k]) if opts.key?(k) }
-      end
-
-      PROPS.each do |prop|
-        define_method(:"set_#{prop}") do |value|
-          dup.tap { _1.instance_variable_set(:"@#{prop}", value) }
-        end
-      end
-
-      # @return [Plushie::Node]
-      def build
-        props = {}
-        PROPS.each do |key|
-          val = instance_variable_get(:"@#{key}")
-          Build.put_if(props, key, val)
-        end
-        Node.new(id: @id, type: "text_editor", props: props)
-      end
+    class TextEditor < BuiltIn
+      wire_type :text_editor
+      children :none
+      prop :content, :placeholder, :width, :height, :min_height, :max_height,
+        :font, :size, :line_height, :padding, :wrapping, :ime_purpose,
+        :highlight_syntax, :highlight_theme, :style, :key_bindings,
+        :placeholder_color, :selection_color, :a11y
     end
   end
 end
