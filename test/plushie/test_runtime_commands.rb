@@ -33,6 +33,8 @@ class TestRuntimeCommands < Minitest::Test
       @event_queue = Thread::Queue.new
       @async_tasks = {}
       @pending_effects = {}
+      @effect_tags = {}
+      @effect_ids = {}
       @pending_timers = {}
       @running = true
       @logger = Logger.new(IO::NULL)
@@ -132,7 +134,7 @@ class TestRuntimeCommands < Minitest::Test
   # -- :effect sends effect and starts timeout timer -----------------------
 
   def test_effect_sends_effect_and_starts_timeout
-    cmd = Plushie::Effects.clipboard_read
+    cmd = Plushie::Effect.clipboard_read(:paste)
     @runner.execute_commands(cmd)
 
     assert_equal 1, @bridge.messages.length

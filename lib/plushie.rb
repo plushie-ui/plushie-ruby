@@ -6,7 +6,7 @@ require_relative "plushie/node"
 require_relative "plushie/event"
 require_relative "plushie/command"
 require_relative "plushie/subscription"
-require_relative "plushie/effects"
+require_relative "plushie/effect"
 
 # Property types
 require_relative "plushie/type/alignment"

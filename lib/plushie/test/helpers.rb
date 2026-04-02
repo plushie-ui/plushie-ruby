@@ -133,17 +133,17 @@ module Plushie
       # The renderer will return the given response immediately for
       # any effect of the given kind.
       #
-      # @param kind [String] effect kind (e.g. "clipboard_read")
+      # @param kind [Symbol, String] effect kind (e.g. :clipboard_read)
       # @param response [Object] the canned response to return
       def register_effect_stub(kind, response)
-        session.register_effect_stub(kind, response)
+        session.register_effect_stub(kind.to_s, response)
       end
 
       # Remove a previously registered effect stub.
       #
-      # @param kind [String] effect kind
+      # @param kind [Symbol, String] effect kind
       def unregister_effect_stub(kind)
-        session.unregister_effect_stub(kind)
+        session.unregister_effect_stub(kind.to_s)
       end
 
       # Assert that no prop validation diagnostics have been emitted.

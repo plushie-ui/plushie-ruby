@@ -142,15 +142,27 @@ module Plushie
       # Execute an effect request (send to renderer + start timeout).
       def execute_effect(payload)
         id = payload[:id]
+        tag = payload[:tag]
         kind = payload[:kind]
         opts = payload[:opts] || {}
+
+        # One effect per tag: discard previous if same tag is in flight.
+        if tag && (prev_id = @effect_tags[tag])
+          timer = @pending_effects.delete(prev_id)
+          timer&.kill
+          @effect_ids.delete(prev_id)
+        end
+
+        # Track tag <-> wire ID mapping.
+        @effect_tags[tag] = id if tag
+        @effect_ids[id] = tag
 
         @bridge.send_encoded(
           Protocol::Encode.encode_effect(id, kind, opts, @format)
         )
 
         # Start timeout timer
-        timeout = payload[:timeout] || Effects.default_timeout(kind)
+        timeout = payload[:timeout] || Effect.default_timeout(kind)
         queue = @event_queue
         timer = Thread.new do
           sleep(timeout / 1000.0)

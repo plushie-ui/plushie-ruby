@@ -611,21 +611,21 @@ class TestProtocolDecode < Minitest::Test
   def test_decode_effect_response_ok
     msg = {"type" => "effect_response", "id" => "ef_1", "status" => "ok", "result" => {"path" => "/tmp/f.txt"}}
     result = D.decode_effect_response(msg)
-    assert_instance_of Plushie::Event::Effect, result
-    assert_equal "ef_1", result.request_id
-    assert_equal [:ok, {"path" => "/tmp/f.txt"}], result.result
+    assert_equal :effect_response, result[:type]
+    assert_equal "ef_1", result[:wire_id]
+    assert_equal [:ok, {"path" => "/tmp/f.txt"}], result[:result]
   end
 
   def test_decode_effect_response_cancelled
     msg = {"type" => "effect_response", "id" => "ef_2", "status" => "cancelled"}
     result = D.decode_effect_response(msg)
-    assert_equal :cancelled, result.result
+    assert_equal :cancelled, result[:result]
   end
 
   def test_decode_effect_response_error
     msg = {"type" => "effect_response", "id" => "ef_3", "status" => "error", "error" => "no permission"}
     result = D.decode_effect_response(msg)
-    assert_equal [:error, "no permission"], result.result
+    assert_equal [:error, "no permission"], result[:result]
   end
 
   def test_decode_query_response

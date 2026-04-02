@@ -3,59 +3,61 @@
 require "test_helper"
 
 class TestEffects < Minitest::Test
-  E = Plushie::Effects
+  E = Plushie::Effect
 
   def test_file_open_returns_command
-    cmd = E.file_open(title: "Pick a file")
+    cmd = E.file_open(:import, title: "Pick a file")
     assert_equal :effect, cmd.type
     assert_equal "file_open", cmd.payload[:kind]
+    assert_equal :import, cmd.payload[:tag]
     assert_equal "Pick a file", cmd.payload[:opts][:title]
     assert_match(/\Aef_/, cmd.payload[:id])
   end
 
   def test_file_save
-    cmd = E.file_save(title: "Save", default_name: "doc.txt")
+    cmd = E.file_save(:save, title: "Save", default_name: "doc.txt")
     assert_equal "file_save", cmd.payload[:kind]
     assert_equal "doc.txt", cmd.payload[:opts][:default_name]
   end
 
   def test_directory_select
-    cmd = E.directory_select(title: "Pick folder")
+    cmd = E.directory_select(:folder, title: "Pick folder")
     assert_equal "directory_select", cmd.payload[:kind]
   end
 
   def test_clipboard_read
-    cmd = E.clipboard_read
+    cmd = E.clipboard_read(:paste)
     assert_equal "clipboard_read", cmd.payload[:kind]
+    assert_equal :paste, cmd.payload[:tag]
   end
 
   def test_clipboard_write
-    cmd = E.clipboard_write("hello")
+    cmd = E.clipboard_write(:copy, "hello")
     assert_equal "clipboard_write", cmd.payload[:kind]
     assert_equal "hello", cmd.payload[:opts][:text]
   end
 
   def test_clipboard_write_html
-    cmd = E.clipboard_write_html("<b>bold</b>", alt_text: "bold")
+    cmd = E.clipboard_write_html(:copy_html, "<b>bold</b>", alt_text: "bold")
     assert_equal "clipboard_write_html", cmd.payload[:kind]
     assert_equal "<b>bold</b>", cmd.payload[:opts][:html]
     assert_equal "bold", cmd.payload[:opts][:alt_text]
   end
 
   def test_clipboard_clear
-    cmd = E.clipboard_clear
+    cmd = E.clipboard_clear(:clear)
     assert_equal "clipboard_clear", cmd.payload[:kind]
   end
 
   def test_notification
-    cmd = E.notification("Title", "Body", urgency: :critical)
+    cmd = E.notification(:alert, "Title", "Body", urgency: :critical)
     assert_equal "notification", cmd.payload[:kind]
     assert_equal "Title", cmd.payload[:opts][:title]
     assert_equal "critical", cmd.payload[:opts][:urgency]
   end
 
   def test_unique_ids
-    ids = 10.times.map { E.file_open.payload[:id] }
+    ids = 10.times.map { E.file_open(:test).payload[:id] }
     assert_equal 10, ids.uniq.length
   end
 
@@ -73,9 +75,13 @@ class TestEffects < Minitest::Test
   end
 
   def test_custom_timeout
-    cmd = E.file_open(title: "test", timeout: 300_000)
+    cmd = E.file_open(:test, title: "test", timeout: 300_000)
     assert_equal 300_000, cmd.payload[:timeout]
-    # The opts hash should NOT contain timeout (it's extracted)
     refute cmd.payload[:opts].key?(:timeout)
+  end
+
+  def test_tag_flows_through
+    cmd = E.file_open(:my_tag)
+    assert_equal :my_tag, cmd.payload[:tag]
   end
 end

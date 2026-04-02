@@ -46,7 +46,9 @@ module Plushie
       @running = false
 
       @async_tasks = {}        # tag -> {thread:, nonce:}
-      @pending_effects = {}    # effect_id -> timer_thread
+      @pending_effects = {}    # wire_id -> timer_thread
+      @effect_tags = {}        # tag -> wire_id
+      @effect_ids = {}         # wire_id -> tag
       @pending_timers = {}     # event_key -> timer_thread
       @subscriptions = {}      # sub_key -> {sub_type:, ...}
       @subscription_keys = []  # sorted keys for short-circuit
@@ -309,10 +311,14 @@ module Plushie
         return
       end
 
-      # Cancel effect timeout if this is an effect response
-      if event.is_a?(Event::Effect)
-        timer = @pending_effects.delete(event.request_id)
+      # Resolve effect responses: map wire_id -> tag and deliver as Event::Effect
+      if event.is_a?(Hash) && event[:type] == :effect_response
+        wire_id = event[:wire_id]
+        timer = @pending_effects.delete(wire_id)
         timer&.kill
+        tag = @effect_ids.delete(wire_id)
+        @effect_tags.delete(tag) if tag
+        event = Event::Effect.new(tag: tag, result: event[:result])
       end
 
       # Route through canvas widget handlers before app.update.
@@ -472,7 +478,9 @@ module Plushie
     def handle_effect_timeout(id)
       timer = @pending_effects.delete(id)
       return unless timer
-      dispatch_event(Event::Effect.new(request_id: id, result: [:error, :timeout]))
+      tag = @effect_ids.delete(id)
+      @effect_tags.delete(tag) if tag
+      dispatch_event(Event::Effect.new(tag: tag, result: [:error, :timeout]))
     end
 
     # -- Renderer exit -------------------------------------------------------
@@ -629,6 +637,8 @@ module Plushie
     def flush_pending_effects_on_exit
       @pending_effects.each_value(&:kill)
       @pending_effects.clear
+      @effect_tags.clear
+      @effect_ids.clear
     end
 
     # Flush pending stub ack queues so callers don't hang.
@@ -657,6 +667,8 @@ module Plushie
       @async_tasks.clear
       @pending_effects.each_value(&:kill)
       @pending_effects.clear
+      @effect_tags.clear
+      @effect_ids.clear
       @pending_timers.each_value(&:kill)
       @pending_timers.clear
       @subscriptions.each_value { |entry| entry[:thread]&.kill if entry[:sub_type] == :timer }

@@ -191,14 +191,16 @@ module Plushie
 
     # Effect result events for platform operations (file dialogs, clipboard, notifications).
     # Triggered when an asynchronous platform effect completes.
-    # The request_id correlates to the Command that initiated the effect.
+    # The tag matches the symbol passed when creating the effect command.
     #
-    # @!attribute [r] request_id [String] ID matching the originating effect command
-    # @!attribute [r] result [Object] operation result (file path, clipboard text, etc.)
+    # @!attribute [r] tag [Symbol] the tag from the originating effect command
+    # @!attribute [r] result [Object] operation result: [:ok, data], :cancelled, or [:error, reason]
     #
     # @example File dialog result
-    #   in Event::Effect[request_id: "open_file", result:]
-    Effect = Data.define(:request_id, :result)
+    #   in Event::Effect[tag: :import, result: [:ok, result]]
+    # @example Cancelled
+    #   in Event::Effect[tag: :import, result: :cancelled]
+    Effect = Data.define(:tag, :result)
 
     # Renderer error for a widget command.
     #

@@ -112,9 +112,9 @@ class DocsEventsTest < Minitest::Test
   # -- Effect events --
 
   def test_events_effect_response_ok_match
-    event = E::Effect.new(request_id: "ef_1234", result: [:ok, "/path/to/file"])
+    event = E::Effect.new(tag: :import, result: [:ok, "/path/to/file"])
     case event
-    in E::Effect[request_id: "ef_1234", result: [:ok, data]]
+    in E::Effect[tag: :import, result: [:ok, data]]
       assert_equal "/path/to/file", data
     else
       flunk "expected effect ok event to match"
