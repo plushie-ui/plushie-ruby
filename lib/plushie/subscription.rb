@@ -102,37 +102,37 @@ module Plushie
       Sub.new(type: :on_modifiers_changed, tag:, max_rate:, window_id: window)
     end
 
-    # Subscribe to mouse movement events.
-    # Delivers {Event::Mouse}[type: :moved, x:, y:] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # Subscribe to pointer movement events (mouse or touch).
+    # Delivers Event::Widget with type: :move, pointer data in data map.
+    # The tag is for subscription management only.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_mouse_move(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_mouse_move, tag:, max_rate:, window_id: window)
+    def self.on_pointer_move(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_pointer_move, tag:, max_rate:, window_id: window)
     end
 
-    # Subscribe to mouse button press and release events.
-    # Delivers {Event::Mouse}[type: :button_pressed/:button_released, ...] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # Subscribe to pointer button press/release events (mouse or touch).
+    # Delivers Event::Widget with type: :press/:release, pointer data in data map.
+    # The tag is for subscription management only.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_mouse_button(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_mouse_button, tag:, max_rate:, window_id: window)
+    def self.on_pointer_button(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_pointer_button, tag:, max_rate:, window_id: window)
     end
 
-    # Subscribe to mouse scroll wheel events.
-    # Delivers {Event::Mouse}[type: :wheel_scrolled, delta_x:, delta_y:] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # Subscribe to pointer scroll events.
+    # Delivers Event::Widget with type: :scroll, pointer data in data map.
+    # The tag is for subscription management only.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_mouse_scroll(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_mouse_scroll, tag:, max_rate:, window_id: window)
+    def self.on_pointer_scroll(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_pointer_scroll, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to window close request events.
@@ -201,15 +201,15 @@ module Plushie
       Sub.new(type: :on_window_move, tag:, max_rate:, window_id: window)
     end
 
-    # Subscribe to touch screen events (finger press, lift, move, lost).
-    # Delivers {Event::Touch}[type: :finger_pressed/:finger_lifted/..., ...] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # Subscribe to touch events.
+    # Delivers Event::Widget with type: :press/:move/:release, pointer: :touch in data.
+    # The tag is for subscription management only.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
     # @return [Sub]
-    def self.on_touch(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_touch, tag:, max_rate:, window_id: window)
+    def self.on_pointer_touch(tag, max_rate: nil, window: nil)
+      Sub.new(type: :on_pointer_touch, tag:, max_rate:, window_id: window)
     end
 
     # Subscribe to IME (Input Method Editor) composition events.
@@ -276,7 +276,7 @@ module Plushie
     #
     #   Subscription.for_window("editor", [
     #     Subscription.on_key_press(:editor_keys),
-    #     Subscription.on_mouse_move(:editor_mouse, max_rate: 60)
+    #     Subscription.on_pointer_move(:editor_mouse, max_rate: 60)
     #   ])
     #
     # @param window_id [String]

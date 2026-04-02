@@ -16,8 +16,8 @@ module Plushie
   # property animations (opacity, position, size, color).
   #
   #   container("card",
-  #     opacity: Animation::Transition.new(300, to: 1.0, from: 0.0),
-  #     scale: Animation::Spring.new(to: 1.0, preset: :bouncy))
+  #     opacity: Animation::Transition.build(300, to: 1.0, from: 0.0),
+  #     scale: Animation::Spring.build(to: 1.0, preset: :bouncy))
   #
   # == SDK-side tween (when needed)
   #

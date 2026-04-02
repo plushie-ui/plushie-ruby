@@ -88,6 +88,23 @@ module Plushie
       # @param require_window_id [Boolean] raise on missing window_id (default: true)
       # @return [Event::*, nil]
       def decode_event(msg, require_window_id: true)
+        event = decode_event_inner(msg, require_window_id: require_window_id)
+
+        # Append window_id to scope for widget events that came from a
+        # scoped widget ID. Subscription pointer events (id = window_id,
+        # scope = []) should NOT get window_id appended since they're
+        # global events, not scoped to a widget path.
+        if event.is_a?(Event::Widget) && event.window_id &&
+            !(event.scope.empty? && (event.id == event.window_id || event.id == "__global__"))
+          unless event.scope.include?(event.window_id)
+            event = event.with(scope: event.scope + [event.window_id])
+          end
+        end
+
+        event
+      end
+
+      def decode_event_inner(msg, require_window_id: true)
         family = msg["family"]
         data = msg["data"] || {}
         window_id_fn = require_window_id ? method(:require_window_id!) : method(:optional_window_id)
@@ -98,7 +115,7 @@ module Plushie
 
         when "click", "input", "submit", "toggle", "select",
           "slide", "slide_release", "paste", "option_hovered",
-          "open", "close", "key_binding", "sort", "scroll"
+          "open", "close", "key_binding"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: family.to_sym, id: id,
@@ -106,98 +123,141 @@ module Plushie
             scope: scope, data: msg["data"]
           )
 
-        # -- Canvas element events -> Event::Widget (parsed data) ---------------
-
-        when "canvas_element_enter", "canvas_element_leave",
-          "canvas_element_drag_end", "canvas_element_focused",
-          "canvas_element_blurred", "canvas_focused", "canvas_blurred",
-          "canvas_group_focused", "canvas_group_blurred"
+        when "sort"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: family.to_sym, id: id,
-            window_id: window_id_fn.call(msg, family),
-            scope: scope, data: atomize_data(data)
+            type: :sort, id: id, window_id: window_id_fn.call(msg, family),
+            scope: scope, data: {column: data["column"]}
           )
 
-        when "canvas_element_click"
+        when "scrolled"
           id, scope = split_scoped_id(msg["id"])
-          parsed = atomize_data(data) || {}
-          parsed[:button] = parse_canvas_button(parsed[:button]) if parsed.key?(:button)
           Event::Widget.new(
-            type: :canvas_element_click, id: id,
-            window_id: window_id_fn.call(msg, family),
-            scope: scope, data: parsed
+            type: :scrolled, id: id, window_id: window_id_fn.call(msg, family),
+            scope: scope, data: {
+              absolute_x: data["absolute_x"], absolute_y: data["absolute_y"],
+              relative_x: data["relative_x"], relative_y: data["relative_y"],
+              bounds: data["bounds"], content_bounds: data["content_bounds"]
+            }
           )
 
-        when "canvas_element_drag"
+        # -- Unified pointer events -> Event::Widget ----------------------------
+        # All pointer interactions (canvas, mouse_area, subscription) use the
+        # same event types with device awareness in the data map.
+
+        when "press"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :canvas_element_drag, id: id,
-            window_id: window_id_fn.call(msg, family),
-            scope: scope, data: {x: data["x"], y: data["y"], dx: data["dx"], dy: data["dy"]}
+            type: :press, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
+            data: {
+              x: data["x"], y: data["y"],
+              button: Parsers.parse_mouse_button(data["button"] || "left"),
+              pointer: (data["pointer"] || "mouse").to_sym,
+              finger: data["finger"],
+              modifiers: parse_modifiers(data["modifiers"]),
+              captured: data["captured"] || msg["captured"] || false
+            }
           )
 
-        when "canvas_element_key_press"
+        when "release"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :canvas_element_key_press, id: id,
-            window_id: window_id_fn.call(msg, family),
-            scope: scope, data: parse_canvas_key_data(data, :press)
+            type: :release, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
+            data: {
+              x: data["x"], y: data["y"],
+              button: Parsers.parse_mouse_button(data["button"] || "left"),
+              pointer: (data["pointer"] || "mouse").to_sym,
+              finger: data["finger"],
+              modifiers: parse_modifiers(data["modifiers"]),
+              captured: data["captured"] || msg["captured"] || false
+            }
           )
 
-        when "canvas_element_key_release"
+        when "move"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :canvas_element_key_release, id: id,
-            window_id: window_id_fn.call(msg, family),
-            scope: scope, data: parse_canvas_key_data(data, :release)
+            type: :move, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
+            data: {
+              x: data["x"], y: data["y"],
+              pointer: (data["pointer"] || "mouse").to_sym,
+              finger: data["finger"],
+              modifiers: parse_modifiers(data["modifiers"]),
+              captured: data["captured"] || msg["captured"] || false
+            }
           )
 
-        # -- Mouse area events -> Event::Widget --------------------------------
-
-        when "mouse_right_press", "mouse_right_release",
-          "mouse_middle_press", "mouse_middle_release",
-          "mouse_double_click", "mouse_enter", "mouse_exit"
+        when "scroll"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: family.to_sym, id: id, window_id: window_id_fn.call(msg, family), scope: scope
+            type: :scroll, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
+            data: {
+              x: data["x"], y: data["y"],
+              delta_x: data["delta_x"], delta_y: data["delta_y"],
+              unit: data["unit"] ? Parsers.parse_scroll_unit(data["unit"]) : nil,
+              pointer: (data["pointer"] || "mouse").to_sym,
+              modifiers: parse_modifiers(data["modifiers"]),
+              captured: data["captured"] || msg["captured"] || false
+            }
           )
 
-        when "mouse_move"
+        when "enter"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :mouse_move, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {x: data["x"], y: data["y"]}
+            type: :enter, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
+            data: {captured: data["captured"] || msg["captured"] || false}
           )
 
-        when "mouse_scroll"
+        when "exit"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :mouse_scroll, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {delta_x: data["delta_x"], delta_y: data["delta_y"]}
+            type: :exit, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
+            data: {captured: data["captured"] || msg["captured"] || false}
           )
 
-        # -- Canvas events -> Event::Widget ------------------------------------
-
-        when "canvas_press", "canvas_release"
+        when "double_click"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: family.to_sym, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {x: data["x"], y: data["y"], button: parse_canvas_button(data["button"])}
+            type: :double_click, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
+            data: {
+              x: data["x"], y: data["y"],
+              pointer: (data["pointer"] || "mouse").to_sym,
+              modifiers: parse_modifiers(data["modifiers"])
+            }
           )
 
-        when "canvas_move"
+        when "resize"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :canvas_move, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {x: data["x"], y: data["y"]}
+            type: :resize, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
+            data: {width: data["width"], height: data["height"]}
           )
 
-        when "canvas_scroll"
+        # -- Generic element events -> Event::Widget ----------------------------
+
+        when "focused"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
-            type: :canvas_scroll, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
+            type: :focused, id: id, window_id: window_id_fn.call(msg, family), scope: scope
+          )
+
+        when "blurred"
+          id, scope = split_scoped_id(msg["id"])
+          Event::Widget.new(
+            type: :blurred, id: id, window_id: window_id_fn.call(msg, family), scope: scope
+          )
+
+        when "drag"
+          id, scope = split_scoped_id(msg["id"])
+          Event::Widget.new(
+            type: :drag, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             data: {x: data["x"], y: data["y"], delta_x: data["delta_x"], delta_y: data["delta_y"]}
+          )
+
+        when "drag_end"
+          id, scope = split_scoped_id(msg["id"])
+          Event::Widget.new(
+            type: :drag_end, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
+            data: atomize_data(data)
           )
 
         # -- Pane events -> Event::Widget --------------------------------------
@@ -246,48 +306,62 @@ module Plushie
             scope: scope, data: {tag: tag, prop: data["prop"]}
           )
 
-        # -- Sensor events -> Event::Widget ------------------------------------
-
-        when "sensor_resize"
-          id, scope = split_scoped_id(msg["id"])
-          Event::Widget.new(
-            type: :sensor_resize, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {width: data["width"], height: data["height"]}
-          )
-
-        # -- Keyboard events -> Event::Key ------------------------------------
+        # -- Keyboard events -----------------------------------------------------
+        # Global key events (no id or empty id) -> Event::Key.
+        # Widget-scoped key events (non-empty id) -> Event::Widget with
+        # type :key_press/:key_release.
 
         when "key_press"
-          # Key data lives in data sub-object for subscription events,
-          # or at the top level for direct events.
-          kd = data.empty? ? msg : data
-          Event::Key.new(
-            type: :press,
-            key: Keys.parse_key(kd["key"]),
-            modified_key: Keys.parse_key(kd["modified_key"] || kd["key"]),
-            physical_key: Keys.parse_physical_key(kd["physical_key"]),
-            location: Keys.parse_location(kd["location"]),
-            modifiers: parse_modifiers(msg["modifiers"] || kd["modifiers"] || {}),
-            text: kd["text"],
-            repeat: kd["repeat"] || false,
-            captured: msg["captured"] || false,
-            window_id: msg["window_id"]
-          )
+          if msg["id"] && !msg["id"].empty?
+            id, scope = split_scoped_id(msg["id"])
+            Event::Widget.new(
+              type: :key_press, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
+              data: {
+                key: Keys.parse_key(data["key"]),
+                modifiers: parse_modifiers(data["modifiers"])
+              }
+            )
+          else
+            kd = data.empty? ? msg : data
+            Event::Key.new(
+              type: :press,
+              key: Keys.parse_key(kd["key"]),
+              modified_key: Keys.parse_key(kd["modified_key"] || kd["key"]),
+              physical_key: Keys.parse_physical_key(kd["physical_key"]),
+              location: Keys.parse_location(kd["location"]),
+              modifiers: parse_modifiers(msg["modifiers"] || kd["modifiers"] || {}),
+              text: kd["text"],
+              repeat: kd["repeat"] || false,
+              captured: msg["captured"] || false,
+              window_id: msg["window_id"]
+            )
+          end
 
         when "key_release"
-          kd = data.empty? ? msg : data
-          Event::Key.new(
-            type: :release,
-            key: Keys.parse_key(kd["key"]),
-            modified_key: Keys.parse_key(kd["modified_key"] || kd["key"]),
-            physical_key: Keys.parse_physical_key(kd["physical_key"]),
-            location: Keys.parse_location(kd["location"]),
-            modifiers: parse_modifiers(msg["modifiers"] || kd["modifiers"] || {}),
-            text: nil,     # key_release never carries text
-            repeat: false, # key_release never carries repeat
-            captured: msg["captured"] || false,
-            window_id: msg["window_id"]
-          )
+          if msg["id"] && !msg["id"].empty?
+            id, scope = split_scoped_id(msg["id"])
+            Event::Widget.new(
+              type: :key_release, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
+              data: {
+                key: Keys.parse_key(data["key"]),
+                modifiers: parse_modifiers(data["modifiers"])
+              }
+            )
+          else
+            kd = data.empty? ? msg : data
+            Event::Key.new(
+              type: :release,
+              key: Keys.parse_key(kd["key"]),
+              modified_key: Keys.parse_key(kd["modified_key"] || kd["key"]),
+              physical_key: Keys.parse_physical_key(kd["physical_key"]),
+              location: Keys.parse_location(kd["location"]),
+              modifiers: parse_modifiers(msg["modifiers"] || kd["modifiers"] || {}),
+              text: nil,
+              repeat: false,
+              captured: msg["captured"] || false,
+              window_id: msg["window_id"]
+            )
+          end
 
         # -- Modifier events -> Event::Modifiers ------------------------------
 
@@ -298,59 +372,130 @@ module Plushie
             window_id: msg["window_id"]
           )
 
-        # -- Mouse subscription events -> Event::Mouse -----------------------
+        # -- Subscription pointer events -> Event::Widget ----------------------
+        # Delivered as WidgetEvents with id = window_id and scope = [].
 
         when "cursor_moved"
-          Event::Mouse.new(
-            type: :moved,
-            x: data["x"], y: data["y"],
-            captured: msg["captured"] || false,
-            window_id: msg["window_id"]
+          window_id = msg["window_id"]
+          Event::Widget.new(
+            type: :move,
+            id: window_id || "__global__", scope: [], window_id: window_id,
+            data: {
+              x: data["x"], y: data["y"],
+              pointer: :mouse,
+              captured: msg["captured"] || false,
+              modifiers: parse_modifiers(msg["modifiers"])
+            }
           )
 
         when "cursor_entered"
-          Event::Mouse.new(type: :entered, captured: msg["captured"] || false,
-            window_id: msg["window_id"])
+          window_id = msg["window_id"]
+          Event::Widget.new(
+            type: :enter,
+            id: window_id || "__global__", scope: [], window_id: window_id,
+            data: {captured: msg["captured"] || false}
+          )
 
         when "cursor_left"
-          Event::Mouse.new(type: :left, captured: msg["captured"] || false,
-            window_id: msg["window_id"])
+          window_id = msg["window_id"]
+          Event::Widget.new(
+            type: :exit,
+            id: window_id || "__global__", scope: [], window_id: window_id,
+            data: {captured: msg["captured"] || false}
+          )
 
         when "button_pressed"
-          Event::Mouse.new(
-            type: :button_pressed,
-            button: Parsers.parse_mouse_button(msg["value"]),
-            captured: msg["captured"] || false,
-            window_id: msg["window_id"]
+          window_id = msg["window_id"]
+          Event::Widget.new(
+            type: :press,
+            id: window_id || "__global__", scope: [], window_id: window_id,
+            data: {
+              button: Parsers.parse_mouse_button(msg["value"]),
+              pointer: :mouse, x: nil, y: nil,
+              captured: msg["captured"] || false,
+              modifiers: parse_modifiers(msg["modifiers"])
+            }
           )
 
         when "button_released"
-          Event::Mouse.new(
-            type: :button_released,
-            button: Parsers.parse_mouse_button(msg["value"]),
-            captured: msg["captured"] || false,
-            window_id: msg["window_id"]
+          window_id = msg["window_id"]
+          Event::Widget.new(
+            type: :release,
+            id: window_id || "__global__", scope: [], window_id: window_id,
+            data: {
+              button: Parsers.parse_mouse_button(msg["value"]),
+              pointer: :mouse, x: nil, y: nil,
+              captured: msg["captured"] || false,
+              modifiers: parse_modifiers(msg["modifiers"])
+            }
           )
 
         when "wheel_scrolled"
-          Event::Mouse.new(
-            type: :wheel_scrolled,
-            delta_x: data["delta_x"], delta_y: data["delta_y"],
-            unit: Parsers.parse_scroll_unit(data["unit"]),
-            captured: msg["captured"] || false,
-            window_id: msg["window_id"]
+          window_id = msg["window_id"]
+          Event::Widget.new(
+            type: :scroll,
+            id: window_id || "__global__", scope: [], window_id: window_id,
+            data: {
+              delta_x: data["delta_x"], delta_y: data["delta_y"],
+              unit: Parsers.parse_scroll_unit(data["unit"]),
+              pointer: :mouse,
+              captured: msg["captured"] || false,
+              modifiers: parse_modifiers(msg["modifiers"])
+            }
           )
 
-        # -- Touch events -> Event::Touch -------------------------------------
+        # -- Touch subscription events -> Event::Widget ----------------------
 
-        when "finger_pressed", "finger_moved", "finger_lifted", "finger_lost"
-          type = family.delete_prefix("finger_").to_sym
-          Event::Touch.new(
-            type: type,
-            finger_id: data["id"],
-            x: data["x"], y: data["y"],
-            captured: msg["captured"] || false,
-            window_id: msg["window_id"]
+        when "finger_pressed"
+          window_id = msg["window_id"]
+          Event::Widget.new(
+            type: :press,
+            id: window_id || "__global__", scope: [], window_id: window_id,
+            data: {
+              pointer: :touch, finger: data["id"],
+              x: data["x"], y: data["y"], button: :left,
+              captured: msg["captured"] || false,
+              modifiers: parse_modifiers(msg["modifiers"])
+            }
+          )
+
+        when "finger_moved"
+          window_id = msg["window_id"]
+          Event::Widget.new(
+            type: :move,
+            id: window_id || "__global__", scope: [], window_id: window_id,
+            data: {
+              pointer: :touch, finger: data["id"],
+              x: data["x"], y: data["y"],
+              captured: msg["captured"] || false,
+              modifiers: parse_modifiers(msg["modifiers"])
+            }
+          )
+
+        when "finger_lifted"
+          window_id = msg["window_id"]
+          Event::Widget.new(
+            type: :release,
+            id: window_id || "__global__", scope: [], window_id: window_id,
+            data: {
+              pointer: :touch, finger: data["id"],
+              x: data["x"], y: data["y"],
+              captured: msg["captured"] || false,
+              modifiers: parse_modifiers(msg["modifiers"])
+            }
+          )
+
+        when "finger_lost"
+          window_id = msg["window_id"]
+          Event::Widget.new(
+            type: :release,
+            id: window_id || "__global__", scope: [], window_id: window_id,
+            data: {
+              pointer: :touch, finger: data["id"],
+              x: data["x"], y: data["y"], lost: true,
+              captured: msg["captured"] || false,
+              modifiers: parse_modifiers(msg["modifiers"])
+            }
           )
 
         # -- IME events -> Event::Ime -----------------------------------------
@@ -671,6 +816,18 @@ module Plushie
         parts = full_id.split("/")
         id = parts.pop.to_s
         [id, parts.reverse]
+      end
+
+      # Split scoped ID and append window_id to the scope chain
+      # (outermost ancestor, at the end of the reversed list).
+      #
+      # @param full_id [String, nil]
+      # @param window_id [String, nil]
+      # @return [Array(String, Array<String>)]
+      def split_scoped_id_with_window(full_id, window_id)
+        id, scope = split_scoped_id(full_id)
+        scope += [window_id] if window_id && !window_id.empty?
+        [id, scope]
       end
 
       def require_window_id!(msg, family)

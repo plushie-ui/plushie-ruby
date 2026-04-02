@@ -236,9 +236,9 @@ class DocsCommandsTest < Minitest::Test
     assert_equal :key_event, sub.tag
   end
 
-  def test_subscription_on_mouse_move_with_max_rate
-    sub = Plushie::Subscription.on_mouse_move(:mouse, max_rate: 30)
-    assert_equal :on_mouse_move, sub.type
+  def test_subscription_on_pointer_move_with_max_rate
+    sub = Plushie::Subscription.on_pointer_move(:mouse, max_rate: 30)
+    assert_equal :on_pointer_move, sub.type
     assert_equal :mouse, sub.tag
     assert_equal 30, sub.max_rate
   end

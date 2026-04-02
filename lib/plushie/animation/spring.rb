@@ -22,11 +22,11 @@ module Plushie
     #
     # @example Custom parameters
     #   container("card",
-    #     scale: Spring.new(to: 1.05, stiffness: 200, damping: 20))
+    #     scale: Spring.build(to: 1.05, stiffness: 200, damping: 20))
     #
     # @example Named preset
     #   container("card",
-    #     scale: Spring.new(to: 1.05, preset: :bouncy))
+    #     scale: Spring.build(to: 1.05, preset: :bouncy))
     #
     # == Presets
     #
@@ -62,36 +62,26 @@ module Plushie
         h[:on_complete] = on_complete.to_s if on_complete
         h
       end
-    end
 
-    # Reopen to support preset expansion in new.
-    class Spring
-      class << self
-        alias_method :_data_new, :new
+      # Create a spring with optional preset expansion.
+      #
+      # @param opts [Hash] spring options
+      # @option opts [Object] :to target value (required)
+      # @option opts [Symbol] :preset named preset (:gentle, :bouncy, etc.)
+      # @return [Spring]
+      def self.build(**opts)
+        raise ArgumentError, "spring requires a :to value" unless opts.key?(:to)
 
-        # Create a spring with optional preset expansion.
-        #
-        #   Spring.new(to: 1.05, preset: :bouncy)
-        #   Spring.new(to: 1.05, stiffness: 200, damping: 20)
-        #
-        # @param opts [Hash] spring options
-        # @option opts [Object] :to target value (required)
-        # @option opts [Symbol] :preset named preset (:gentle, :bouncy, etc.)
-        # @return [Spring]
-        def new(**opts)
-          raise ArgumentError, "spring requires a :to value" unless opts.key?(:to)
-
-          if (preset = opts.delete(:preset))
-            values = SPRING_PRESETS.fetch(preset) do
-              raise ArgumentError,
-                "unknown spring preset #{preset.inspect}. " \
-                "Available: #{SPRING_PRESETS.keys.inspect}"
-            end
-            opts = values.merge(opts)
+        if (preset = opts.delete(:preset))
+          values = SPRING_PRESETS.fetch(preset) do
+            raise ArgumentError,
+              "unknown spring preset #{preset.inspect}. " \
+              "Available: #{SPRING_PRESETS.keys.inspect}"
           end
-
-          _data_new(**opts)
+          opts = values.merge(opts)
         end
+
+        new(**opts)
       end
     end
   end

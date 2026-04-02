@@ -167,9 +167,9 @@ class TestUIComplete < Minitest::Test
     assert_equal "floating", node.type
   end
 
-  def test_mouse_area
-    node = mouse_area("ma") { button("b", "Click") }
-    assert_equal "mouse_area", node.type
+  def test_pointer_area
+    node = pointer_area("ma") { button("b", "Click") }
+    assert_equal "mouse_area", node.type # wire type unchanged
   end
 
   def test_sensor

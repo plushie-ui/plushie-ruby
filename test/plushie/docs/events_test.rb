@@ -208,87 +208,50 @@ class DocsEventsTest < Minitest::Test
     end
   end
 
-  # -- Canvas element events --
+  # -- Unified pointer events --
 
-  def test_events_canvas_element_click_match
-    event = E::Widget.new(type: :canvas_element_click, id: "chart",
-      data: {"element_id" => "bar-jan", "x" => 10.0, "y" => 20.0})
+  def test_events_pointer_enter_match
+    event = E::Widget.new(type: :enter, id: "hover_zone")
     case event
-    in E::Widget[type: :canvas_element_click, id: "chart", data:]
-      assert_equal "bar-jan", data["element_id"]
-    else
-      flunk "expected canvas_element_click event to match"
-    end
-  end
-
-  def test_events_canvas_element_enter_match
-    event = E::Widget.new(type: :canvas_element_enter, id: "chart",
-      data: {"element_id" => "bar-jan"})
-    case event
-    in E::Widget[type: :canvas_element_enter, id: "chart", data:]
-      assert_equal "bar-jan", data["element_id"]
-    else
-      flunk "expected canvas_element_enter event to match"
-    end
-  end
-
-  # -- Mouse area events (now Widget with prefixed types) --
-
-  def test_events_mouse_area_enter_match
-    event = E::Widget.new(type: :mouse_enter, id: "hover_zone")
-    case event
-    in E::Widget[type: :mouse_enter, id: "hover_zone"]
+    in E::Widget[type: :enter, id: "hover_zone"]
       pass
     else
-      flunk "expected mouse area enter event to match"
+      flunk "expected enter event to match"
     end
   end
 
-  def test_events_mouse_area_move_match
-    event = E::Widget.new(type: :mouse_move, id: "canvas_area", data: {x: 100.5, y: 200.3})
+  def test_events_pointer_move_match
+    event = E::Widget.new(type: :move, id: "canvas_area", data: {x: 100.5, y: 200.3, pointer: :mouse})
     case event
-    in E::Widget[type: :mouse_move, id: "canvas_area", data: {x:, y:}]
+    in E::Widget[type: :move, id: "canvas_area", data: {x:, y:}]
       assert_equal 100.5, x
       assert_equal 200.3, y
     else
-      flunk "expected mouse area move event to match"
+      flunk "expected move event to match"
     end
   end
 
-  # -- Canvas events (now Widget with prefixed types) --
-
-  def test_events_canvas_press_match
-    event = E::Widget.new(type: :canvas_press, id: "draw_area", data: {x: 50.0, y: 75.0, button: :left})
+  def test_events_pointer_press_match
+    event = E::Widget.new(type: :press, id: "draw_area", data: {x: 50.0, y: 75.0, button: :left, pointer: :mouse})
     case event
-    in E::Widget[type: :canvas_press, id: "draw_area", data: {x:, y:, button: :left}]
+    in E::Widget[type: :press, id: "draw_area", data: {x:, y:, button: :left}]
       assert_equal 50.0, x
       assert_equal 75.0, y
     else
-      flunk "expected canvas press event to match"
+      flunk "expected press event to match"
     end
   end
 
-  def test_events_canvas_move_match
-    event = E::Widget.new(type: :canvas_move, id: "draw_area", data: {x: 60.0, y: 80.0})
-    case event
-    in E::Widget[type: :canvas_move, id: "draw_area", data: {x:, y:}]
-      assert_equal 60.0, x
-      assert_equal 80.0, y
-    else
-      flunk "expected canvas move event to match"
-    end
-  end
+  # -- Resize event (sensor) --
 
-  # -- Sensor resize event (now Widget) --
-
-  def test_events_sensor_resize_match
-    event = E::Widget.new(type: :sensor_resize, id: "content_area", data: {width: 800.0, height: 600.0})
+  def test_events_resize_match
+    event = E::Widget.new(type: :resize, id: "content_area", data: {width: 800.0, height: 600.0})
     case event
-    in E::Widget[type: :sensor_resize, id: "content_area", data: {width:, height:}]
+    in E::Widget[type: :resize, id: "content_area", data: {width:, height:}]
       assert_equal 800.0, width
       assert_equal 600.0, height
     else
-      flunk "expected sensor resize event to match"
+      flunk "expected resize event to match"
     end
   end
 
@@ -339,51 +302,50 @@ class DocsEventsTest < Minitest::Test
     end
   end
 
-  # -- Mouse events (global) --
+  # -- Subscription pointer events (delivered as Widget) --
 
-  def test_events_mouse_cursor_moved_match
-    event = E::Mouse.new(type: :moved, x: 320.0, y: 240.0)
+  def test_events_subscription_move_match
+    event = E::Widget.new(type: :move, id: "main", data: {x: 320.0, y: 240.0, pointer: :mouse})
     case event
-    in E::Mouse[type: :moved, x:, y:]
+    in E::Widget[type: :move, data: {x:, y:, pointer: :mouse}]
       assert_equal 320.0, x
       assert_equal 240.0, y
     else
-      flunk "expected mouse moved event to match"
+      flunk "expected subscription move event to match"
     end
   end
 
-  def test_events_mouse_button_pressed_match
-    event = E::Mouse.new(type: :button_pressed, button: :left)
+  def test_events_subscription_press_match
+    event = E::Widget.new(type: :press, id: "main", data: {button: :left, pointer: :mouse})
     case event
-    in E::Mouse[type: :button_pressed, button: :left]
+    in E::Widget[type: :press, data: {button: :left, pointer: :mouse}]
       pass
     else
-      flunk "expected mouse button_pressed event to match"
+      flunk "expected subscription press event to match"
     end
   end
 
-  def test_events_mouse_wheel_scrolled_match
-    event = E::Mouse.new(type: :wheel_scrolled, delta_x: 0.0, delta_y: -3.0, unit: :line)
+  def test_events_subscription_scroll_match
+    event = E::Widget.new(type: :scroll, id: "main", data: {delta_x: 0.0, delta_y: -3.0, unit: :line, pointer: :mouse})
     case event
-    in E::Mouse[type: :wheel_scrolled, delta_x:, delta_y:, unit: :line]
-      assert_equal 0.0, delta_x
+    in E::Widget[type: :scroll, data: {delta_y:, unit: :line}]
       assert_equal(-3.0, delta_y)
     else
-      flunk "expected mouse wheel_scrolled event to match"
+      flunk "expected subscription scroll event to match"
     end
   end
 
-  # -- Touch event --
+  # -- Touch subscription events (delivered as Widget) --
 
-  def test_events_touch_finger_pressed_match
-    event = E::Touch.new(type: :pressed, finger_id: 0, x: 100.0, y: 200.0)
+  def test_events_touch_press_match
+    event = E::Widget.new(type: :press, id: "main", data: {pointer: :touch, finger: 0, x: 100.0, y: 200.0})
     case event
-    in E::Touch[type: :pressed, finger_id:, x:, y:]
-      assert_equal 0, finger_id
+    in E::Widget[type: :press, data: {pointer: :touch, finger:, x:, y:}]
+      assert_equal 0, finger
       assert_equal 100.0, x
       assert_equal 200.0, y
     else
-      flunk "expected touch finger_pressed event to match"
+      flunk "expected touch press event to match"
     end
   end
 

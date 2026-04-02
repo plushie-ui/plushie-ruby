@@ -14,35 +14,41 @@ module Plushie
   #   end
   #
   module Event
-    # All widget interaction events: clicks, input, toggles, canvas interactions,
-    # mouse area events, sensor resizes, pane events, and custom widget events.
+    # All widget interaction events.
     #
-    # Built-in types include standard widget events (:click, :input, :submit, etc.),
-    # canvas events (:canvas_press, :canvas_move, etc.), mouse area events
-    # (:mouse_enter, :mouse_exit, etc.), sensor events (:sensor_resize), and
-    # pane events (:pane_resized, :pane_dragged, :pane_clicked).
+    # Covers standard widget events (:click, :input, :submit, etc.),
+    # unified pointer events (:press, :release, :move, :scroll, :enter,
+    # :exit, :double_click, :resize), generic element events (:focused,
+    # :blurred, :drag, :drag_end, :key_press, :key_release), pane events
+    # (:pane_resized, :pane_dragged, :pane_clicked), animation events
+    # (:transition_complete), and subscription pointer events.
     #
-    # The `data` field carries type-specific payload as a Hash with symbol keys.
-    # For example, :canvas_press has `data: {x:, y:, button:}` and :sensor_resize
-    # has `data: {width:, height:}`.
+    # The +data+ field carries type-specific payload as a Hash with
+    # symbol keys. Pointer events include +:pointer+ (mouse/touch/pen),
+    # +:button+, +:modifiers+, and coordinates.
+    #
+    # The +scope+ array lists ancestor container IDs from immediate
+    # parent to outermost. The window_id is appended as the last
+    # element (outermost ancestor). Use Event.target to reconstruct
+    # the forward-order path (window_id is stripped).
     #
     # @!attribute [r] type [Symbol] event kind
     # @!attribute [r] id [String] widget ID that produced the event
     # @!attribute [r] value [Object, nil] event value (text for :input, boolean for :toggle, etc.)
     # @!attribute [r] window_id [String, nil] window that produced the event
-    # @!attribute [r] scope [Array<String>] reversed ancestor scope chain (immediate parent first)
+    # @!attribute [r] scope [Array<String>] reversed ancestor scope chain (immediate parent first, window_id last)
     # @!attribute [r] data [Hash, nil] type-specific event data
     #
     # @example Click
     #   in Event::Widget[type: :click, id: "save"]
     # @example Input with value
     #   in Event::Widget[type: :input, id: "search", value:]
-    # @example Canvas press
-    #   in Event::Widget[type: :canvas_press, id: "chart", data: {x:, y:}]
-    # @example Mouse area enter
-    #   in Event::Widget[type: :mouse_enter, id: "hover_zone"]
-    # @example Sensor resize
-    #   in Event::Widget[type: :sensor_resize, id: "content", data: {width:, height:}]
+    # @example Pointer press
+    #   in Event::Widget[type: :press, id: "canvas", data: {x:, y:, button: :left}]
+    # @example Enter (cursor hover or touch enter)
+    #   in Event::Widget[type: :enter, id: "hover_zone"]
+    # @example Resize (sensor)
+    #   in Event::Widget[type: :resize, id: "content", data: {width:, height:}]
     # @example Pane resized
     #   in Event::Widget[type: :pane_resized, id: "editor", data: {ratio:}]
     Widget = Data.define(:type, :id, :value, :window_id, :scope, :data) do
@@ -75,52 +81,6 @@ module Plushie
       def initialize(type:, key:, modified_key: nil, physical_key: nil,
         location: :standard, modifiers: {}, text: nil, repeat: false,
         captured: false, window_id: nil)
-        super
-      end
-    end
-
-    # Mouse events delivered globally via subscription.
-    # Triggered by mouse movement, button presses, or scroll wheel activity.
-    # Subscribe via Subscription.on_mouse_move, on_mouse_button, or on_mouse_scroll.
-    #
-    # @!attribute [r] type [Symbol] :moved, :button_pressed, :button_released, :wheel_scrolled, :cursor_entered, :cursor_left
-    # @!attribute [r] x [Float, nil] cursor x position
-    # @!attribute [r] y [Float, nil] cursor y position
-    # @!attribute [r] button [Symbol, nil] mouse button (:left, :right, :middle, etc.)
-    # @!attribute [r] delta_x [Float, nil] scroll delta x (for :wheel_scrolled)
-    # @!attribute [r] delta_y [Float, nil] scroll delta y (for :wheel_scrolled)
-    # @!attribute [r] unit [Symbol, nil] scroll unit (:line, :pixel)
-    # @!attribute [r] captured [Boolean] true if a widget consumed this event
-    # @!attribute [r] window_id [String, nil] window that was focused when the event fired
-    #
-    # @example Mouse button press
-    #   in Event::Mouse[type: :button_pressed, button: :left, x:, y:]
-    # @example Scroll wheel
-    #   in Event::Mouse[type: :wheel_scrolled, delta_y:]
-    Mouse = Data.define(:type, :x, :y, :button, :delta_x, :delta_y, :unit, :captured, :window_id) do
-      def initialize(type:, x: nil, y: nil, button: nil,
-        delta_x: nil, delta_y: nil, unit: nil, captured: false, window_id: nil)
-        super
-      end
-    end
-
-    # Touch screen events delivered via subscription.
-    # Triggered by finger interactions on touch-capable displays.
-    # Subscribe via Subscription.on_touch.
-    #
-    # @!attribute [r] type [Symbol] :finger_pressed, :finger_lifted, :finger_moved, :finger_lost
-    # @!attribute [r] finger_id [Integer, nil] unique identifier for the finger
-    # @!attribute [r] x [Float, nil] touch x position
-    # @!attribute [r] y [Float, nil] touch y position
-    # @!attribute [r] captured [Boolean] true if a widget consumed this event
-    # @!attribute [r] window_id [String, nil] window that was focused when the event fired
-    #
-    # @example Finger press
-    #   in Event::Touch[type: :finger_pressed, finger_id:, x:, y:]
-    # @example Finger lifted
-    #   in Event::Touch[type: :finger_lifted, finger_id:]
-    Touch = Data.define(:type, :finger_id, :x, :y, :captured, :window_id) do
-      def initialize(type:, finger_id: nil, x: nil, y: nil, captured: false, window_id: nil)
         super
       end
     end
@@ -264,12 +224,26 @@ module Plushie
     Stream = Data.define(:tag, :value)
 
     # Reconstruct the full scoped path as a forward-order string.
+    # Strips the window_id from scope (it appears at the end of the
+    # scope list but is not part of the container path).
     #
     #   Event.target(widget_event) # => "sidebar/form/save"
     #
     def self.target(event)
-      return event.id if event.scope.empty?
-      (event.scope.reverse + [event.id]).join("/")
+      scope = event.respond_to?(:scope) ? event.scope : []
+      window_id = event.respond_to?(:window_id) ? event.window_id : nil
+
+      scope = strip_window_scope(scope, window_id)
+
+      return event.id if scope.empty?
+      (scope.reverse + [event.id]).join("/")
+    end
+
+    # Remove window_id from the end of a scope array.
+    # @api private
+    def self.strip_window_scope(scope, window_id)
+      return scope if window_id.nil? || scope.empty?
+      (scope.last == window_id) ? scope[0...-1] : scope
     end
   end
 end

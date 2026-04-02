@@ -507,10 +507,10 @@ module Plushie
     # @yield children to track mouse events over
     # @return [Node]
     # @example
-    #   mouse_area("canvas_area", on_press: true, on_move: true) do
+    #   pointer_area("canvas_area", on_press: true, on_move: true) do
     #     canvas("drawing", width: 400, height: 300)
     #   end
-    def mouse_area(id, **props, &block)
+    def pointer_area(id, **props, &block)
       _plushie_container("mouse_area", id, props, &block)
     end
 

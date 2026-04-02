@@ -11,20 +11,13 @@ module Plushie
     # For production decoding, use Plushie::Protocol::Decode.decode_event.
     # This module exists as a lighter-weight alternative that test helpers
     # can use without pulling in the full protocol layer.
-    #
-    # @example Decoding a widget click event
-    #   raw = {"family" => "click", "id" => "form/save", "value" => nil}
-    #   event = Plushie::Test::EventDecoder.decode(raw)
-    #   event.class #=> Plushie::Event::Widget
-    #   event.id    #=> "save"
-    #   event.scope #=> ["form"]
     module EventDecoder
       module_function
 
       # Decode a raw wire event hash into an Event struct.
       #
       # @param raw [Hash] wire event with string keys
-      # @return [Event::Widget, Event::Key, Event::Mouse, nil]
+      # @return [Event::Widget, Event::Key, nil]
       def decode(raw)
         return nil unless raw.is_a?(Hash)
 
@@ -33,59 +26,108 @@ module Plushie
 
         case family
 
-        # Widget interactions (the most common in tests)
+        # Standard widget events
         when "click", "input", "submit", "toggle", "select", "slide", "slide_release",
-          "canvas_element_enter", "canvas_element_leave", "canvas_element_click",
-          "canvas_element_drag", "canvas_element_drag_end", "canvas_element_focused",
-          "canvas_element_blurred", "canvas_focused", "canvas_blurred",
-          "canvas_group_focused", "canvas_group_blurred",
-          "canvas_element_key_press", "canvas_element_key_release"
+          "sort", "scrolled", "open", "close", "key_binding", "paste", "option_hovered"
           id, scope = split_scoped_id(raw["id"])
           Event::Widget.new(
             type: family.to_sym, id: id,
             value: raw["value"], window_id: raw["window_id"], scope: scope, data: raw["data"]
           )
 
-        # Key events
-        when "key_press"
-          kd = data.empty? ? raw : data
-          Event::Key.new(
-            type: :press,
-            key: Protocol::Keys.parse_key(kd["key"]),
-            modifiers: parse_modifiers(raw["modifiers"] || kd["modifiers"] || {}),
-            text: kd["text"],
-            repeat: kd["repeat"] || false
+        # Unified pointer events
+        when "press", "release", "move", "scroll", "enter", "exit",
+          "double_click", "resize"
+          id, scope = split_scoped_id(raw["id"])
+          Event::Widget.new(
+            type: family.to_sym, id: id,
+            window_id: raw["window_id"], scope: scope, data: atomize_data(data)
           )
+
+        # Generic element events
+        when "focused", "blurred", "drag", "drag_end"
+          id, scope = split_scoped_id(raw["id"])
+          Event::Widget.new(
+            type: family.to_sym, id: id,
+            window_id: raw["window_id"], scope: scope, data: atomize_data(data)
+          )
+
+        # Pane events
+        when "pane_resized", "pane_dragged", "pane_clicked", "pane_focus_cycle"
+          id, scope = split_scoped_id(raw["id"])
+          Event::Widget.new(
+            type: family.to_sym, id: id,
+            window_id: raw["window_id"], scope: scope, data: atomize_data(data)
+          )
+
+        # Transition complete
+        when "transition_complete"
+          id, scope = split_scoped_id(raw["id"])
+          Event::Widget.new(
+            type: :transition_complete, id: id,
+            window_id: raw["window_id"], scope: scope,
+            data: {tag: data["tag"]&.to_sym, prop: data["prop"]}
+          )
+
+        # Global key events (no id)
+        when "key_press"
+          if raw["id"] && !raw["id"].empty?
+            id, scope = split_scoped_id(raw["id"])
+            Event::Widget.new(
+              type: :key_press, id: id, window_id: raw["window_id"], scope: scope,
+              data: {key: Protocol::Keys.parse_key(data["key"]), modifiers: parse_modifiers(data["modifiers"])}
+            )
+          else
+            kd = data.empty? ? raw : data
+            Event::Key.new(
+              type: :press,
+              key: Protocol::Keys.parse_key(kd["key"]),
+              modifiers: parse_modifiers(raw["modifiers"] || kd["modifiers"] || {}),
+              text: kd["text"],
+              repeat: kd["repeat"] || false
+            )
+          end
 
         when "key_release"
-          kd = data.empty? ? raw : data
-          Event::Key.new(
-            type: :release,
-            key: Protocol::Keys.parse_key(kd["key"]),
-            modifiers: parse_modifiers(raw["modifiers"] || kd["modifiers"] || {}),
-            text: nil,
-            repeat: false
+          if raw["id"] && !raw["id"].empty?
+            id, scope = split_scoped_id(raw["id"])
+            Event::Widget.new(
+              type: :key_release, id: id, window_id: raw["window_id"], scope: scope,
+              data: {key: Protocol::Keys.parse_key(data["key"]), modifiers: parse_modifiers(data["modifiers"])}
+            )
+          else
+            kd = data.empty? ? raw : data
+            Event::Key.new(
+              type: :release,
+              key: Protocol::Keys.parse_key(kd["key"]),
+              modifiers: parse_modifiers(raw["modifiers"] || kd["modifiers"] || {}),
+              text: nil,
+              repeat: false
+            )
+          end
+
+        # Subscription pointer events
+        when "cursor_moved"
+          window_id = raw["window_id"]
+          Event::Widget.new(
+            type: :move, id: window_id || "__global__", scope: [], window_id: window_id,
+            data: {x: data["x"], y: data["y"], pointer: :mouse}
           )
 
-        # Mouse subscription events
-        when "cursor_moved"
-          Event::Mouse.new(type: :moved, x: data["x"], y: data["y"])
-
         when "button_pressed"
-          Event::Mouse.new(
-            type: :button_pressed,
-            button: Protocol::Parsers.parse_mouse_button(raw["value"])
+          window_id = raw["window_id"]
+          Event::Widget.new(
+            type: :press, id: window_id || "__global__", scope: [], window_id: window_id,
+            data: {button: Protocol::Parsers.parse_mouse_button(raw["value"]), pointer: :mouse}
           )
 
         when "button_released"
-          Event::Mouse.new(
-            type: :button_released,
-            button: Protocol::Parsers.parse_mouse_button(raw["value"])
+          window_id = raw["window_id"]
+          Event::Widget.new(
+            type: :release, id: window_id || "__global__", scope: [], window_id: window_id,
+            data: {button: Protocol::Parsers.parse_mouse_button(raw["value"]), pointer: :mouse}
           )
 
-        else
-          # Unrecognized family
-          nil
         end
       end
 
@@ -113,6 +155,12 @@ module Plushie
           logo: mods["logo"] || false,
           command: mods["command"] || false
         }.freeze
+      end
+
+      # Convert string-keyed wire data to symbol-keyed hash.
+      def atomize_data(data)
+        return nil unless data.is_a?(Hash)
+        data.transform_keys(&:to_sym)
       end
     end
   end

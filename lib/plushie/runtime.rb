@@ -324,8 +324,16 @@ module Plushie
       # Route through canvas widget handlers before app.update.
       # Handlers can consume, transform, or ignore the event.
       unless @canvas_widgets.empty?
+        widgets_before = @canvas_widgets
         routed_event, @canvas_widgets = CanvasWidget.dispatch_through_widgets(@canvas_widgets, event)
-        return if routed_event.nil?  # consumed by a canvas widget
+        if routed_event.nil?
+          # Event consumed by a widget handler. If the registry changed
+          # (widget state updated), re-render to pick up view changes.
+          if @canvas_widgets != widgets_before
+            rerender_after_widget_state_change(widgets_before)
+          end
+          return
+        end
         event = routed_event
       end
 
@@ -539,6 +547,21 @@ module Plushie
       if @consecutive_view_errors == 5
         @logger.warn("plushie: view has failed 5 consecutive times -- UI is stale")
       end
+    end
+
+    # Re-render after a widget's handle_event returned {:update_state, ...}
+    # without emitting an event. The widget state changed but the app's
+    # update was never called, so we need to re-render to pick up any
+    # view changes driven by the new widget state.
+    #
+    # widgets_before is the registry before the event was dispatched.
+    # On view error we revert to this to prevent state-tree desync.
+    def rerender_after_widget_state_change(widgets_before)
+      render_and_patch
+      sync_subscriptions
+    rescue => e
+      @canvas_widgets = widgets_before
+      handle_view_error(e)
     end
 
     # -- Await async notification --------------------------------------------

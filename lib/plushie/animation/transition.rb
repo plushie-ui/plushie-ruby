@@ -9,11 +9,11 @@ module Plushie
     #
     # @example Basic transition
     #   button("fade", "Click",
-    #     opacity: Transition.new(300, to: 0.0))
+    #     opacity: Transition.build(300, to: 0.0))
     #
     # @example With easing and delay
     #   container("slide",
-    #     translate_y: Transition.new(200, to: 0, from: 20,
+    #     translate_y: Transition.build(200, to: 0, from: 20,
     #       easing: :ease_out, delay: 50))
     #
     # @example Looping
@@ -22,7 +22,7 @@ module Plushie
     #
     # @example Completion event
     #   container("item",
-    #     opacity: Transition.new(300, to: 0.0, on_complete: :faded_out))
+    #     opacity: Transition.build(300, to: 0.0, on_complete: :faded_out))
     #
     Transition = Data.define(
       :to, :duration, :easing, :delay,
@@ -55,43 +55,31 @@ module Plushie
         h[:on_complete] = on_complete.to_s if on_complete
         h
       end
-    end
 
-    # Reopen to override new with duration-as-positional-arg support.
-    class Transition
-      class << self
-        alias_method :_data_new, :new
+      # Create a transition with duration as a positional argument.
+      #
+      # @param duration [Integer] duration in milliseconds
+      # @param opts [Hash] transition options (must include :to)
+      # @return [Transition]
+      def self.build(duration, **opts)
+        raise ArgumentError, "duration must be an Integer" unless duration.is_a?(Integer)
+        raise ArgumentError, "transition requires a :to value" unless opts.key?(:to)
 
-        # Create a transition. Duration can be the first positional arg.
-        #
-        #   Transition.new(300, to: 0.5)
-        #   Transition.new(to: 0.5, duration: 300)
-        #
-        # @param duration [Integer, nil] duration in milliseconds
-        # @param opts [Hash] transition options (must include :to)
-        # @return [Transition]
-        def new(duration = nil, **opts)
-          if duration.is_a?(Integer)
-            opts[:duration] = duration
-          elsif duration
-            raise ArgumentError, "duration must be an Integer, got #{duration.class}"
-          end
-          raise ArgumentError, "transition requires a :to value" unless opts.key?(:to)
-          _data_new(**opts)
-        end
+        new(duration: duration, **opts)
+      end
 
-        # Create a looping transition.
-        #
-        # @param duration [Integer] duration per cycle in milliseconds
-        # @param cycles [Integer, nil] number of cycles (nil = forever)
-        # @param reverse [Boolean] auto-reverse on each cycle (default: true)
-        # @return [Transition]
-        def loop(duration, cycles: nil, reverse: true, **opts)
-          new(duration,
-            repeat: cycles || :forever,
-            auto_reverse: reverse,
-            **opts)
-        end
+      # Create a looping transition.
+      #
+      # @param duration [Integer] duration per cycle in milliseconds
+      # @param cycles [Integer, nil] number of cycles (nil = forever)
+      # @param reverse [Boolean] auto-reverse on each cycle (default: true)
+      # @param opts [Hash] must include :to
+      # @return [Transition]
+      def self.loop(duration, cycles: nil, reverse: true, **opts)
+        build(duration,
+          repeat: cycles || :forever,
+          auto_reverse: reverse,
+          **opts)
       end
     end
   end

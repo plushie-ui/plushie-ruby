@@ -27,7 +27,8 @@ class TestProtocolDecode < Minitest::Test
   def test_decode_scoped_id
     event = D.decode_event(windowed({"family" => "click", "id" => "form/sidebar/save"}))
     assert_equal "save", event.id
-    assert_equal ["sidebar", "form"], event.scope
+    # Scope is reversed (immediate parent first), with window_id appended
+    assert_equal ["sidebar", "form", "main"], event.scope
   end
 
   def test_decode_submit
@@ -58,16 +59,10 @@ class TestProtocolDecode < Minitest::Test
     assert_equal :slide_release, event.type
   end
 
-  def test_decode_scroll
-    event = D.decode_event(windowed({"family" => "scroll", "id" => "list", "data" => {"absolute_x" => 0, "relative_y" => 0.5}}))
-    assert_equal :scroll, event.type
-    assert_equal 0.5, event.data["relative_y"]
-  end
-
-  def test_decode_canvas_element_click
-    event = D.decode_event(windowed({"family" => "canvas_element_click", "id" => "chart", "data" => {"element_id" => "bar1"}}))
-    assert_equal :canvas_element_click, event.type
-    assert_equal "bar1", event.data[:element_id]
+  def test_decode_scrolled
+    event = D.decode_event(windowed({"family" => "scrolled", "id" => "list", "data" => {"absolute_x" => 0, "relative_y" => 0.5}}))
+    assert_equal :scrolled, event.type
+    assert_equal 0.5, event.data[:relative_y]
   end
 
   def test_decode_paste
@@ -79,6 +74,7 @@ class TestProtocolDecode < Minitest::Test
   def test_decode_sort
     event = D.decode_event(windowed({"family" => "sort", "id" => "table", "data" => {"column" => "name"}}))
     assert_equal :sort, event.type
+    assert_equal "name", event.data[:column]
   end
 
   def test_decode_open_close
@@ -88,55 +84,42 @@ class TestProtocolDecode < Minitest::Test
     assert_equal :close, close.type
   end
 
-  # -- Mouse area events ---------------------------------------------------
+  # -- Unified pointer events -----------------------------------------------
 
-  def test_decode_mouse_right_press
-    event = D.decode_event(windowed({"family" => "mouse_right_press", "id" => "area"}))
+  def test_decode_press
+    event = D.decode_event(windowed({"family" => "press", "id" => "area", "data" => {"x" => 5, "y" => 10, "button" => "right", "pointer" => "mouse"}}))
     assert_instance_of Plushie::Event::Widget, event
-    assert_equal :mouse_right_press, event.type
+    assert_equal :press, event.type
     assert_equal "area", event.id
+    assert_equal :right, event.data[:button]
+    assert_equal :mouse, event.data[:pointer]
   end
 
-  def test_decode_mouse_move
-    event = D.decode_event(windowed({"family" => "mouse_move", "id" => "zone", "data" => {"x" => 10, "y" => 20}}))
+  def test_decode_move
+    event = D.decode_event(windowed({"family" => "move", "id" => "zone", "data" => {"x" => 10, "y" => 20, "pointer" => "mouse"}}))
     assert_instance_of Plushie::Event::Widget, event
-    assert_equal :mouse_move, event.type
+    assert_equal :move, event.type
     assert_equal 10, event.data[:x]
     assert_equal 20, event.data[:y]
   end
 
-  def test_decode_mouse_scroll
-    event = D.decode_event(windowed({"family" => "mouse_scroll", "id" => "zone", "data" => {"delta_x" => 0, "delta_y" => -3}}))
-    assert_equal :mouse_scroll, event.type
+  def test_decode_scroll
+    event = D.decode_event(windowed({"family" => "scroll", "id" => "zone", "data" => {"delta_x" => 0, "delta_y" => -3, "pointer" => "mouse"}}))
+    assert_equal :scroll, event.type
     assert_equal(-3, event.data[:delta_y])
   end
 
-  def test_decode_mouse_enter_exit
-    enter = D.decode_event(windowed({"family" => "mouse_enter", "id" => "hover"}))
-    exit_ev = D.decode_event(windowed({"family" => "mouse_exit", "id" => "hover"}))
-    assert_equal :mouse_enter, enter.type
-    assert_equal :mouse_exit, exit_ev.type
+  def test_decode_enter_exit
+    enter = D.decode_event(windowed({"family" => "enter", "id" => "hover"}))
+    exit_ev = D.decode_event(windowed({"family" => "exit", "id" => "hover"}))
+    assert_equal :enter, enter.type
+    assert_equal :exit, exit_ev.type
   end
 
-  # -- Canvas events -------------------------------------------------------
-
-  def test_decode_canvas_press
-    event = D.decode_event(windowed({"family" => "canvas_press", "id" => "draw", "data" => {"x" => 5, "y" => 10, "button" => "left"}}))
-    assert_instance_of Plushie::Event::Widget, event
-    assert_equal :canvas_press, event.type
-    assert_equal :left, event.data[:button]
-  end
-
-  def test_decode_canvas_move
-    event = D.decode_event(windowed({"family" => "canvas_move", "id" => "draw", "data" => {"x" => 15, "y" => 25}}))
-    assert_equal :canvas_move, event.type
-    assert_equal 15, event.data[:x]
-  end
-
-  def test_decode_canvas_scroll
-    event = D.decode_event(windowed({"family" => "canvas_scroll", "id" => "draw", "data" => {"x" => 0, "y" => 0, "delta_x" => 1, "delta_y" => -2}}))
-    assert_equal :canvas_scroll, event.type
-    assert_equal(-2, event.data[:delta_y])
+  def test_decode_resize
+    event = D.decode_event(windowed({"family" => "resize", "id" => "content", "data" => {"width" => 800, "height" => 600}}))
+    assert_equal :resize, event.type
+    assert_equal 800, event.data[:width]
   end
 
   # -- Pane events ---------------------------------------------------------
@@ -152,15 +135,6 @@ class TestProtocolDecode < Minitest::Test
     event = D.decode_event(windowed({"family" => "pane_clicked", "id" => "grid", "data" => {"pane" => "p1"}}))
     assert_equal :pane_clicked, event.type
     assert_equal "p1", event.data[:pane]
-  end
-
-  # -- Sensor events -------------------------------------------------------
-
-  def test_decode_sensor_resize
-    event = D.decode_event(windowed({"family" => "sensor_resize", "id" => "sens", "data" => {"width" => 100, "height" => 200}}))
-    assert_instance_of Plushie::Event::Widget, event
-    assert_equal :sensor_resize, event.type
-    assert_equal 100, event.data[:width]
   end
 
   # -- Keyboard events -----------------------------------------------------
@@ -230,26 +204,28 @@ class TestProtocolDecode < Minitest::Test
     assert_equal true, event.modifiers[:shift]
   end
 
-  # -- Mouse subscription events -------------------------------------------
+  # -- Subscription pointer events (delivered as Widget) --------------------
 
   def test_decode_cursor_moved
     event = D.decode_event({"family" => "cursor_moved", "data" => {"x" => 100, "y" => 200}})
-    assert_instance_of Plushie::Event::Mouse, event
-    assert_equal :moved, event.type
-    assert_equal 100, event.x
+    assert_instance_of Plushie::Event::Widget, event
+    assert_equal :move, event.type
+    assert_equal :mouse, event.data[:pointer]
+    assert_equal 100, event.data[:x]
   end
 
   def test_decode_cursor_entered_left
     entered = D.decode_event({"family" => "cursor_entered"})
     left = D.decode_event({"family" => "cursor_left"})
-    assert_equal :entered, entered.type
-    assert_equal :left, left.type
+    assert_equal :enter, entered.type
+    assert_equal :exit, left.type
   end
 
   def test_decode_button_pressed
     event = D.decode_event({"family" => "button_pressed", "value" => "right"})
-    assert_equal :button_pressed, event.type
-    assert_equal :right, event.button
+    assert_instance_of Plushie::Event::Widget, event
+    assert_equal :press, event.type
+    assert_equal :right, event.data[:button]
   end
 
   def test_decode_wheel_scrolled
@@ -257,22 +233,24 @@ class TestProtocolDecode < Minitest::Test
       "family" => "wheel_scrolled",
       "data" => {"delta_x" => 0, "delta_y" => -3.0, "unit" => "line"}
     })
-    assert_equal :wheel_scrolled, event.type
-    assert_equal :line, event.unit
+    assert_equal :scroll, event.type
+    assert_equal :line, event.data[:unit]
   end
 
-  # -- Touch events --------------------------------------------------------
+  # -- Touch subscription events (delivered as Widget) --------------------
 
   def test_decode_finger_pressed
     event = D.decode_event({"family" => "finger_pressed", "data" => {"id" => 1, "x" => 50, "y" => 60}})
-    assert_instance_of Plushie::Event::Touch, event
-    assert_equal :pressed, event.type
-    assert_equal 1, event.finger_id
+    assert_instance_of Plushie::Event::Widget, event
+    assert_equal :press, event.type
+    assert_equal :touch, event.data[:pointer]
+    assert_equal 1, event.data[:finger]
   end
 
   def test_decode_finger_moved
     event = D.decode_event({"family" => "finger_moved", "data" => {"id" => 1, "x" => 55, "y" => 65}})
-    assert_equal :moved, event.type
+    assert_equal :move, event.type
+    assert_equal :touch, event.data[:pointer]
   end
 
   # -- IME events ----------------------------------------------------------
@@ -441,12 +419,12 @@ class TestProtocolDecode < Minitest::Test
     assert_equal "main", event.window_id
   end
 
-  # -- Canvas events (additional) ------------------------------------------
+  # -- Pointer events (additional) ------------------------------------------
 
-  def test_decode_canvas_release
-    event = D.decode_event(windowed({"family" => "canvas_release", "id" => "draw", "data" => {"x" => 30, "y" => 40, "button" => "right"}}))
+  def test_decode_release
+    event = D.decode_event(windowed({"family" => "release", "id" => "draw", "data" => {"x" => 30, "y" => 40, "button" => "right", "pointer" => "mouse"}}))
     assert_instance_of Plushie::Event::Widget, event
-    assert_equal :canvas_release, event.type
+    assert_equal :release, event.type
     assert_equal 30, event.data[:x]
     assert_equal 40, event.data[:y]
     assert_equal :right, event.data[:button]
@@ -515,29 +493,29 @@ class TestProtocolDecode < Minitest::Test
     assert_equal ["sidebar"], event.scope
   end
 
-  # -- Canvas element key events -------------------------------------------
+  # -- Widget-scoped key events ---------------------------------------------
 
-  def test_decode_canvas_element_key_press
+  def test_decode_widget_key_press
     event = D.decode_event(windowed({
-      "family" => "canvas_element_key_press", "id" => "chart/node1",
-      "data" => {"element_id" => "node1", "key" => "ArrowRight", "modifiers" => {"shift" => false}}
+      "family" => "key_press", "id" => "chart/node1",
+      "data" => {"key" => "ArrowRight", "modifiers" => {"shift" => false}}
     }))
     assert_instance_of Plushie::Event::Widget, event
-    assert_equal :canvas_element_key_press, event.type
+    assert_equal :key_press, event.type
     assert_equal "node1", event.id
-    assert_equal ["chart"], event.scope
+    assert_includes event.scope, "chart"
     assert_equal :arrow_right, event.data[:key]
   end
 
-  def test_decode_canvas_element_key_release
+  def test_decode_widget_key_release
     event = D.decode_event(windowed({
-      "family" => "canvas_element_key_release", "id" => "canvas/elem",
-      "data" => {"element_id" => "elem", "key" => "Tab", "modifiers" => {}}
+      "family" => "key_release", "id" => "canvas/elem",
+      "data" => {"key" => "Tab", "modifiers" => {}}
     }))
     assert_instance_of Plushie::Event::Widget, event
-    assert_equal :canvas_element_key_release, event.type
+    assert_equal :key_release, event.type
     assert_equal "elem", event.id
-    assert_equal ["canvas"], event.scope
+    assert_includes event.scope, "canvas"
   end
 
   # -- Effect stub ack responses -------------------------------------------

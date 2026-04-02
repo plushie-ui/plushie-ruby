@@ -45,7 +45,7 @@ module Plushie
     private def keyed_column: (?String? id, **untyped props) ?{ () -> void } -> Node
     private def pin: (?String? id, **untyped props) ?{ () -> void } -> Node
     private def floating: (?String? id, **untyped props) ?{ () -> void } -> Node
-    private def mouse_area: (String id, **untyped props) ?{ () -> void } -> Node
+    private def pointer_area: (String id, **untyped props) ?{ () -> void } -> Node
     private def sensor: (String id, **untyped props) ?{ () -> void } -> Node
     private def themer: (?String? id, **untyped props) ?{ () -> void } -> Node
     private def pane_grid: (String id, **untyped props) ?{ () -> void } -> Node

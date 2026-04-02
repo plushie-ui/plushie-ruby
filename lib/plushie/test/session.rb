@@ -256,11 +256,18 @@ module Plushie
         # instead of silently producing no events. Non-ID selectors (text
         # content, role, label) are resolved by the renderer during the
         # interact step and cannot be validated client-side.
-        if selector&.start_with?("#") && !find_in_local_tree(selector)
-          all_ids = @tree ? Tree.ids(@tree) : []
-          err = "Widget not found: #{selector.inspect}. The #{action} action requires a valid widget selector."
-          err << "\n  Current tree IDs: #{all_ids.join(", ")}" if all_ids.any?
-          raise Plushie::Error, err
+        #
+        # Scoped IDs like "#canvas/element" reference canvas interactive
+        # elements. The element isn't a tree node, so validate the parent
+        # canvas node instead. Element existence is verified renderer-side.
+        if selector&.start_with?("#")
+          lookup = scoped_parent_selector(selector) || selector
+          unless find_in_local_tree(lookup)
+            all_ids = @tree ? Tree.ids(@tree) : []
+            err = "Widget not found: #{selector.inspect}. The #{action} action requires a valid widget selector."
+            err << "\n  Current tree IDs: #{all_ids.join(", ")}" if all_ids.any?
+            raise Plushie::Error, err
+          end
         end
 
         id = SecureRandom.hex(4)
@@ -416,7 +423,9 @@ module Plushie
           if selector.start_with?("#")
             resolve_id_selector(selector)
           else
-            {by: "text", value: selector}
+            raise ArgumentError,
+              "bare strings are not valid selectors. " \
+              "Use \"##{selector}\" for ID selectors or {text: #{selector.inspect}} for text content matching."
           end
         when Hash then selector
         when :focused then {by: "focused"}
@@ -497,6 +506,14 @@ module Plushie
         end
 
         matches
+      end
+
+      # For scoped selectors like "#canvas/element", returns "#canvas".
+      # Returns nil for non-scoped selectors.
+      def scoped_parent_selector(selector)
+        raw = selector.delete_prefix("#")
+        parts = raw.split("/", 2)
+        (parts.length == 2) ? "##{parts[0]}" : nil
       end
 
       def find_in_local_tree(selector)

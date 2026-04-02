@@ -2,16 +2,20 @@
 
 module Plushie
   module Widget
-    # Mouse area -- captures mouse events on child content.
+    # Pointer area -- captures pointer events (mouse, touch, pen) on child content.
+    #
+    # The widget responds to all pointer input types, not just mouse.
+    # The iced renderer uses "mouse_area" as the internal widget name;
+    # only the SDK-facing name is "pointer_area".
     #
     # @example
-    #   ma = Plushie::Widget::MouseArea.new("clickable",
+    #   pa = Plushie::Widget::PointerArea.new("clickable",
     #     cursor: :pointer, on_right_press: true)
     #     .push(Plushie::Widget::Text.new("label", "Right-click me"))
-    #   node = ma.build
+    #   node = pa.build
     #
     # Props:
-    # - cursor (symbol) -- mouse cursor on hover.
+    # - cursor (symbol) -- pointer cursor on hover.
     # - on_press (string) -- event tag for left press.
     # - on_release (string) -- event tag for left release.
     # - on_right_press (boolean) -- enable right press events.
@@ -25,7 +29,7 @@ module Plushie
     # - on_scroll (boolean) -- enable scroll events.
     # - event_rate (integer) -- max events per second.
     # - a11y (hash) -- accessibility overrides.
-    class MouseArea
+    class PointerArea
       # Supported property keys for this widget.
       # @api private
       PROPS = %i[cursor on_press on_release on_right_press on_right_release
@@ -52,7 +56,7 @@ module Plushie
 
       # Append a child widget.
       # @param child [Plushie::Node, #build] child widget
-      # @return [MouseArea] new instance with the child appended
+      # @return [PointerArea] new instance with the child appended
       def push(child)
         dup.tap { _1.instance_variable_set(:@children, @children + [child]) }
       end
@@ -60,12 +64,13 @@ module Plushie
       # @return [Plushie::Node]
       # @raise [ArgumentError] if more than 1 child
       def build
-        Build.validate_single_child!(@id, "mouse_area", @children)
+        Build.validate_single_child!(@id, "pointer_area", @children)
         props = {}
         PROPS.each do |key|
           val = instance_variable_get(:"@#{key}")
           Build.put_if(props, key, val)
         end
+        # Wire type is "mouse_area" (renderer internal name).
         Node.new(id: @id, type: "mouse_area", props: props,
           children: Build.children_to_nodes(@children))
       end

@@ -45,9 +45,10 @@ module Plushie
         @id = id.to_s
         @children = opts.delete(:children) || []
         PROPS.each { |k| instance_variable_set(:"@#{k}", opts[k]) if opts.key?(k) }
+        validate_row_keys!(@rows) if @rows
       end
 
-      PROPS.each do |prop|
+      (PROPS - [:rows]).each do |prop|
         define_method(:"set_#{prop}") do |value|
           dup.tap { _1.instance_variable_set(:"@#{prop}", value) }
         end
@@ -62,15 +63,7 @@ module Plushie
       # @return [Table] new Table with the rows set
       # @raise [ArgumentError] if rows contain symbol keys
       def set_rows(rows)
-        if rows.is_a?(Array) && !rows.empty? && rows[0].is_a?(Hash)
-          sym_key = rows[0].keys.find { |k| k.is_a?(Symbol) }
-          if sym_key
-            raise ArgumentError,
-              "table #{@id.inspect} row maps must use string keys to match column key values, " \
-              "got symbol key #{sym_key.inspect}. " \
-              "Use {#{sym_key.to_s.inspect} => value} instead of {#{sym_key}: value}"
-          end
-        end
+        validate_row_keys!(rows)
         dup.tap { _1.instance_variable_set(:@rows, rows) }
       end
 
@@ -91,6 +84,18 @@ module Plushie
         end
         Node.new(id: @id, type: "table", props: props,
           children: Build.children_to_nodes(@children))
+      end
+
+      private
+
+      def validate_row_keys!(rows)
+        return unless rows.is_a?(Array) && !rows.empty? && rows[0].is_a?(Hash)
+        sym_key = rows[0].keys.find { |k| k.is_a?(Symbol) }
+        return unless sym_key
+        raise ArgumentError,
+          "table #{@id.inspect} row maps must use string keys to match column key values, " \
+          "got symbol key #{sym_key.inspect}. " \
+          "Use {#{sym_key.to_s.inspect} => value} instead of {#{sym_key}: value}"
       end
     end
   end

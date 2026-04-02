@@ -37,9 +37,9 @@ class TestProtocolEncode < Minitest::Test
   end
 
   def test_encode_subscribe_with_max_rate
-    result = JSON.parse(E.encode_subscribe(:on_mouse_move, :mouse, :json, max_rate: 30))
+    result = JSON.parse(E.encode_subscribe(:on_pointer_move, :mouse, :json, max_rate: 30))
     assert_equal "subscribe", result["type"]
-    assert_equal "on_mouse_move", result["kind"]
+    assert_equal "on_pointer_move", result["kind"]
     assert_equal "mouse", result["tag"]
     assert_equal 30, result["max_rate"]
   end

@@ -3,6 +3,9 @@ module Plushie
     # Reconstruct the full scoped path from an event.
     def self.target: (untyped event) -> String
 
+    # Remove window_id from scope tail.
+    def self.strip_window_scope: (Array[String] scope, String? window_id) -> Array[String]
+
     class Widget
       attr_reader type: Symbol
       attr_reader id: String
@@ -34,31 +37,6 @@ module Plushie
       attr_reader window_id: String?
 
       def initialize: (type: Symbol, key: Symbol | String, ?modified_key: (Symbol | String)?, ?physical_key: (Symbol | String)?, ?location: Symbol, ?modifiers: Hash[Symbol, bool], ?text: String?, ?repeat: bool, ?captured: bool, ?window_id: String?) -> void
-    end
-
-    class Mouse
-      attr_reader type: Symbol
-      attr_reader x: Numeric?
-      attr_reader y: Numeric?
-      attr_reader button: Symbol?
-      attr_reader delta_x: Numeric?
-      attr_reader delta_y: Numeric?
-      attr_reader unit: Symbol?
-      attr_reader captured: bool
-      attr_reader window_id: String?
-
-      def initialize: (type: Symbol, ?x: Numeric?, ?y: Numeric?, ?button: Symbol?, ?delta_x: Numeric?, ?delta_y: Numeric?, ?unit: Symbol?, ?captured: bool, ?window_id: String?) -> void
-    end
-
-    class Touch
-      attr_reader type: Symbol
-      attr_reader finger_id: Integer?
-      attr_reader x: Numeric?
-      attr_reader y: Numeric?
-      attr_reader captured: bool
-      attr_reader window_id: String?
-
-      def initialize: (type: Symbol, ?finger_id: Integer?, ?x: Numeric?, ?y: Numeric?, ?captured: bool, ?window_id: String?) -> void
     end
 
     class Ime
@@ -95,10 +73,10 @@ module Plushie
     end
 
     class Effect
-      attr_reader request_id: String
+      attr_reader tag: Symbol?
       attr_reader result: untyped
 
-      def initialize: (request_id: String, result: untyped) -> void
+      def initialize: (tag: Symbol?, result: untyped) -> void
     end
 
     class WidgetCommandError

@@ -156,7 +156,7 @@ class TestWidgetBuilders < Minitest::Test
 
   def test_table_build
     cols = [{key: "name", label: "Name"}, {key: "age", label: "Age"}]
-    rows = [{name: "Alice", age: 30}, {name: "Bob", age: 25}]
+    rows = [{"name" => "Alice", "age" => 30}, {"name" => "Bob", "age" => 25}]
     t = Plushie::Widget::Table.new("people", columns: cols, rows: rows)
     node = t.build
     assert_equal "table", node.type

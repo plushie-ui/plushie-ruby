@@ -321,23 +321,23 @@ class TestWidgetBuildersComplete < Minitest::Test
     assert_equal 100, f2.height
   end
 
-  def test_mouse_area_new_and_build
-    ma = Plushie::Widget::MouseArea.new("clickable",
+  def test_pointer_area_new_and_build
+    pa = Plushie::Widget::PointerArea.new("clickable",
       cursor: :pointer, on_right_press: true, on_scroll: true)
       .push(Plushie::Widget::Text.new("label", "Right-click me"))
-    node = ma.build
-    assert_equal "mouse_area", node.type
+    node = pa.build
+    assert_equal "mouse_area", node.type # wire type unchanged
     assert_equal :pointer, node.props[:cursor]
     assert_equal true, node.props[:on_right_press]
     assert_equal true, node.props[:on_scroll]
     assert_equal 1, node.children.length
   end
 
-  def test_mouse_area_chainable_setters
-    ma = Plushie::Widget::MouseArea.new("m")
-    ma2 = ma.set_on_double_click(true).set_event_rate(30)
-    assert_equal true, ma2.on_double_click
-    assert_equal 30, ma2.event_rate
+  def test_pointer_area_chainable_setters
+    pa = Plushie::Widget::PointerArea.new("m")
+    pa2 = pa.set_on_double_click(true).set_event_rate(30)
+    assert_equal true, pa2.on_double_click
+    assert_equal 30, pa2.event_rate
   end
 
   def test_sensor_new_and_build
@@ -459,7 +459,7 @@ class TestWidgetBuildersComplete < Minitest::Test
       Plushie::Widget::KeyedColumn.new("kc"),
       Plushie::Widget::Pin.new("p"),
       Plushie::Widget::Floating.new("f"),
-      Plushie::Widget::MouseArea.new("ma"),
+      Plushie::Widget::PointerArea.new("ma"),
       Plushie::Widget::Sensor.new("s"),
       Plushie::Widget::Themer.new("th", :dark),
       Plushie::Widget::PaneGrid.new("pg"),

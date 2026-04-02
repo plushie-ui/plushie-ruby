@@ -70,9 +70,16 @@ module Plushie
     # Focus
     # -------------------------------------------------------------------
 
+    # Focus the widget identified by +widget_id+.
+    #
+    # Supports window-qualified paths: +"main#email"+ targets widget
+    # +"email"+ in window +"main"+.
+    #
     # @param widget_id [String]
     # @return [Cmd]
-    def self.focus(widget_id) = Cmd.new(type: :focus, payload: {target: widget_id})
+    def self.focus(widget_id)
+      Cmd.new(type: :focus, payload: target_payload(widget_id))
+    end
 
     # @return [Cmd]
     def self.focus_next = Cmd.new(type: :focus_next, payload: {})
@@ -84,53 +91,80 @@ module Plushie
     # Text editing
     # -------------------------------------------------------------------
 
+    # Select all text in a text widget. Supports +"window#path"+.
     # @param widget_id [String]
     # @return [Cmd]
-    def self.select_all(widget_id) = Cmd.new(type: :select_all, payload: {target: widget_id})
+    def self.select_all(widget_id)
+      Cmd.new(type: :select_all, payload: target_payload(widget_id))
+    end
 
+    # Move cursor to front. Supports +"window#path"+.
     # @param widget_id [String]
     # @return [Cmd]
-    def self.move_cursor_to_front(widget_id) = Cmd.new(type: :move_cursor_to_front, payload: {target: widget_id})
+    def self.move_cursor_to_front(widget_id)
+      Cmd.new(type: :move_cursor_to_front, payload: target_payload(widget_id))
+    end
 
+    # Move cursor to end. Supports +"window#path"+.
     # @param widget_id [String]
     # @return [Cmd]
-    def self.move_cursor_to_end(widget_id) = Cmd.new(type: :move_cursor_to_end, payload: {target: widget_id})
+    def self.move_cursor_to_end(widget_id)
+      Cmd.new(type: :move_cursor_to_end, payload: target_payload(widget_id))
+    end
 
+    # Move cursor to position. Supports +"window#path"+.
     # @param widget_id [String]
     # @param position [Integer]
     # @return [Cmd]
-    def self.move_cursor_to(widget_id, position) = Cmd.new(type: :move_cursor_to, payload: {target: widget_id, position:})
+    def self.move_cursor_to(widget_id, position)
+      Cmd.new(type: :move_cursor_to, payload: target_payload(widget_id, position: position))
+    end
 
+    # Select a range of text. Supports +"window#path"+.
     # @param widget_id [String]
     # @param start_pos [Integer]
     # @param end_pos [Integer]
     # @return [Cmd]
-    def self.select_range(widget_id, start_pos, end_pos) = Cmd.new(type: :select_range, payload: {target: widget_id, start: start_pos, end: end_pos})
+    def self.select_range(widget_id, start_pos, end_pos)
+      Cmd.new(type: :select_range, payload: target_payload(widget_id, start: start_pos, end: end_pos))
+    end
 
     # -------------------------------------------------------------------
     # Scroll
     # -------------------------------------------------------------------
 
+    # Scroll to offset. Supports +"window#path"+.
     # @param widget_id [String]
     # @param offset_y [Numeric]
     # @return [Cmd]
-    def self.scroll_to(widget_id, offset_y) = Cmd.new(type: :scroll_to, payload: {target: widget_id, offset_y:})
+    def self.scroll_to(widget_id, offset_y)
+      Cmd.new(type: :scroll_to, payload: target_payload(widget_id, offset_y: offset_y))
+    end
 
+    # Snap to relative position. Supports +"window#path"+.
     # @param widget_id [String]
     # @param x [Float] relative position 0.0-1.0
     # @param y [Float] relative position 0.0-1.0
     # @return [Cmd]
-    def self.snap_to(widget_id, x, y) = Cmd.new(type: :snap_to, payload: {target: widget_id, x:, y:})
+    def self.snap_to(widget_id, x, y)
+      Cmd.new(type: :snap_to, payload: target_payload(widget_id, x: x, y: y))
+    end
 
+    # Snap to end. Supports +"window#path"+.
     # @param widget_id [String]
     # @return [Cmd]
-    def self.snap_to_end(widget_id) = Cmd.new(type: :snap_to_end, payload: {target: widget_id})
+    def self.snap_to_end(widget_id)
+      Cmd.new(type: :snap_to_end, payload: target_payload(widget_id))
+    end
 
+    # Scroll by delta. Supports +"window#path"+.
     # @param widget_id [String]
     # @param x [Numeric]
     # @param y [Numeric]
     # @return [Cmd]
-    def self.scroll_by(widget_id, x, y) = Cmd.new(type: :scroll_by, payload: {target: widget_id, x:, y:})
+    def self.scroll_by(widget_id, x, y)
+      Cmd.new(type: :scroll_by, payload: target_payload(widget_id, x: x, y: y))
+    end
 
     # -------------------------------------------------------------------
     # Window operations
@@ -309,11 +343,13 @@ module Plushie
     # Canvas operations
     # -------------------------------------------------------------------
 
-    # Focus a specific element within a canvas widget.
+    # Focus a specific element within a canvas widget. Supports +"window#canvas"+.
     # @param canvas_id [String]
     # @param element_id [String]
     # @return [Cmd]
-    def self.focus_element(canvas_id, element_id) = Cmd.new(type: :widget_op, payload: {op: "focus_element", target: canvas_id, element_id: element_id})
+    def self.focus_element(canvas_id, element_id)
+      Cmd.new(type: :widget_op, payload: target_payload(canvas_id, op: "focus_element", element_id: element_id))
+    end
 
     # -------------------------------------------------------------------
     # PaneGrid operations
@@ -444,5 +480,36 @@ module Plushie
     # @param timestamp [Integer] frame timestamp in milliseconds
     # @return [Cmd]
     def self.advance_frame(timestamp) = Cmd.new(type: :advance_frame, payload: {timestamp:})
+
+    # Parse a widget ID that may include a window qualifier.
+    #
+    # +"main#form/save"+ splits into +["main", "form/save"]+.
+    # +"save"+ returns +[nil, "save"]+.
+    #
+    # @param widget_id [String]
+    # @return [Array(String, String), Array(nil, String)]
+    # @api private
+    def self.parse_target(widget_id)
+      return [nil, widget_id] unless widget_id.is_a?(String)
+      parts = widget_id.split("#", 2)
+      (parts.length == 2 && !parts[0].empty?) ? parts : [nil, widget_id]
+    end
+
+    # Build a payload hash with target and optional window_id.
+    # Merges any additional keyword args into the payload.
+    #
+    # @param widget_id [String] possibly window-qualified ID
+    # @param extra [Hash] additional payload fields
+    # @return [Hash]
+    # @api private
+    def self.target_payload(widget_id, **extra)
+      window_id, target = parse_target(widget_id)
+      payload = {target: target}
+      payload[:window_id] = window_id if window_id
+      payload.merge!(extra) unless extra.empty?
+      payload
+    end
+
+    private_class_method :parse_target, :target_payload
   end
 end
