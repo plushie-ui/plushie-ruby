@@ -3,7 +3,7 @@
 require "test_helper"
 
 class TestAnimation < Minitest::Test
-  A = Plushie::Animation
+  A = Plushie::Animation::Tween
 
   # -- Easing functions ----------------------------------------------------
 

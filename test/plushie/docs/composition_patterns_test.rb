@@ -373,9 +373,9 @@ class DocsCompositionPatternsTest < Minitest::Test
   # -- State helpers from composition-patterns.md --
 
   def test_state_helper_animation_easing
-    assert_equal 0.0, Plushie::Animation.ease_in(0.0)
-    assert_equal 1.0, Plushie::Animation.ease_out(1.0)
-    assert_in_delta 0.5, Plushie::Animation.ease_in_out(0.5), 0.001
+    assert_equal 0.0, Plushie::Animation::Tween.ease_in(0.0)
+    assert_equal 1.0, Plushie::Animation::Tween.ease_out(1.0)
+    assert_in_delta 0.5, Plushie::Animation::Tween.ease_in_out(0.5), 0.001
   end
 
   def test_state_helper_route_push_pop

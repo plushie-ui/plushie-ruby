@@ -191,6 +191,26 @@ module Plushie
         result
       end
 
+      # -- Animation helpers ---------------------------------------------------
+
+      # Advance the renderer's animation clock to the given timestamp.
+      # Causes the renderer to evaluate all active animations at that
+      # point in time, potentially triggering transition_complete events.
+      #
+      # @param timestamp [Integer] animation clock time in milliseconds
+      def advance_frame(timestamp)
+        session.command(Command.advance_frame(timestamp))
+      end
+
+      # Skip all active renderer-side transitions to completion.
+      #
+      # Advances the animation clock far enough to complete any reasonable
+      # animation. Triggers transition_complete events for any animations
+      # with on_complete tags.
+      def skip_transitions
+        advance_frame(10_000)
+      end
+
       # -- Assertions ----------------------------------------------------------
 
       # Assert that a widget contains the expected text.

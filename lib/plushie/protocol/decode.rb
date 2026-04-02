@@ -235,6 +235,17 @@ module Plushie
             data: {pane: data["pane"]}
           )
 
+        # -- Animation events -> Event::Widget ----------------------------------
+
+        when "transition_complete"
+          id, scope = split_scoped_id(msg["id"])
+          tag = data["tag"]&.to_sym
+          Event::Widget.new(
+            type: :transition_complete, id: id,
+            window_id: window_id_fn.call(msg, family),
+            scope: scope, data: {tag: tag, prop: data["prop"]}
+          )
+
         # -- Sensor events -> Event::Widget ------------------------------------
 
         when "sensor_resize"
