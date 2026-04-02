@@ -59,7 +59,9 @@ module Plushie
       # Build a {Plushie::Node} from the current property values.
       #
       # @return [Plushie::Node]
+      # @raise [ArgumentError] if more than 1 child
       def build
+        Build.validate_single_child!(@id, "container", @children)
         props = {}
         PROPS.each do |key|
           val = instance_variable_get(:"@#{key}")

@@ -18,7 +18,8 @@ module Plushie
         end
       end
 
-      # Rotates the canvas coordinate system by an angle in radians.
+      # Rotates the canvas coordinate system. Stored as radians internally.
+      # Use Shape.rotate for degrees-by-default convenience.
       #
       # @example
       #   Rotate.new(angle: Math::PI / 4)

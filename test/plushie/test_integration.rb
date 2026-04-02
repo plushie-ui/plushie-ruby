@@ -40,15 +40,15 @@ class TestIntegration < Minitest::Test
       assert_equal 0, session.model.count
 
       # Click increment
-      session.click("#increment")
+      session.click("#inc")
       assert_equal 1, session.model.count
 
       # Click increment again
-      session.click("#increment")
+      session.click("#inc")
       assert_equal 2, session.model.count
 
       # Click decrement
-      session.click("#decrement")
+      session.click("#dec")
       assert_equal 1, session.model.count
 
       # Query the tree via renderer

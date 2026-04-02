@@ -142,8 +142,25 @@ module Plushie
       # Translate the coordinate origin.
       def translate(x, y) = Translate.new(x: x, y: y)
 
-      # Rotate the coordinate system (angle in radians).
-      def rotate(angle) = Rotate.new(angle: angle)
+      # Rotate the coordinate system.
+      #
+      # Accepts degrees by default. Use +degrees:+ or +radians:+ for
+      # explicit units.
+      #
+      #   rotate(45)              # 45 degrees
+      #   rotate(degrees: 45)     # explicit degrees
+      #   rotate(radians: 0.785)  # explicit radians
+      def rotate(angle = nil, degrees: nil, radians: nil)
+        if radians
+          Rotate.new(angle: radians)
+        elsif degrees
+          Rotate.new(angle: degrees * Math::PI / 180.0)
+        elsif angle
+          Rotate.new(angle: angle * Math::PI / 180.0)
+        else
+          raise ArgumentError, "rotate requires an angle, degrees:, or radians:"
+        end
+      end
 
       # Scale the coordinate system (independent axes).
       def scale(x, y = nil)

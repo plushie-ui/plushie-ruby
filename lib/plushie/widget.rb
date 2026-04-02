@@ -3,27 +3,27 @@
 module Plushie
   # Module for declaring custom widgets (pure Ruby or native Rust).
   #
-  # Include in a class to declare a widget with typed props and a render
+  # Include in a class to declare a widget with typed props and a view
   # method that composes existing widgets. Generates:
   #
   # - +initialize(id, **opts)+ with defaults from prop declarations
   # - +set_<prop>(value)+ setter methods for each prop (returns a dup)
-  # - +build+ method that calls +render+ and returns a {Plushie::Node}
+  # - +build+ method that calls +view+ and returns a {Plushie::Node}
   # - +type_names+ and +prop_names+ class methods
   #
   # Three kinds of widgets are supported:
   #
-  # - **Render-only composite** (default): define an instance-level +render+
+  # - **Composite** (default): define an instance-level +view+
   #   that composes existing widgets. No state, no event handling.
   # - **Stateful widget**: declare +state+ fields and/or define class-level
-  #   +self.init+, +self.handle_event+, +self.render(id, props, state)+.
+  #   +self.init+, +self.handle_event+, +self.view(id, props, state)+.
   #   The runtime manages state via a registry and renders the widget
   #   during tree normalization. Events in the widget's scope are
   #   dispatched through its +handle_event+ callback.
   # - **Native widget** (Rust-backed): +widget :name, kind: :native_widget+.
   #   Requires +rust_crate+ and +rust_constructor+ declarations.
   #
-  # @example Render-only composite
+  # @example Composite widget
   #   class MyGauge
   #     include Plushie::Widget
   #
@@ -31,7 +31,7 @@ module Plushie
   #     prop :value, :number, default: 0
   #     prop :max, :number, default: 100
   #
-  #     def render(id, props)
+  #     def view(id, props)
   #       Plushie::UI.progress_bar(id, {0, props[:max]}, props[:value])
   #     end
   #   end
@@ -49,14 +49,14 @@ module Plushie
   #
   #     def self.handle_event(event, state)
   #       case event
-  #       in Event::Widget[type: :canvas_element_click, data: {element_id: star}]
+  #       in Event::Widget[type: :click, data: {element_id: star}]
   #         [:emit, :select, star.to_i + 1]
   #       else
   #         [:consumed, state]
   #       end
   #     end
   #
-  #     def self.render(id, props, state)
+  #     def self.view(id, props, state)
   #       # ... returns canvas shapes ...
   #     end
   #   end
@@ -248,9 +248,9 @@ module Plushie
           end
         end
 
-        if stateful? && !respond_to?(:render)
+        if stateful? && !respond_to?(:view)
           raise ArgumentError,
-            "stateful widget #{name} requires a `def self.render(id, props, state)` class method"
+            "stateful widget #{name} requires a `def self.view(id, props, state)` class method"
         end
       end
 
@@ -353,7 +353,7 @@ module Plushie
         end
       end
 
-      # Render-only composites render immediately in build.
+      # Composite widgets call view immediately in build.
       def _generate_composite_build!
         props = @_widget_props
 
@@ -366,8 +366,8 @@ module Plushie
           props_hash[:a11y] = @a11y unless @a11y.nil?
           props_hash[:event_rate] = @event_rate unless @event_rate.nil?
 
-          node = if respond_to?(:render)
-            render(@id, props_hash)
+          node = if respond_to?(:view)
+            view(@id, props_hash)
           else
             type_str = self.class.type_names.first.to_s
             Plushie::Node.new(id: @id, type: type_str, props: props_hash)

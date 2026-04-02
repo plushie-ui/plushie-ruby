@@ -174,9 +174,9 @@ class TestWidgetBuildersComplete < Minitest::Test
 
   def test_qr_code_chainable_setters
     qr = Plushie::Widget::QrCode.new("q", "data")
-    qr2 = qr.set_cell_color("#000").set_background_color("#fff")
+    qr2 = qr.set_cell_color("#000").set_background("#fff")
     assert_equal "#000", qr2.cell_color
-    assert_equal "#fff", qr2.background_color
+    assert_equal "#fff", qr2.background
   end
 
   def test_rich_text_new_and_build

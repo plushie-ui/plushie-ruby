@@ -102,8 +102,8 @@ class DocsWidgetsTest < Minitest::Test
     prop :title, :string
     prop :subtitle, :string, default: nil
 
-    def render(id, props, _children = [])
-      # Simplified render -- just return a node tree
+    def view(id, props, _children = [])
+      # Build the widget's view tree
       Plushie::Node.new(
         id: id,
         type: "column",

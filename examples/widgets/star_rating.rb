@@ -53,7 +53,7 @@ class StarRating
 
   # -- Rendering -------------------------------------------------------------
 
-  def self.render(id, props, state)
+  def self.view(id, props, state)
     include Plushie::UI
 
     rating = props[:rating] || 0

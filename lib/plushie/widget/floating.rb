@@ -47,7 +47,9 @@ module Plushie
       end
 
       # @return [Plushie::Node]
+      # @raise [ArgumentError] if more than 1 child
       def build
+        Build.validate_single_child!(@id, "float", @children)
         props = {}
         PROPS.each do |key|
           val = instance_variable_get(:"@#{key}")

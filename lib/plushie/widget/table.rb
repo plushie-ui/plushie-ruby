@@ -53,6 +53,27 @@ module Plushie
         end
       end
 
+      # Set the data rows with string key validation.
+      #
+      # Row maps must use string keys matching the column :key values.
+      # Raises ArgumentError if the first row contains symbol keys.
+      #
+      # @param rows [Array<Hash>] data rows with string keys
+      # @return [Table] new Table with the rows set
+      # @raise [ArgumentError] if rows contain symbol keys
+      def set_rows(rows)
+        if rows.is_a?(Array) && !rows.empty? && rows[0].is_a?(Hash)
+          sym_key = rows[0].keys.find { |k| k.is_a?(Symbol) }
+          if sym_key
+            raise ArgumentError,
+              "table #{@id.inspect} row maps must use string keys to match column key values, " \
+              "got symbol key #{sym_key.inspect}. " \
+              "Use {#{sym_key.to_s.inspect} => value} instead of {#{sym_key}: value}"
+          end
+        end
+        dup.tap { _1.instance_variable_set(:@rows, rows) }
+      end
+
       # Append a child node. Returns a new Table (immutable).
       #
       # @param child [Object] child widget or node

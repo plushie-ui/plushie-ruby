@@ -13,7 +13,7 @@ module Plushie
     # - data (string) -- the data to encode.
     # - cell_size (number) -- size of each QR module in pixels.
     # - cell_color (string) -- color of dark modules.
-    # - background_color (string) -- color of light modules.
+    # - background (string) -- color of light modules.
     # - error_correction (symbol) -- :low, :medium, :quartile, :high.
     # - alt (string) -- accessible label.
     # - description (string) -- extended accessible description.
@@ -21,11 +21,11 @@ module Plushie
     class QrCode
       # Supported property keys for this widget.
       # @api private
-      PROPS = %i[data cell_size cell_color background_color error_correction
+      PROPS = %i[data cell_size cell_color background error_correction
         alt description a11y].freeze
 
       # @!parse
-      #   attr_reader :id, :data, :cell_size, :cell_color, :background_color, :error_correction, :alt, :description, :a11y
+      #   attr_reader :id, :data, :cell_size, :cell_color, :background, :error_correction, :alt, :description, :a11y
       class_eval { attr_reader :id, *PROPS }
 
       # @param id [String] widget identifier

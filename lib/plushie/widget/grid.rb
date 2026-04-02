@@ -12,7 +12,6 @@ module Plushie
     #
     # Props:
     # - columns (integer) -- number of columns.
-    # - column_count (integer) -- alias for columns.
     # - spacing (number) -- spacing between cells in pixels.
     # - width (number) -- grid width in pixels.
     # - height (number) -- grid height in pixels.
@@ -23,11 +22,11 @@ module Plushie
     class Grid
       # Supported property keys for this widget.
       # @api private
-      PROPS = %i[columns column_count spacing width height column_width
+      PROPS = %i[columns spacing width height column_width
         row_height fluid a11y].freeze
 
       # @!parse
-      #   attr_reader :id, :children, :columns, :column_count, :spacing, :width, :height, :column_width, :row_height, :fluid, :a11y
+      #   attr_reader :id, :children, :columns, :spacing, :width, :height, :column_width, :row_height, :fluid, :a11y
       class_eval { attr_reader :id, :children, *PROPS }
 
       # @param id [String] widget identifier

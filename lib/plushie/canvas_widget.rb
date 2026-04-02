@@ -16,7 +16,7 @@ module Plushie
   #     canvas_widget :star_rating
   #
   #     def self.init = {hover: nil}
-  #     def self.render(id, props, state) = ...
+  #     def self.view(id, props, state) = ...
   #     def self.handle_event(event, state) = [:ignored, state]
   #     def self.subscribe(props, state) = []
   #   end
@@ -260,8 +260,8 @@ module Plushie
 
       entry = RegistryEntry.new(widget_module: widget_module, state: state, props: widget_props)
 
-      # Render with local ID -- scoping applied by caller
-      rendered = widget_module.render(local_id, widget_props, state)
+      # View with local ID -- scoping applied by caller
+      rendered = widget_module.view(local_id, widget_props, state)
 
       # Auto-apply standard options (a11y, event_rate) from caller props
       # into the rendered node so widget authors don't need to forward them.

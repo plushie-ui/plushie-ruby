@@ -21,7 +21,7 @@ class TestLabeledValue
   prop :label, :string, default: ""
   prop :content, :string, default: ""
 
-  def render(id, props)
+  def view(id, props)
     column(id, spacing: 4) do
       text("#{id}/label", props[:label] || "", size: 12)
       text("#{id}/value", props[:content] || "", size: 16)
@@ -133,7 +133,7 @@ class TestExtension < Minitest::Test
       end
       klass.finalize!
     end
-    assert_match(/requires.*def self\.render/, err.message)
+    assert_match(/requires.*def self\.view/, err.message)
   end
 
   # -- Stateful widgets --------------------------------------------------------
@@ -146,7 +146,7 @@ class TestExtension < Minitest::Test
       prop :label, :string, default: ""
       state :count, default: 0
 
-      def self.render(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
+      def self.view(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
     end
     klass.finalize!
     assert klass.stateful?
@@ -161,7 +161,7 @@ class TestExtension < Minitest::Test
 
       def self.init = {count: 0}
 
-      def self.render(id, _props, state)
+      def self.view(id, _props, state)
         Plushie::Node.new(id: id, type: "text", props: {content: state[:count].to_s})
       end
     end
@@ -181,7 +181,7 @@ class TestExtension < Minitest::Test
       state :on, default: false
       state :count, default: 0
 
-      def self.render(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
+      def self.view(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
     end
     klass.finalize!
     assert_equal({on: false, count: 0}, klass.init)
@@ -195,7 +195,7 @@ class TestExtension < Minitest::Test
       state :on, default: false
       event :toggled
 
-      def self.render(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
+      def self.view(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
     end
     klass.finalize!
     # Widgets with event declarations default to :consumed
@@ -210,7 +210,7 @@ class TestExtension < Minitest::Test
       widget :wrapper
       state :expanded, default: true
 
-      def self.render(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
+      def self.view(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
     end
     klass.finalize!
     # Widgets without event declarations default to :ignored
@@ -226,7 +226,7 @@ class TestExtension < Minitest::Test
       event :select
       event :change
 
-      def self.render(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
+      def self.view(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
     end
     klass.finalize!
     assert_equal [:select, :change], klass.widget_events
@@ -248,7 +248,7 @@ class TestExtension < Minitest::Test
         [:ignored, state]
       end
 
-      def self.render(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
+      def self.view(id, _props, _state) = Plushie::Node.new(id: id, type: "text")
     end
     klass.finalize!
     assert klass.stateful?

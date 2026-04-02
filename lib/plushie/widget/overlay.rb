@@ -51,7 +51,9 @@ module Plushie
       end
 
       # @return [Plushie::Node]
+      # @raise [ArgumentError] if children count is not exactly 2
       def build
+        Build.validate_children_count!(@id, "overlay", @children, 2)
         props = {}
         PROPS.each do |key|
           val = instance_variable_get(:"@#{key}")

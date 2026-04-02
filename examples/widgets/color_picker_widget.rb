@@ -93,7 +93,7 @@ class ColorPickerWidget
 
   # -- Rendering -------------------------------------------------------------
 
-  def self.render(id, _props, state)
+  def self.view(id, _props, state)
     include Plushie::UI
 
     hue = state[:hue]

@@ -5,8 +5,8 @@ module Plushie
   module Type
     # Alignment values for `align_x` and `align_y` widget props.
     #
-    # Horizontal: :left, :center, :right (aliases: :start = :left, :end = :right)
-    # Vertical: :top, :center, :bottom (aliases: :start = :top, :end = :bottom)
+    # Horizontal: :left, :center, :right.
+    # Vertical: :top, :center, :bottom.
     #
     # @example
     #   column(align_x: :center)
@@ -14,11 +14,11 @@ module Plushie
     module Alignment
       # Valid alignment values.
       # @api private
-      VALID = %i[left center right top bottom start end].freeze
+      VALID = %i[left center right top bottom].freeze
 
       # Encode an alignment value to the wire format.
       #
-      # @param value [Symbol] :left, :center, :right, :top, :bottom, :start, :end
+      # @param value [Symbol] :left, :center, :right, :top, :bottom
       # @return [String]
       def self.encode(value)
         raise ArgumentError, "invalid alignment: #{value.inspect}" unless VALID.include?(value)

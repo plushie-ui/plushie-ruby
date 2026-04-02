@@ -29,6 +29,40 @@ module Plushie
           end
         end
       end
+
+      # Validates that a widget has at most one child.
+      #
+      # Raises ArgumentError if the children list has more than one element.
+      # Called from #build in single-child wrappers (container, tooltip,
+      # pointer_area, scrollable, themer, floating, responsive, pin,
+      # sensor, window).
+      #
+      # @param id [String] widget ID for the error message
+      # @param type [String] widget type name for the error message
+      # @param children [Array] children to validate
+      # @raise [ArgumentError] if children.length > 1
+      def validate_single_child!(id, type, children)
+        return if children.length <= 1
+        raise ArgumentError,
+          "#{type} #{id.inspect} accepts at most 1 child, got #{children.length}"
+      end
+
+      # Validates that a widget has exactly the expected number of children.
+      #
+      # Raises ArgumentError if the children count does not match expected.
+      # Called from #build for widgets with strict child count requirements
+      # (overlay requires exactly 2).
+      #
+      # @param id [String] widget ID for the error message
+      # @param type [String] widget type name for the error message
+      # @param children [Array] children to validate
+      # @param expected [Integer] required child count
+      # @raise [ArgumentError] if children.length != expected
+      def validate_children_count!(id, type, children, expected)
+        return if children.length == expected
+        raise ArgumentError,
+          "#{type} #{id.inspect} requires exactly #{expected} children, got #{children.length}"
+      end
     end
   end
 end

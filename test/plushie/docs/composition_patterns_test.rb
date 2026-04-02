@@ -251,7 +251,7 @@ class DocsCompositionPatternsTest < Minitest::Test
                   text("dialog_body", "Are you sure you want to proceed?",
                     color: "#555555", wrapping: :word)
 
-                  row(spacing: 8, align_x: :end) do
+                  row(spacing: 8, align_x: :right) do
                     button("cancel", "Cancel", style: :secondary)
                     button("confirm", "Confirm", style: :primary)
                   end

@@ -8,7 +8,11 @@ class TestTypes < Minitest::Test
   def test_alignment_encode
     assert_equal "left", Plushie::Type::Alignment.encode(:left)
     assert_equal "center", Plushie::Type::Alignment.encode(:center)
-    assert_equal "start", Plushie::Type::Alignment.encode(:start)
+    assert_equal "right", Plushie::Type::Alignment.encode(:right)
+    assert_equal "top", Plushie::Type::Alignment.encode(:top)
+    assert_equal "bottom", Plushie::Type::Alignment.encode(:bottom)
+    assert_raises(ArgumentError) { Plushie::Type::Alignment.encode(:start) }
+    assert_raises(ArgumentError) { Plushie::Type::Alignment.encode(:end) }
     assert_raises(ArgumentError) { Plushie::Type::Alignment.encode(:invalid) }
   end
 

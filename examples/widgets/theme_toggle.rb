@@ -59,14 +59,14 @@ class ThemeToggle
 
   # -- Rendering -------------------------------------------------------------
 
-  def self.render(id, _props, state)
+  def self.view(id, _props, state)
     include Plushie::UI
 
     progress = state[:progress]
     eased = smoothstep(progress)
     thumb_x = lerp(TRACK_H / 2.0, TRACK_W - TRACK_H / 2.0, eased)
     track_color = lerp_color([253, 230, 138], [91, 33, 182], eased)
-    rotation = eased * Math::PI
+    rotation = eased * 180.0
     face_color = (progress < 0.5) ? "#665500" : "#4c1d95"
 
     ring_pad = 4
