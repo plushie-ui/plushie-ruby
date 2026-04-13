@@ -768,12 +768,12 @@ end
 
 ### Rust-side: unit tests (no Ruby)
 
-The `plushie_ext::testing` module provides `TestEnv` and node factories
+The `plushie_widget_sdk::testing` module provides `TestEnv` and node factories
 for testing `WidgetExtension::render()` in isolation:
 
 ```rust
-use plushie_ext::testing::*;
-use plushie_ext::prelude::*;
+use plushie_widget_sdk::testing::*;
+use plushie_widget_sdk::prelude::*;
 
 #[test]
 fn gauge_renders_without_panic() {

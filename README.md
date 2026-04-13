@@ -294,7 +294,7 @@ the platform-specific libraries:
 |---|---|
 | Ruby SDK | [github.com/plushie-ui/plushie-ruby](https://github.com/plushie-ui/plushie-ruby) |
 | Elixir SDK | [github.com/plushie-ui/plushie-elixir](https://github.com/plushie-ui/plushie-elixir) |
-| Renderer | [github.com/plushie-ui/plushie](https://github.com/plushie-ui/plushie) |
+| Renderer | [github.com/plushie-ui/plushie-rust](https://github.com/plushie-ui/plushie-rust) |
 
 ## License
 

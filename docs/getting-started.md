@@ -222,7 +222,7 @@ Plushie supports custom widgets at three levels:
   handling. The runtime manages the state lifecycle and dispatches
   events through your `handle_event` callback.
 - **Native widgets** -- Rust-backed widgets implementing the
-  `WidgetExtension` trait from `plushie-ext`. The build system
+  `PlushieWidget` trait from `plushie-widget-sdk`. The build system
   compiles a custom renderer binary that includes your widgets.
 
 All three use `include Plushie::Widget`.
