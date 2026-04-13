@@ -186,10 +186,10 @@ end
 
 ### Style map fields
 
-- `background` -- hex color for the widget background
-- `text_color` -- hex color for text
-- `border` -- a `Plushie::Type::Border` (color, width, radius)
-- `shadow` -- a `Plushie::Type::Shadow` (color, offset, blur_radius)
+- `background`: hex color for the widget background
+- `text_color`: hex color for text
+- `border`: a `Plushie::Type::Border` (color, width, radius)
+- `shadow`: a `Plushie::Type::Shadow` (color, offset, blur_radius)
 
 ### Status overrides
 
@@ -216,7 +216,7 @@ If you don't specify an override for a status, the renderer auto-derives:
 
 ### Presets and style maps together
 
-Style maps don't replace presets -- they complement them:
+Style maps don't replace presets; they complement them:
 
 ```ruby
 # Standard danger button
@@ -288,5 +288,5 @@ column(spacing: spacing(:compact, :md)) do
 end
 ```
 
-There is no global density setting or built-in density module -- your app
+There is no global density setting or built-in density module; your app
 decides how to handle it.

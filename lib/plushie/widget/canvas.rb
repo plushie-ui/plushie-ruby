@@ -2,7 +2,7 @@
 
 module Plushie
   module Widget
-    # Typed builder for the canvas widget -- vector drawing surface
+    # Typed builder for the canvas widget: vector drawing surface
     # (Layer 2 API).
     #
     # Canvas supports layer-based composition: each layer is a named

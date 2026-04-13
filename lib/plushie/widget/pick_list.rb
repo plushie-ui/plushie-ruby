@@ -2,7 +2,7 @@
 
 module Plushie
   module Widget
-    # Pick list -- dropdown selection.
+    # Pick list: dropdown selection.
     #
     # @example
     #   pl = Plushie::Widget::PickList.new("color", ["Red", "Green", "Blue"],
@@ -10,23 +10,23 @@ module Plushie
     #   node = pl.build
     #
     # Props:
-    # - options (array of strings) -- available choices.
-    # - selected (string|nil) -- currently selected value.
-    # - placeholder (string) -- placeholder text.
-    # - width (length) -- widget width.
-    # - padding (number|hash) -- internal padding.
-    # - text_size (number) -- text size in pixels.
-    # - font (string|hash) -- font specification.
-    # - line_height (number|hash) -- text line height.
-    # - menu_height (number) -- max dropdown menu height in pixels.
-    # - shaping (symbol) -- text shaping strategy.
-    # - handle (hash) -- dropdown handle indicator config.
-    # - ellipsis (string) -- text ellipsis strategy.
-    # - menu_style (hash) -- dropdown menu style overrides.
-    # - style (symbol|hash) -- named style or style map.
-    # - on_open (boolean) -- emit open event.
-    # - on_close (boolean) -- emit close event.
-    # - a11y (hash) -- accessibility overrides.
+    # - options (array of strings): available choices.
+    # - selected (string|nil): currently selected value.
+    # - placeholder (string): placeholder text.
+    # - width (length): widget width.
+    # - padding (number|hash): internal padding.
+    # - text_size (number): text size in pixels.
+    # - font (string|hash): font specification.
+    # - line_height (number|hash): text line height.
+    # - menu_height (number): max dropdown menu height in pixels.
+    # - shaping (symbol): text shaping strategy.
+    # - handle (hash): dropdown handle indicator config.
+    # - ellipsis (string): text ellipsis strategy.
+    # - menu_style (hash): dropdown menu style overrides.
+    # - style (symbol|hash): named style or style map.
+    # - on_open (boolean): emit open event.
+    # - on_close (boolean): emit close event.
+    # - a11y (hash): accessibility overrides.
     class PickList < BuiltIn
       wire_type :pick_list
       children :none

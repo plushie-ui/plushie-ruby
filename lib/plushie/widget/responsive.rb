@@ -2,7 +2,7 @@
 
 module Plushie
   module Widget
-    # Responsive layout -- adapts to available size via resize events.
+    # Responsive layout: adapts to available size via resize events.
     #
     # @example
     #   r = Plushie::Widget::Responsive.new("layout", width: :fill, height: :fill)
@@ -10,9 +10,9 @@ module Plushie
     #   node = r.build
     #
     # Props:
-    # - width (length) -- container width.
-    # - height (length) -- container height.
-    # - a11y (hash) -- accessibility overrides.
+    # - width (length): container width.
+    # - height (length): container height.
+    # - a11y (hash): accessibility overrides.
     class Responsive < BuiltIn
       wire_type :responsive
       children :single

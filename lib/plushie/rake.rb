@@ -6,14 +6,14 @@
 #   require "plushie/rake"
 #
 # Available tasks:
-#   plushie:download  -- download precompiled renderer binary or WASM
-#   plushie:build     -- build renderer from Rust source
-#   plushie:run       -- run a Plushie app
-#   plushie:connect   -- connect to a renderer via stdio
-#   plushie:inspect   -- print UI tree as JSON
-#   plushie:script    -- run .plushie test scripts
-#   plushie:replay    -- replay a .plushie script with real windows
-#   plushie:preflight -- run all CI checks
+#   plushie:download : download precompiled renderer binary or WASM
+#   plushie:build    : build renderer from Rust source
+#   plushie:run      : run a Plushie app
+#   plushie:connect  : connect to a renderer via stdio
+#   plushie:inspect  : print UI tree as JSON
+#   plushie:script   : run .plushie test scripts
+#   plushie:replay   : replay a .plushie script with real windows
+#   plushie:preflight: run all CI checks
 
 require "fileutils"
 require "rake"

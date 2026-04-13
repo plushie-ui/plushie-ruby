@@ -5,7 +5,7 @@ module Plushie
     # Color type for widget properties.
     #
     # All colors are canonical hex strings: "#rrggbb" or "#rrggbbaa".
-    # Short forms (#rgb, #rgba) are NOT accepted by the renderer -- the
+    # Short forms (#rgb, #rgba) are NOT accepted by the renderer: the
     # SDK normalises all input to 6-char or 8-char hex.
     #
     # Supports all 148 CSS Color Module Level 4 named colors plus :transparent.

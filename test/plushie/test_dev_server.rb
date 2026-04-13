@@ -10,7 +10,7 @@ class TestDevServer < Minitest::Test
     dev = Plushie::DevServer.new(event_queue: queue)
 
     # DevServer.start rescues LoadError when `listen` isn't available.
-    # It should not raise or crash -- just log a warning and return.
+    # It should not raise or crash: just log a warning and return.
     dev.start
     dev.stop
 

@@ -2,7 +2,7 @@
 
 Plushie's **renderer** draws windows and handles input. Your Ruby
 code (the **host**) manages state and builds the UI tree. They talk
-over a wire protocol -- locally through a pipe, remotely over SSH,
+over a wire protocol: locally through a pipe, remotely over SSH,
 or through any transport you provide. See the
 [collab demo](https://github.com/plushie-ui/plushie-demos/tree/main/ruby/collab)
 for a working example of native, SSH, and WebSocket transports.
@@ -128,7 +128,7 @@ not the server):
 | Your project uses | Renderer needed | How to get it |
 |---|---|---|
 | Built-in widgets only | Precompiled | `rake plushie:download` or GitHub release |
-| Pure Ruby extensions | Precompiled | Same -- composites don't need a custom build |
+| Pure Ruby extensions | Precompiled | Same (composites don't need a custom build) |
 | Native Rust extensions | Custom build | `rake plushie:build` targeting your laptop's architecture |
 
 ## Resiliency
@@ -140,7 +140,7 @@ Plushie handles these without losing your model state.
 
 If the renderer crashes (segfault, GPU error, out of memory), the
 host detects it and restarts automatically with exponential backoff.
-Your model state is preserved -- the new renderer receives fresh
+Your model state is preserved; the new renderer receives fresh
 settings, a full snapshot of the current UI, and re-synced
 subscriptions and windows.
 
@@ -190,14 +190,14 @@ slider drags can overwhelm the connection. Rate limiting tells the
 renderer to buffer these and deliver at a controlled frequency.
 Discrete events like clicks and key presses are never rate-limited.
 
-Rate limiting is useful locally too -- a dashboard doesn't need
+Rate limiting is useful locally too. A dashboard doesn't need
 1000 mouse move updates per second even on a fast machine.
 
 ### Global default
 
 ```ruby
 def settings
-  {default_event_rate: 60}   # 60 events/sec -- good for most cases
+  {default_event_rate: 60}   # 60 events/sec, good for most cases
 end
 ```
 
@@ -350,7 +350,7 @@ reaching the wire:
 
 ## Next steps
 
-- [Getting started](getting-started.md) -- setup, first app
-- [Commands and subscriptions](commands.md) -- event rate limiting details
-- [Testing](testing.md) -- three-backend test framework
-- [Widgets](widgets.md) -- custom widgets
+- [Getting started](getting-started.md): setup, first app
+- [Commands and subscriptions](commands.md): event rate limiting details
+- [Testing](testing.md): three-backend test framework
+- [Widgets](widgets.md): custom widgets

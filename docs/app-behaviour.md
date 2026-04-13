@@ -41,7 +41,7 @@ end
 ```
 
 The model can be any object, but `Plushie::Model.define` works best. The
-runtime does not inspect or modify the model -- it is fully owned by the
+runtime does not inspect or modify the model; it is fully owned by the
 app.
 
 `opts` is a hash passed through from the runtime start call, so apps can
@@ -49,7 +49,7 @@ accept configuration at startup.
 
 ### update
 
-Receives the current model and an event, returns the next model -- optionally
+Receives the current model and an event, returns the next model, optionally
 with commands.
 
 <!-- test: app_behaviour_update_add_todo, app_behaviour_update_submit_returns_focus -- keep this code block in sync with the test -->
@@ -82,18 +82,18 @@ See [commands.md](commands.md) for the full command API.
 Events are Data types under `Plushie::Event::*`. See [events.md](events.md)
 for the full event taxonomy. Common families:
 
-- `Event::Widget[type: :click, id: id]` -- button press
-- `Event::Widget[type: :input, id: id, value: val]` -- text input change
-- `Event::Widget[type: :select, id: id, value: val]` -- selection change
-- `Event::Widget[type: :toggle, id: id, value: val]` -- checkbox/toggler change
-- `Event::Widget[type: :submit, id: id, value: val]` -- form field submission
-- `Event::Key[type: :press, ...]` -- keyboard event (via subscription)
-- `Event::Key[type: :release, ...]` -- keyboard release (via subscription)
-- `Event::Window[type: :close_requested, window_id: id]` -- window close requested
-- `Event::Window[type: :resized, window_id: id, width: w, height: h]` -- window resized
-- `Event::Widget[type: :canvas_press, id: id, data: {x:, y:, button:}]` -- canvas interaction
-- `Event::Widget[type: :sensor_resize, id: id, data: {width:, height:}]` -- sensor size change
-- `Event::Widget[type: :pane_clicked, id: id, data: {pane:}]` -- pane grid click
+- `Event::Widget[type: :click, id: id]`: button press
+- `Event::Widget[type: :input, id: id, value: val]`: text input change
+- `Event::Widget[type: :select, id: id, value: val]`: selection change
+- `Event::Widget[type: :toggle, id: id, value: val]`: checkbox/toggler change
+- `Event::Widget[type: :submit, id: id, value: val]`: form field submission
+- `Event::Key[type: :press, ...]`: keyboard event (via subscription)
+- `Event::Key[type: :release, ...]`: keyboard release (via subscription)
+- `Event::Window[type: :close_requested, window_id: id]`: window close requested
+- `Event::Window[type: :resized, window_id: id, width: w, height: h]`: window resized
+- `Event::Widget[type: :canvas_press, id: id, data: {x:, y:, button:}]`: canvas interaction
+- `Event::Widget[type: :sensor_resize, id: id, data: {width:, height:}]`: sensor size change
+- `Event::Widget[type: :pane_clicked, id: id, data: {pane:}]`: pane grid click
 
 ### view
 
@@ -228,12 +228,12 @@ end
 
 Supported keys:
 
-- `default_font` -- a font specification hash (same format as font props)
-- `default_text_size` -- a number (pixels)
-- `antialiasing` -- boolean
-- `fonts` -- list of font file paths to load
-- `vsync` -- boolean (default `true`). Controls vertical sync.
-- `scale_factor` -- number (default `1.0`). Global UI scale factor applied
+- `default_font`: a font specification hash (same format as font props)
+- `default_text_size`: a number (pixels)
+- `antialiasing`: boolean
+- `fonts`: list of font file paths to load
+- `vsync`: boolean (default `true`). Controls vertical sync.
+- `scale_factor`: number (default `1.0`). Global UI scale factor applied
   to all windows.
 
 The runtime also merges `widget_config` from `Plushie.configure`
@@ -353,7 +353,7 @@ end
 ## Multi-window
 
 Plushie supports multiple windows driven declaratively from `view`. Windows
-are nodes in the tree -- if a window node is present, the window is open; if
+are nodes in the tree. If a window node is present, the window is open; if
 it disappears, the window closes.
 
 ### Returning multiple windows
@@ -388,9 +388,9 @@ needed). The runtime normalizes both forms internally.
 Each window node has an `id` (like all nodes). The renderer uses this ID
 to track which OS window corresponds to which tree node:
 
-- **New ID appears** -- renderer opens a new OS window.
-- **Existing ID present** -- renderer updates that window's content.
-- **ID disappears** -- renderer closes that OS window.
+- **New ID appears**: renderer opens a new OS window.
+- **Existing ID present**: renderer updates that window's content.
+- **ID disappears**: renderer closes that OS window.
 
 Window IDs must be stable strings. Do not generate random IDs per render
 or the renderer will close and reopen the window on every update.
@@ -573,7 +573,7 @@ before reaching the wire. Understanding this pipeline helps when
 debugging unexpected behaviour or writing custom extensions.
 
 1. **Widget builders** (DSL block methods, `Plushie::Widget::*` modules)
-   return `Node` objects with raw Ruby values -- symbols, arrays, hashes.
+   return `Node` objects with raw Ruby values: symbols, arrays, hashes.
    No encoding happens here.
 
 2. **`Plushie::Tree.normalize`** walks the tree and encodes each prop

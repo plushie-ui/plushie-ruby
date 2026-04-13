@@ -9,7 +9,7 @@ or pixel-accurate screenshots.
 
 ## Unit testing
 
-`update` is pure, `view` returns nodes. Plain Minitest -- no framework
+`update` is pure, `view` returns nodes. Plain Minitest, no framework
 needed.
 
 ### Testing update
@@ -111,7 +111,7 @@ mismatch. Update after intentional changes:
 PLUSHIE_UPDATE_SNAPSHOTS=1 bundle exec rake test
 ```
 
-This is a pure JSON comparison -- it normalizes key ordering for stable
+This is a pure JSON comparison. It normalizes key ordering for stable
 output. It is distinct from the framework's `assert_tree_hash` (which uses
 SHA-256 hashes of the tree via a backend session) and `assert_screenshot`
 (which compares pixel data).
@@ -177,8 +177,8 @@ assert_text "#save_btn", "Save"
 
 Two selector forms:
 
-- **`"#id"`** -- find by widget ID. The `#` prefix is required.
-- **`"text content"`** -- find by text content (checks `content`, `label`,
+- **`"#id"`**: find by widget ID. The `#` prefix is required.
+- **`"text content"`**: find by text content (checks `content`, `label`,
   `value`, `placeholder` props in that order, depth-first).
 
 ```ruby
@@ -235,7 +235,7 @@ automatically in `Plushie::Test::Case`.
 Interacting with the wrong widget type raises with an actionable hint:
 
 ```
-cannot click a checkbox widget -- use toggle instead
+cannot click a checkbox widget, use toggle instead
 ```
 
 ### Assertions
@@ -317,16 +317,16 @@ changing assertions.
 | **Real rendering** | No | Yes (tiny-skia) | Yes (GPU) |
 | **Real windows** | No | No | Yes |
 
-- **`:mock`** -- shared `plushie --mock` process with session
+- **`:mock`**: shared `plushie --mock` process with session
   multiplexing. Tests app logic, tree structure, and wire protocol.
   No rendering, no display, sub-millisecond. The right default for
   90% of tests.
 
-- **`:headless`** -- `plushie --headless` with software rendering via
+- **`:headless`**: `plushie --headless` with software rendering via
   tiny-skia (no display server). Pixel screenshots for visual
   regression. Catches rendering bugs that mock mode can't.
 
-- **`:windowed`** -- `plushie` with real iced windows and GPU rendering.
+- **`:windowed`**: `plushie` with real iced windows and GPU rendering.
   Effects execute, subscriptions fire, screenshots capture exactly
   what a user sees. Needs a display server (Xvfb or headless Weston).
 
@@ -413,16 +413,16 @@ See the [Unit testing](#json-tree-snapshots) section above.
 
 ### When to use each
 
-- **`assert_tree_hash`** -- always appropriate. Catches structural regressions
+- **`assert_tree_hash`**: always appropriate. Catches structural regressions
   (widgets appearing/disappearing, prop changes, nesting changes). Works on
   every backend. Use liberally.
 
-- **`assert_screenshot`** -- after bumping iced, changing the renderer,
+- **`assert_screenshot`**: after bumping iced, changing the renderer,
   modifying themes, or any change that affects visual output. Only meaningful
   on headless and windowed backends. Include alongside `assert_tree_hash` for
   critical views.
 
-- **`assert_tree_snapshot`** -- for unit tests of `view` output. No
+- **`assert_tree_snapshot`**: for unit tests of `view` output. No
   framework overhead. Good for documenting what a view produces for a given
   model state.
 
@@ -430,7 +430,7 @@ See the [Unit testing](#json-tree-snapshots) section above.
 ## Script-based testing
 
 `.plushie` scripts provide a declarative format for describing interaction
-sequences. The format is a superset of iced's `.ice` test scripts -- the
+sequences. The format is a superset of iced's `.ice` test scripts; the
 core instructions (`click`, `type`, `expect`, `snapshot`) use the same
 syntax. Plushie adds `assert_text`, `assert_model`, `screenshot`, `wait`, and
 a header section for app configuration.
@@ -511,7 +511,7 @@ synchronously. When `update` returns a command like
 `Command.async(-> { fetch_data }, :data_loaded)`, the backend
 immediately calls the callable, gets the result, and dispatches
 `Event::Async[tag: :data_loaded, result: [:ok, result]]` through
-`update` -- all within the same call.
+`update`, all within the same call.
 
 This means `await_async` returns immediately (the work is already
 done):
@@ -520,7 +520,7 @@ done):
 def test_fetching_data_loads_results
   click("#fetch")
   # On mock, the async command already executed synchronously.
-  # await_async is a no-op -- the model is already updated.
+  # await_async is a no-op; the model is already updated.
   await_async(:data_loaded)
   assert model.results.length > 0
 end
@@ -568,7 +568,7 @@ pp tree  # print current tree structure
 
 ```ruby
 click("#my-checkbox")
-# RuntimeError: cannot click a checkbox widget -- use toggle instead
+# RuntimeError: cannot click a checkbox widget, use toggle instead
 ```
 
 Use the correct interaction method for the widget type. Reference table:

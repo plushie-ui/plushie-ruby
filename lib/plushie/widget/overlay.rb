@@ -2,7 +2,7 @@
 
 module Plushie
   module Widget
-    # Overlay container -- positions second child as a floating overlay
+    # Overlay container: positions second child as a floating overlay
     # relative to the first child (anchor).
     #
     # @example
@@ -12,14 +12,14 @@ module Plushie
     #   node = o.build
     #
     # Props:
-    # - position (symbol) -- :below, :above, :left, :right.
-    # - gap (number) -- space between anchor and overlay in pixels.
-    # - offset_x (number) -- horizontal offset in pixels.
-    # - offset_y (number) -- vertical offset in pixels.
-    # - flip (boolean) -- auto-flip on viewport overflow.
-    # - align (symbol) -- cross-axis alignment: :start, :center, :end.
-    # - width (length) -- overlay node width.
-    # - a11y (hash) -- accessibility overrides.
+    # - position (symbol): :below, :above, :left, :right.
+    # - gap (number): space between anchor and overlay in pixels.
+    # - offset_x (number): horizontal offset in pixels.
+    # - offset_y (number): vertical offset in pixels.
+    # - flip (boolean): auto-flip on viewport overflow.
+    # - align (symbol): cross-axis alignment: :start, :center, :end.
+    # - width (length): overlay node width.
+    # - a11y (hash): accessibility overrides.
     class Overlay < BuiltIn
       wire_type :overlay
       children 2

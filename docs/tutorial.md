@@ -95,7 +95,7 @@ fix that.
 
 Each todo needs its own row with a checkbox and a delete button.
 We wrap each item in a named container using the todo's ID. This
-creates a **scope** -- children get unique IDs automatically
+creates a **scope**, so children get unique IDs automatically
 without manual prefixing.
 
 <!-- test: tutorial_step3_view_renders_todo_list -- keep this code block in sync with the test -->
@@ -128,7 +128,7 @@ end
 Each todo row has `id: todo[:id]` (e.g., `"todo_1"`). Inside it,
 the checkbox has local id `"toggle"` and the button has `"delete"`.
 On the wire, these become `"list/todo_1/toggle"` and
-`"list/todo_1/delete"` -- unique across all items.
+`"list/todo_1/delete"`, unique across all items.
 
 ## Step 4: handling toggle and delete with scope
 
@@ -173,7 +173,7 @@ in Event::Widget[type: :submit, id: "new_todo"]
   end
 ```
 
-Note the scoped path `"app/new_todo"` -- the text input is inside
+Note the scoped path `"app/new_todo"`. The text input is inside
 the `"app"` column, so its full ID is `"app/new_todo"`. Commands
 always use the full scoped path.
 
@@ -241,7 +241,7 @@ end
 
 Notice `todo_row` is extracted as a view helper. Because
 `Plushie::App` includes the UI DSL as instance methods, private
-helpers can call widget methods directly -- no extra imports needed.
+helpers can call widget methods directly. No extra imports needed.
 
 ## The complete app
 
@@ -362,8 +362,8 @@ Plushie.run(Todo)
 
 ## Next steps
 
-- [Commands](commands.md) -- async work, file dialogs, timers
-- [Scoped IDs](scoped-ids.md) -- full scoping reference
-- [Composition patterns](composition-patterns.md) -- scaling beyond
+- [Commands](commands.md): async work, file dialogs, timers
+- [Scoped IDs](scoped-ids.md): full scoping reference
+- [Composition patterns](composition-patterns.md): scaling beyond
   a single class
-- [Testing](testing.md) -- unit and integration testing
+- [Testing](testing.md): unit and integration testing

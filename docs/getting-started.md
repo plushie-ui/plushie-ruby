@@ -127,13 +127,13 @@ A native window appears with the count and two buttons.
 Plushie follows the Elm architecture. Your app class includes
 `Plushie::App` and implements these callbacks:
 
-- **`init(opts)`** -- returns the initial model (any Ruby object).
-- **`update(model, event)`** -- takes the current model and an event,
+- **`init(opts)`**: returns the initial model (any Ruby object).
+- **`update(model, event)`**: takes the current model and an event,
   returns the new model. Pure function. To run side effects, return
   `[model, command]` instead. See [Commands](commands.md).
-- **`view(model)`** -- takes the model and returns a UI tree. Plushie
+- **`view(model)`**: takes the model and returns a UI tree. Plushie
   diffs trees and sends only patches to the renderer.
-- **`subscribe(model)`** (optional) -- returns a list of active
+- **`subscribe(model)`** (optional): returns a list of active
   subscriptions (timers, keyboard events).
 
 See [App behaviour](app-behaviour.md) for the full callback API.
@@ -209,19 +209,19 @@ Plushie.run(Counter, dev: true)
 ```
 
 Edit any `.rb` file in `lib/`, save, and the GUI updates in place.
-The model is preserved -- only `view` is re-evaluated with the new
+The model is preserved; only `view` is re-evaluated with the new
 code.
 
 ## Custom Widgets
 
 Plushie supports custom widgets at three levels:
 
-- **Render-only composites** -- compose existing widgets into reusable
+- **Render-only composites**: compose existing widgets into reusable
   components. No Rust, no state management, no binary rebuild.
-- **Stateful widgets** -- widgets with internal state and event
+- **Stateful widgets**: widgets with internal state and event
   handling. The runtime manages the state lifecycle and dispatches
   events through your `handle_event` callback.
-- **Native widgets** -- Rust-backed widgets implementing the
+- **Native widgets**: Rust-backed widgets implementing the
   `PlushieWidget` trait from `plushie-widget-sdk`. The build system
   compiles a custom renderer binary that includes your widgets.
 
@@ -231,11 +231,11 @@ See [Writing custom widgets](widgets.md) for the full guide.
 
 ## Next steps
 
-- [Tutorial: building a todo app](tutorial.md) -- step-by-step guide
+- [Tutorial: building a todo app](tutorial.md): step-by-step guide
 - Browse the [examples](examples/) for patterns
-- [App behaviour](app-behaviour.md) -- full callback API
-- [Layout](layout.md) -- sizing and positioning widgets
-- [Commands](commands.md) -- async work, file dialogs, effects
-- [Events](events.md) -- complete event taxonomy
-- [Testing](testing.md) -- writing tests against your UI
-- [Theming](theming.md) -- custom themes and palettes
+- [App behaviour](app-behaviour.md): full callback API
+- [Layout](layout.md): sizing and positioning widgets
+- [Commands](commands.md): async work, file dialogs, effects
+- [Events](events.md): complete event taxonomy
+- [Testing](testing.md): writing tests against your UI
+- [Theming](theming.md): custom themes and palettes

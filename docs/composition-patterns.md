@@ -2,8 +2,8 @@
 
 Plushie provides primitives, not pre-built composites. There is no `TabBar`
 widget, no `Modal` widget, no `Card` widget. Instead, you compose the same
-building blocks -- `row`, `column`, `container`, `stack`, `button`, `text`,
-`rule`, `mouse_area`, `space` -- with `StyleMap` to build any UI pattern you
+building blocks (`row`, `column`, `container`, `stack`, `button`, `text`,
+`rule`, `mouse_area`, `space`) with `StyleMap` to build any UI pattern you
 need.
 
 This guide shows how. Every pattern is copy-pasteable and produces a polished
@@ -253,7 +253,7 @@ end
 The toolbar is a `container` with a light background wrapping a `row`. Button
 groups are visually separated by vertical `rule` widgets. A `space(width:
 :fill)` between the main group and the help button pushes the help button to
-the far right -- a common toolbar layout technique.
+the far right, a common toolbar layout technique.
 
 Toggle-style buttons (bold, italic, underline) pass their current state to
 `tool_style`. When toggled on, they get a depressed look via a darker
@@ -495,7 +495,7 @@ end
 
 Canvas handles custom visuals and hit testing. Built-in widgets handle
 text editing, scrolling, and popup positioning. Complex components compose
-both -- the canvas draws what iced's widget set cannot, and built-in widgets
+both: the canvas draws what iced's widget set cannot, and built-in widgets
 handle what canvas cannot.
 
 ### Canvas-only: custom toggle switch
@@ -550,7 +550,7 @@ end
 #### How it works
 
 The canvas block collects `layer` declarations into a layers map. Each
-layer contains shapes -- here a single `group` with a rounded rect
+layer contains shapes. Here, a single `group` with a rounded rect
 background and a circle knob. The `interactive` directive inside the
 group enables click events, sets the pointer cursor, and provides a11y
 metadata. On click, the host toggles `dark_mode` and the view re-renders
@@ -645,7 +645,7 @@ to 30fps.
 ### Canvas + built-in: custom styled text input
 
 Stack a canvas behind a `text_input` to draw a custom background. The
-canvas is purely decorative -- the text_input handles cursor, selection,
+canvas is purely decorative; the text_input handles cursor, selection,
 IME, and clipboard.
 
 #### Code
@@ -692,7 +692,7 @@ end
 #### How it works
 
 The `stack` layers the canvas background behind the text_input. The
-canvas draws the rounded rect and search icon -- purely visual, no
+canvas draws the rounded rect and search icon, purely visual with no
 `interactive` field needed. The `text_input` sits on top in a padded
 container so it clears the icon area.
 
@@ -813,10 +813,10 @@ wrapping a canvas whose interactive groups are the options.
 
 Each piece does what it is good at:
 
-- **canvas** -- custom visuals, hover feedback, hit testing
-- **text_input** -- text editing, cursor, IME, clipboard
-- **overlay** -- popup positioning that escapes parent bounds
-- **scrollable** -- scroll container for long option lists
+- **canvas**: custom visuals, hover feedback, hit testing
+- **text_input**: text editing, cursor, IME, clipboard
+- **overlay**: popup positioning that escapes parent bounds
+- **scrollable**: scroll container for long option lists
 
 ---
 
@@ -856,14 +856,14 @@ button and separator as a pair.
 **Helper methods for repeated compositions.** Extract common patterns into
 private methods (like `card` or `badge`) that return node trees. Keep them
 in the same class or a dedicated view helpers module. They are plain methods
-returning plain data -- no macros needed.
+returning plain data. No macros needed.
 
 ---
 
 ## State helpers
 
 Plushie provides optional state management modules for common UI patterns.
-None of these are required -- your model can be any object.
+None of these are required; your model can be any object.
 
 All helpers are pure data structures with no threads or side effects.
 
@@ -1014,7 +1014,7 @@ Plushie::Data.query(records,
 
 Use `Plushie::Data` when you have tabular data that needs filtering, sorting,
 grouping, or pagination in the UI. It is a query pipeline over arrays, not a
-database -- keep data sets small enough to fit in memory.
+database. Keep data sets small enough to fit in memory.
 
 ### General philosophy
 

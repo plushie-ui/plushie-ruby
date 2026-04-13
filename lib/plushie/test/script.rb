@@ -106,7 +106,7 @@ module Plushie
               tokens << scanner[0...end_quote]
               scanner = scanner[(end_quote + 1)..]
             else
-              # Unterminated quote -- take the rest
+              # Unterminated quote: take the rest
               tokens << scanner
               break
             end

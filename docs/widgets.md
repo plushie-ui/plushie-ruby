@@ -8,10 +8,10 @@ For complete working examples with Rust extensions, see the
 [plushie-demos](https://github.com/plushie-ui/plushie-demos/tree/main/ruby)
 repository:
 
-- [gauge-demo](https://github.com/plushie-ui/plushie-demos/tree/main/ruby/gauge-demo)
-  -- native gauge widget with extension commands (`set_value`, `animate_to`)
-- [sparkline-dashboard](https://github.com/plushie-ui/plushie-demos/tree/main/ruby/sparkline-dashboard)
-  -- render-only canvas sparkline with timer-driven live data
+- [gauge-demo](https://github.com/plushie-ui/plushie-demos/tree/main/ruby/gauge-demo):
+  native gauge widget with extension commands (`set_value`, `animate_to`)
+- [sparkline-dashboard](https://github.com/plushie-ui/plushie-demos/tree/main/ruby/sparkline-dashboard):
+  render-only canvas sparkline with timer-driven live data
 
 ## Quick start
 
@@ -43,8 +43,8 @@ end
 
 This generates:
 
-- `MySparkline.new(id, opts)` -- builds a widget node with typed props
-- `MySparkline.push(widget, value:)` -- sends a command to the Rust extension
+- `MySparkline.new(id, opts)`: builds a widget node with typed props
+- `MySparkline.push(widget, value:)`: sends a command to the Rust extension
 - `MySparkline.type_names`, `native_crate`, `rust_constructor` methods
 
 ```rust
@@ -73,7 +73,7 @@ configuration).
 
 ## Extension kinds
 
-### `:native_widget` -- Rust-backed extensions
+### `:native_widget`: Rust-backed extensions
 
 Use `widget :name, kind: :native_widget` for widgets rendered by a Rust
 crate. Requires `rust_crate` and `rust_constructor` declarations.
@@ -91,7 +91,7 @@ class MyApp::HexView
 end
 ```
 
-### `:widget` -- Pure Ruby composite widgets
+### `:widget`: Pure Ruby composite widgets
 
 Use `widget :name, kind: :widget` for widgets composed entirely from
 existing Plushie widgets. No Rust code needed. Define a `render` method.
@@ -115,7 +115,7 @@ class MyApp::Card
 end
 ```
 
-### Canvas widgets -- canvas-based widgets with internal state
+### Canvas widgets: canvas-based widgets with internal state
 
 Use `Plushie::CanvasWidget` for widgets that render via canvas shapes,
 manage their own internal state, and transform raw canvas events into
@@ -123,14 +123,14 @@ semantic events. No Rust code needed.
 
 Canvas widgets have three capabilities that composite widgets do not:
 
-- **Internal state** -- initialized by `init`, managed by the runtime.
+- **Internal state**: initialized by `init`, managed by the runtime.
   The widget tree is the source of truth; state is keyed by scoped
   widget ID.
-- **Event transformation** -- `handle_event` intercepts events at the
+- **Event transformation**: `handle_event` intercepts events at the
   widget's scope boundary before they reach `update`. Raw canvas
   events become semantic events that are indistinguishable from built-in
   widget events.
-- **Widget-scoped subscriptions** -- `subscribe` returns subscriptions
+- **Widget-scoped subscriptions**: `subscribe` returns subscriptions
   scoped to this widget instance. Timer events route to `handle_event`,
   not the app's `update`.
 
@@ -170,8 +170,8 @@ end
 | Return value | Effect |
 |---|---|
 | `[:ignored, state]` | Event passes through to the app's `update` unchanged |
-| `[:consumed, state]` | Event is suppressed -- neither the app nor other widgets see it |
-| `[:update_state, state]` | Internal state updated, no output event -- triggers re-render |
+| `[:consumed, state]` | Event is suppressed; neither the app nor other widgets see it |
+| `[:update_state, state]` | Internal state updated, no output event. Triggers re-render |
 | `[:emit, kind, data]` | Emit a Widget event with the given family and data; id/scope filled in by the runtime |
 | `[:emit, kind, data, state]` | Same as above, and update internal state |
 
@@ -214,7 +214,7 @@ independent state, keyed by their scoped widget ID.
 
 `prop` declarations automatically generate the callbacks that the DSL
 uses for option validation and block-form construction. Extension widgets
-work with block-form options out of the box -- no extra boilerplate needed.
+work with block-form options out of the box. No extra boilerplate needed.
 
 When a prop's type maps to a struct type (e.g. `:padding` maps to
 `Plushie::Type::Padding`), the extension widget automatically supports
@@ -253,7 +253,7 @@ The `a11y` and `event_rate` options are available on all extension
 widgets automatically. You do not need to declare them with `prop`.
 
 The `a11y` hash supports all standard fields including `disabled`,
-`position_in_set`, `size_of_set`, and `has_popup` -- useful when
+`position_in_set`, `size_of_set`, and `has_popup`, useful when
 building accessible composite widgets from extension primitives.
 
 ## Extension tiers
@@ -329,21 +329,21 @@ slow connections the unthrottled traffic can stall the UI entirely.
 The renderer can buffer these and deliver only the latest value (or
 accumulated deltas) at a controlled rate. Mark events with a
 `CoalesceHint` to opt in. Events without a hint are always delivered
-immediately -- the right default for clicks, selections, and other
+immediately, the right default for clicks, selections, and other
 discrete actions.
 
 ```rust
-// Latest value wins -- position tracking, state snapshots
+// Latest value wins: position tracking, state snapshots
 let event = OutgoingEvent::extension_event("cursor_pos", node_id, data)
     .with_coalesce(CoalesceHint::Replace);
 
-// Deltas sum -- scroll, velocity, counters
+// Deltas sum: scroll, velocity, counters
 let event = OutgoingEvent::extension_event("pan_scroll", node_id, data)
     .with_coalesce(CoalesceHint::Accumulate(
         vec!["delta_x".into(), "delta_y".into()]
     ));
 
-// No hint -- discrete actions are never coalesced
+// No hint: discrete actions are never coalesced
 let event = OutgoingEvent::extension_event("node_selected", node_id, data);
 ```
 
@@ -420,9 +420,9 @@ The full list of trait methods:
 
 `WidgetEnv` (and the underlying `RenderCtx`) provides access to:
 
-- `env.theme` -- the current iced `Theme`
-- `env.window_id` -- the window ID (`&str`) this render pass is for
-- `env.scale_factor` -- DPI scale factor (`f32`) for the current window
+- `env.theme`: the current iced `Theme`
+- `env.window_id`: the window ID (`&str`) this render pass is for
+- `env.scale_factor`: DPI scale factor (`f32`) for the current window
 
 Extensions doing DPI-aware rendering or per-window adaptation can use
 `window_id` and `scale_factor` directly.
@@ -803,7 +803,7 @@ impl WidgetExtension for GaugeExtension {
                         state.generation.bump();
                     }
                 }
-                // No event -- animate_to only updates the target
+                // No event: animate_to only updates the target
                 vec![]
             }
             _ => vec![],
@@ -941,7 +941,7 @@ resulting JSON sent to Ruby looks like:
 
 Every event sent over the wire carries a `family` string that identifies
 what kind of interaction produced it. Extension authors need to know these
-strings when implementing `handle_event` -- the `family` parameter tells
+strings when implementing `handle_event`. The `family` parameter tells
 you what happened.
 
 ### Widget events (node ID in `id` field)
@@ -1126,7 +1126,7 @@ struct SparklineData {
     generation: GenerationCounter,
 }
 
-/// Stored in canvas Program::State (not Send, not Sync -- iced manages it).
+/// Stored in canvas Program::State (not Send, not Sync; iced manages it).
 struct SparklineState {
     last_generation: u64,
     cache: canvas::Cache,
@@ -1452,7 +1452,7 @@ The `ExtensionDispatcher` wraps all mutable extension calls (`init`,
 
 This means a bug in one extension cannot crash the renderer or affect other
 extensions. But it also means panics are unrecoverable until the next
-snapshot -- design your extension to avoid panics in production.
+snapshot. Design your extension to avoid panics in production.
 
 **Note:** `render()` panics ARE caught via `catch_unwind` in
 `widgets::render()`. When a render panic is caught, the extension is
@@ -1516,10 +1516,10 @@ PLUSHIE_TEST_BACKEND=headless bundle exec rake test
 
 Widget packages come in two tiers:
 
-1. **Pure Ruby** -- compose existing primitives (canvas, column, container,
+1. **Pure Ruby**: compose existing primitives (canvas, column, container,
    etc.) into higher-level widgets. Works with prebuilt renderer binaries.
    No Rust toolchain needed.
-2. **Ruby + Rust** -- custom native rendering via a `WidgetExtension`
+2. **Ruby + Rust**: custom native rendering via a `WidgetExtension`
    trait. Requires a Rust toolchain to compile a custom renderer binary.
 
 The rest of this section covers Tier 1 (pure Ruby packages). For Tier 2,
@@ -1571,7 +1571,7 @@ end
 ```
 
 Plushie is a runtime dependency. Your package does not need the renderer
-binary -- it only uses plushie's Ruby modules (`Plushie::Node`,
+binary; it only uses plushie's Ruby modules (`Plushie::Node`,
 `Plushie::Canvas::Shape`, type modules).
 
 ### Building a widget
@@ -1647,7 +1647,7 @@ end
 Key points:
 
 - The struct follows a simple builder pattern with keyword arguments.
-- `build` emits a `"canvas"` node with `"layers"` -- a type the stock
+- `build` emits a `"canvas"` node with `"layers"`, a type the stock
   renderer already handles.
 - No Rust code. No custom node types. The renderer sees a canvas widget.
 
@@ -1680,7 +1680,7 @@ include Plushie::UI
 
 column do
   text("title", "Revenue breakdown")
-  # returns a Plushie::Node -- composes naturally with the DSL
+  # returns a Plushie::Node; composes naturally with the DSL
   MyWidget.donut_chart("revenue", model.segments, size: 300)
 end
 ```
@@ -1846,9 +1846,9 @@ When extensions are present (via `Plushie.configure` or
 
 6. **Generates Cargo workspace.** Creates `_build/plushie/custom/`
    with:
-   - `Cargo.toml` -- declares dependencies on `plushie-renderer`,
+   - `Cargo.toml`: declares dependencies on `plushie-renderer`,
      `plushie-widget-sdk`, and each extension crate
-   - `src/main.rs` -- registers each extension via
+   - `src/main.rs`: registers each extension via
      `PlushieAppBuilder::new().extension(...)` calls
 
 7. **Runs `cargo build`.** Compiles the workspace. Pass

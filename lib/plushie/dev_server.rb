@@ -5,7 +5,7 @@ module Plushie
   #
   # Watches lib/ (configurable) for .rb file changes, debounces rapid
   # saves, and triggers a re-render in the runtime. The model state is
-  # preserved across reloads -- only the view is re-evaluated.
+  # preserved across reloads: only the view is re-evaluated.
   #
   # Requires the `listen` gem (optional dependency, not in gemspec).
   # Install it in your Gemfile for development:

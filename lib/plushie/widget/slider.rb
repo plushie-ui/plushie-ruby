@@ -2,27 +2,27 @@
 
 module Plushie
   module Widget
-    # Slider -- horizontal range input.
+    # Slider: horizontal range input.
     #
     # @example
     #   slider = Plushie::Widget::Slider.new("volume", [0, 100], 75, step: 5)
     #   node = slider.build
     #
     # Props:
-    # - range (array) -- two-element [min, max] range.
-    # - value (numeric) -- current slider value.
-    # - step (numeric) -- value increment per step.
-    # - shift_step (numeric) -- value increment when shift is held.
-    # - default (numeric) -- default value on double-click.
-    # - width (length) -- widget width.
-    # - height (number) -- rail height in pixels.
-    # - circular_handle (boolean) -- use a circular handle.
-    # - rail_color (string) -- rail background colour.
-    # - rail_width (number) -- rail thickness in pixels.
-    # - style (symbol|hash) -- named style or style map.
-    # - label (string) -- accessible label.
-    # - event_rate (number) -- throttle rate for change events (ms).
-    # - a11y (hash) -- accessibility overrides.
+    # - range (array): two-element [min, max] range.
+    # - value (numeric): current slider value.
+    # - step (numeric): value increment per step.
+    # - shift_step (numeric): value increment when shift is held.
+    # - default (numeric): default value on double-click.
+    # - width (length): widget width.
+    # - height (number): rail height in pixels.
+    # - circular_handle (boolean): use a circular handle.
+    # - rail_color (string): rail background colour.
+    # - rail_width (number): rail thickness in pixels.
+    # - style (symbol|hash): named style or style map.
+    # - label (string): accessible label.
+    # - event_rate (number): throttle rate for change events (ms).
+    # - a11y (hash): accessibility overrides.
     class Slider < BuiltIn
       wire_type :slider
       children :none

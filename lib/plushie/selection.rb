@@ -6,9 +6,9 @@ module Plushie
   #
   # == Modes
   #
-  # - +:single+ -- at most one item selected at a time.
-  # - +:multi+ -- multiple items selectable; +extend: true+ adds to the set.
-  # - +:range+ -- like multi, but +range_select+ selects a contiguous
+  # - +:single+: at most one item selected at a time.
+  # - +:multi+: multiple items selectable; +extend: true+ adds to the set.
+  # - +:range+: like multi, but +range_select+ selects a contiguous
   #   slice of the +order+ list between the anchor and the target.
   #
   # @example

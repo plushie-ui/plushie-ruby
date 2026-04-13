@@ -10,7 +10,7 @@ module Plushie
   #
   # Owns the Elm-style update cycle: event -> model -> view -> diff -> patch.
   # Processes events sequentially from a thread-safe queue. All state is
-  # owned by the runtime thread -- no shared mutable state.
+  # owned by the runtime thread: no shared mutable state.
   #
   class Runtime
     include Commands
@@ -134,7 +134,7 @@ module Plushie
     # Simulate a user interaction with a widget.
     #
     # Sends an interact message through the bridge and blocks until the
-    # renderer responds. Used by scripting and automation -- the test
+    # renderer responds. Used by scripting and automation: the test
     # session has its own interact that runs synchronously within the
     # test process.
     #
@@ -281,7 +281,7 @@ module Plushie
       # Intercept interact_step / interact_response for pending interact.
       # Check the response ID matches the pending interact to reject stale
       # responses from timed-out interactions. Events from stale responses
-      # are still dispatched through update -- only the caller completion
+      # are still dispatched through update: only the caller completion
       # is skipped.
       if event.is_a?(Hash)
         event_type = (event[:type] || event["type"])&.to_sym
@@ -403,7 +403,7 @@ module Plushie
     end
 
     # Re-send the last known snapshot. Used as a fallback when view
-    # fails during interact_step -- the renderer expects a snapshot
+    # fails during interact_step: the renderer expects a snapshot
     # response and will hang without one.
     def resend_last_snapshot
       tree = @previous_tree
@@ -504,7 +504,7 @@ module Plushie
     end
 
     def handle_renderer_restarted
-      @logger.info("plushie: renderer restarted -- re-sending settings and snapshot")
+      @logger.info("plushie: renderer restarted, re-sending settings and snapshot")
 
       # Clear stale interaction state from the old renderer.
       fail_pending_interact("renderer_restarted")
@@ -544,7 +544,7 @@ module Plushie
       @consecutive_view_errors += 1
       handle_callback_error("view", error)
       if @consecutive_view_errors == 5
-        @logger.warn("plushie: view has failed 5 consecutive times -- UI is stale")
+        @logger.warn("plushie: view has failed 5 consecutive times; UI is stale")
       end
     end
 
@@ -654,7 +654,7 @@ module Plushie
       bridge.send_encoded(Protocol::Encode.encode_settings(build_settings, @format))
     end
 
-    # Flush pending effect requests -- the renderer that would have
+    # Flush pending effect requests: the renderer that would have
     # responded is gone. Deliver timeout errors so callers don't hang.
     def flush_pending_effects_on_exit
       @pending_effects.each_value(&:kill)
@@ -671,7 +671,7 @@ module Plushie
 
     # Clear renderer-side subscriptions so sync_subscriptions sees them
     # as new and re-sends subscribe messages to the fresh renderer.
-    # Timer subscriptions are kept alive -- they run locally.
+    # Timer subscriptions are kept alive: they run locally.
     def reset_renderer_subscriptions
       renderer_keys = @subscriptions.each_with_object([]) do |(key, entry), keys|
         keys << key if entry[:sub_type] == :renderer

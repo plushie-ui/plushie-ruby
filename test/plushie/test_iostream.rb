@@ -259,7 +259,7 @@ class TestIoStream < Minitest::Test
     length = header.unpack1("N")
     @host_out_r.read(length)
 
-    # Send a non-hello message first -- it should be dispatched,
+    # Send a non-hello message first: it should be dispatched,
     # but hello should still be nil until we send hello
     # Actually, the connection blocks until hello arrives via
     # handshake_queue, so this event will be dispatched normally

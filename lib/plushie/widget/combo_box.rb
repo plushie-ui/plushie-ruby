@@ -2,7 +2,7 @@
 
 module Plushie
   module Widget
-    # Combo box -- searchable dropdown with free-form text input.
+    # Combo box: searchable dropdown with free-form text input.
     #
     # @example
     #   cb = Plushie::Widget::ComboBox.new("fruit", ["Apple", "Banana"],
@@ -10,24 +10,24 @@ module Plushie
     #   node = cb.build
     #
     # Props:
-    # - options (array of strings) -- available choices.
-    # - selected (string|nil) -- currently selected value.
-    # - placeholder (string) -- placeholder text.
-    # - width (length) -- widget width.
-    # - padding (number|hash) -- internal padding.
-    # - size (number) -- text size in pixels.
-    # - font (string|hash) -- font specification.
-    # - line_height (number|hash) -- text line height.
-    # - menu_height (number) -- max dropdown menu height in pixels.
-    # - icon (hash) -- icon inside the text input.
-    # - on_option_hovered (boolean) -- emit option hover events.
-    # - on_open (boolean) -- emit open event.
-    # - on_close (boolean) -- emit close event.
-    # - shaping (symbol) -- text shaping strategy.
-    # - ellipsis (string) -- text ellipsis strategy.
-    # - menu_style (hash) -- dropdown menu style overrides.
-    # - style (symbol|hash) -- named style or style map.
-    # - a11y (hash) -- accessibility overrides.
+    # - options (array of strings): available choices.
+    # - selected (string|nil): currently selected value.
+    # - placeholder (string): placeholder text.
+    # - width (length): widget width.
+    # - padding (number|hash): internal padding.
+    # - size (number): text size in pixels.
+    # - font (string|hash): font specification.
+    # - line_height (number|hash): text line height.
+    # - menu_height (number): max dropdown menu height in pixels.
+    # - icon (hash): icon inside the text input.
+    # - on_option_hovered (boolean): emit option hover events.
+    # - on_open (boolean): emit open event.
+    # - on_close (boolean): emit close event.
+    # - shaping (symbol): text shaping strategy.
+    # - ellipsis (string): text ellipsis strategy.
+    # - menu_style (hash): dropdown menu style overrides.
+    # - style (symbol|hash): named style or style map.
+    # - a11y (hash): accessibility overrides.
     class ComboBox < BuiltIn
       wire_type :combo_box
       children :none

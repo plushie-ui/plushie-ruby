@@ -591,7 +591,7 @@ end
 ```
 
 Unknown events are silently ignored. This is important for forward
-compatibility -- new widget types or renderer versions may emit events
+compatibility. New widget types or renderer versions may emit events
 your app does not yet handle.
 
 ## Pattern matching tips

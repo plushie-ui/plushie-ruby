@@ -24,7 +24,7 @@ Every widget module exposes `new(id, opts)` (or `new(id, content, opts)`
 for widgets with positional args like `Button.new("id", "label", opts)`),
 `with_options(opts)`, and `build`. Type modules expose `from_opts(opts)`.
 Canvas shapes expose builder methods like `Shape.rect(x, y, w, h, opts)`.
-These are plain methods -- no metaprogramming. They can be called anywhere.
+These are plain methods, no metaprogramming. They can be called anywhere.
 
 ### Block-based DSL (DSL layer)
 
@@ -60,7 +60,7 @@ module Plushie::UI
       Thread.current[:plushie_dsl_stack].push([])
 
       begin
-        # Evaluate the block -- child DSL calls push onto the stack
+        # Evaluate the block; child DSL calls push onto the stack
         instance_exec(&block)
         children = Thread.current[:plushie_dsl_stack].pop
       ensure
@@ -109,7 +109,7 @@ blocks are evaluated via `instance_exec` in the context of the app instance
 def view(model)
   window("main") do
     column do
-      # This calls a private method on the app -- works because
+      # This calls a private method on the app; works because
       # the block runs in the app's context
       filtered_todos(model).each do |todo|
         text(todo.text)
@@ -295,14 +295,14 @@ end
 
 Unlike Elixir (where blocks evaluate to their last expression), Ruby
 blocks naturally collect all values when each DSL call pushes onto the
-stack. There is no multi-expression problem in Ruby -- every `text(...)`,
+stack. There is no multi-expression problem in Ruby; every `text(...)`,
 `button(...)`, etc. call inside a block independently pushes its node.
 
 ```ruby
 column do
   if show_header?
     text("Title")      # pushes to stack
-    text("Subtitle")   # also pushes to stack -- both appear
+    text("Subtitle")   # also pushes to stack; both appear
   end
 end
 ```
@@ -337,7 +337,7 @@ specify the same option, the block-form value wins:
 
 ```ruby
 column(spacing: 8) do
-  spacing 16         # overrides the keyword arg -- spacing is 16
+  spacing 16         # overrides the keyword arg; spacing is 16
   text("hello")
 end
 ```

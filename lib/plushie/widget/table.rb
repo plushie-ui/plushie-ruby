@@ -2,7 +2,7 @@
 
 module Plushie
   module Widget
-    # Table -- data table with column definitions and optional sorting.
+    # Table: data table with column definitions and optional sorting.
     #
     # @example
     #   table = Plushie::Widget::Table.new("users",
@@ -11,21 +11,21 @@ module Plushie
     #   node = table.build
     #
     # Props:
-    # - columns (array of hashes) -- column definitions (key, label, width).
-    # - rows (array) -- row data.
-    # - header (boolean) -- show header row.
-    # - separator (boolean) -- show row separators.
-    # - width (length) -- table width.
-    # - padding (number|hash) -- cell padding.
-    # - sort_by (string) -- column key to sort by.
-    # - sort_order (symbol) -- :asc or :desc.
-    # - header_text_size (number) -- header font size.
-    # - row_text_size (number) -- row font size.
-    # - cell_spacing (number) -- horizontal spacing between cells.
-    # - row_spacing (number) -- vertical spacing between rows.
-    # - separator_thickness (number) -- separator line thickness.
-    # - separator_color (string) -- separator colour.
-    # - a11y (hash) -- accessibility overrides.
+    # - columns (array of hashes): column definitions (key, label, width).
+    # - rows (array): row data.
+    # - header (boolean): show header row.
+    # - separator (boolean): show row separators.
+    # - width (length): table width.
+    # - padding (number|hash): cell padding.
+    # - sort_by (string): column key to sort by.
+    # - sort_order (symbol): :asc or :desc.
+    # - header_text_size (number): header font size.
+    # - row_text_size (number): row font size.
+    # - cell_spacing (number): horizontal spacing between cells.
+    # - row_spacing (number): vertical spacing between rows.
+    # - separator_thickness (number): separator line thickness.
+    # - separator_color (string): separator colour.
+    # - a11y (hash): accessibility overrides.
     class Table < BuiltIn
       wire_type :table
       children :many

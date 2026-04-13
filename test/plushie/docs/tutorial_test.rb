@@ -88,7 +88,7 @@ class DocsTutorialTest < Minitest::Test
       end
     end
 
-    # Full view (step 6 -- filters + extracted helpers)
+    # Full view (step 6: filters + extracted helpers)
     def view(model)
       window("main", title: "Todos") do
         column("app", padding: 20, spacing: 12, width: :fill) do

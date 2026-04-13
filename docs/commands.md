@@ -15,11 +15,11 @@ schedule a delayed event. These are commands.
 `update` can return either a bare model or a `[model, commands]` array:
 
 ```ruby
-# No commands -- just return the model:
+# No commands; just return the model:
 in Event::Widget[type: :click, id: "simple"]
   model
 
-# With commands -- return an array:
+# With commands, return an array:
 in Event::Widget[type: :click, id: "save"]
   [model, Command.async(-> { save_to_disk(model) }, :save_result)]
 ```
@@ -87,7 +87,7 @@ in Event::Async[tag: :file_import, result: [:ok, {complete: rows}]]
 ```
 
 This is convenience sugar. You can achieve the same thing with a bare
-`Thread` and a queue -- see [DIY patterns](#diy-patterns) below.
+`Thread` and a queue; see [DIY patterns](#diy-patterns) below.
 
 #### Cancelling async work
 
@@ -236,7 +236,7 @@ The `rgba_data` must be a binary string of `width * height * 4` bytes.
 
 Window queries are commands whose results arrive as events in `update`.
 Despite accepting a `tag` parameter, window property queries use the
-**effect response** transport -- results arrive as
+**effect response** transport. Results arrive as
 `Event::Effect[request_id: id, result: result]` where `id` is the
 **window_id string** (the `tag` is currently unused for these queries).
 System queries use a separate path where the tag is used.
@@ -471,12 +471,12 @@ is actually more powerful than iced's chaining because you get full model
 updates and UI refreshes at every link in the chain, not just at the end.
 
 ```ruby
-# Step 1: user clicks "deploy" -- validate first
+# Step 1: user clicks "deploy", validate first
 in Event::Widget[type: :click, id: "deploy"]
   cmd = Command.async(-> { validate_config(model.config) }, :validated)
   [model.with(status: :validating), cmd]
 
-# Step 2: validation result arrives -- if OK, start the build
+# Step 2: validation result arrives; if OK, start the build
 in Event::Async[tag: :validated, result: [:ok, :ok]]
   cmd = Command.async(-> { build_release(model.config) }, :built)
   [model.with(status: :building), cmd]
@@ -484,7 +484,7 @@ in Event::Async[tag: :validated, result: [:ok, :ok]]
 in Event::Async[tag: :validated, result: [:ok, [:error, reason]]]
   model.with(status: {failed: reason})
 
-# Step 3: build result arrives -- if OK, push it
+# Step 3: build result arrives; if OK, push it
 in Event::Async[tag: :built, result: [:ok, artifact]]
   cmd = Command.async(-> { push_artifact(artifact) }, :deployed)
   [model.with(status: :deploying), cmd]
@@ -591,7 +591,7 @@ Subscriptions are ongoing event sources. Unlike commands (one-shot),
 subscriptions produce events continuously as long as they are active.
 
 **Important: tag semantics differ by subscription type.** For timer
-subscriptions (`every`), the tag becomes the event wrapper -- `update`
+subscriptions (`every`), the tag becomes the event wrapper. `update`
 receives `Event::Timer[tag: tag, timestamp: ts]`. For all renderer
 subscriptions (keyboard, mouse, window, etc.), the tag is management-only
 and does NOT appear in the event. Renderer events arrive as fixed structs
@@ -618,7 +618,7 @@ end
 `subscribe` is called after every `update`. The runtime diffs the
 returned subscription list against the previous one and starts/stops
 subscriptions as needed. Subscriptions are identified by their
-specification -- returning the same `Subscription.every(1000, :tick)` on
+specification. Returning the same `Subscription.every(1000, :tick)` on
 consecutive calls keeps the existing subscription alive; removing it stops
 it.
 
@@ -828,7 +828,7 @@ in Event::Async[tag: :data_received, result: [:ok, data]]
 
 When `polling` becomes true, the runtime starts the timer. When it becomes
 false, the runtime stops it. No explicit cleanup needed. The same applies to
-the keyboard subscription -- it activates and deactivates based on model
+the keyboard subscription; it activates and deactivates based on model
 state.
 
 ### How subscriptions work internally
@@ -848,13 +848,13 @@ The `settings` callback is documented in
 [app-behaviour.md](app-behaviour.md). Notable settings relevant to
 commands and rendering:
 
-- `vsync` -- boolean (default `true`). Controls vertical sync. Set to
+- `vsync`: boolean (default `true`). Controls vertical sync. Set to
   `false` for uncapped frame rates (useful for benchmarks or animation-heavy
   apps at the cost of higher GPU usage).
-- `scale_factor` -- number (default `1.0`). Global UI scale factor applied
+- `scale_factor`: number (default `1.0`). Global UI scale factor applied
   to all windows. Values greater than 1.0 make the UI larger; less than 1.0
   makes it smaller.
-- `default_event_rate` -- integer. Maximum events per second for coalescable
+- `default_event_rate`: integer. Maximum events per second for coalescable
   event types. Omit for unlimited (default). See [Event rate limiting](#event-rate-limiting).
 
 ```ruby
@@ -880,6 +880,6 @@ native platform operations handled by the renderer (see [effects.md](effects.md)
 | Transport | internal | wire protocol request/response |
 | Return from | `update` | `update` (via `Plushie::Effects`) |
 
-Widget operations and window commands are a hybrid -- they are initiated
+Widget operations and window commands are a hybrid: they are initiated
 from the Ruby side but executed by the renderer. They use the command
 mechanism for the API but effect/effect_response for the transport.

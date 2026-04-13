@@ -111,7 +111,7 @@ class TestRuntimeSubscriptions < Minitest::Test
     @runner.sync_subscriptions
     @bridge.messages.clear
 
-    # Sync again with same subs -- should not send anything
+    # Sync again with same subs: should not send anything
     @runner.sync_subscriptions
     assert_empty @bridge.messages
   end

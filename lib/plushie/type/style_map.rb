@@ -15,15 +15,15 @@ module Plushie
     #
     # == Spec fields
     #
-    # - +base+ [Symbol, nil] -- named preset to inherit from.
-    # - +background+ [String, nil] -- CSS-style colour string.
-    # - +text_color+ [String, nil] -- text foreground colour.
-    # - +border+ [Border, Hash, nil] -- border specification.
-    # - +shadow+ [Shadow, Hash, nil] -- shadow specification.
-    # - +hovered+ [Hash, nil] -- overrides applied on hover.
-    # - +pressed+ [Hash, nil] -- overrides applied while pressed.
-    # - +disabled+ [Hash, nil] -- overrides applied when disabled.
-    # - +focused+ [Hash, nil] -- overrides applied when focused.
+    # - +base+ [Symbol, nil]: named preset to inherit from.
+    # - +background+ [String, nil]: CSS-style colour string.
+    # - +text_color+ [String, nil]: text foreground colour.
+    # - +border+ [Border, Hash, nil]: border specification.
+    # - +shadow+ [Shadow, Hash, nil]: shadow specification.
+    # - +hovered+ [Hash, nil]: overrides applied on hover.
+    # - +pressed+ [Hash, nil]: overrides applied while pressed.
+    # - +disabled+ [Hash, nil]: overrides applied when disabled.
+    # - +focused+ [Hash, nil]: overrides applied when focused.
     #
     # @example Use a preset name directly
     #   button("save", "Save", style: :primary)

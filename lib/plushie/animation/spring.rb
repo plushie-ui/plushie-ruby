@@ -30,11 +30,11 @@ module Plushie
     #
     # == Presets
     #
-    # - +:gentle+ -- slow, smooth, no overshoot
-    # - +:snappy+ -- quick, minimal overshoot
-    # - +:bouncy+ -- quick with visible overshoot
-    # - +:stiff+ -- very quick, crisp stop
-    # - +:molasses+ -- slow, heavy, deliberate
+    # - +:gentle+: slow, smooth, no overshoot
+    # - +:snappy+: quick, minimal overshoot
+    # - +:bouncy+: quick with visible overshoot
+    # - +:stiff+: very quick, crisp stop
+    # - +:molasses+: slow, heavy, deliberate
     #
     Spring = Data.define(
       :to, :from, :stiffness, :damping, :mass,

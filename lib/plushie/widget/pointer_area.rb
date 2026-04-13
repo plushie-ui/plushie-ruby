@@ -2,7 +2,7 @@
 
 module Plushie
   module Widget
-    # Pointer area -- captures pointer events (mouse, touch, pen) on child content.
+    # Pointer area: captures pointer events (mouse, touch, pen) on child content.
     #
     # The widget responds to all pointer input types, not just mouse.
     # The iced renderer uses "mouse_area" as the internal widget name;
@@ -15,20 +15,20 @@ module Plushie
     #   node = pa.build
     #
     # Props:
-    # - cursor (symbol) -- pointer cursor on hover.
-    # - on_press (string) -- event tag for left press.
-    # - on_release (string) -- event tag for left release.
-    # - on_right_press (boolean) -- enable right press events.
-    # - on_right_release (boolean) -- enable right release events.
-    # - on_middle_press (boolean) -- enable middle press events.
-    # - on_middle_release (boolean) -- enable middle release events.
-    # - on_double_click (boolean) -- enable double-click events.
-    # - on_enter (boolean) -- enable cursor enter events.
-    # - on_exit (boolean) -- enable cursor exit events.
-    # - on_move (boolean) -- enable cursor move events.
-    # - on_scroll (boolean) -- enable scroll events.
-    # - event_rate (integer) -- max events per second.
-    # - a11y (hash) -- accessibility overrides.
+    # - cursor (symbol): pointer cursor on hover.
+    # - on_press (string): event tag for left press.
+    # - on_release (string): event tag for left release.
+    # - on_right_press (boolean): enable right press events.
+    # - on_right_release (boolean): enable right release events.
+    # - on_middle_press (boolean): enable middle press events.
+    # - on_middle_release (boolean): enable middle release events.
+    # - on_double_click (boolean): enable double-click events.
+    # - on_enter (boolean): enable cursor enter events.
+    # - on_exit (boolean): enable cursor exit events.
+    # - on_move (boolean): enable cursor move events.
+    # - on_scroll (boolean): enable scroll events.
+    # - event_rate (integer): max events per second.
+    # - a11y (hash): accessibility overrides.
     class PointerArea < BuiltIn
       wire_type :mouse_area
       children :single

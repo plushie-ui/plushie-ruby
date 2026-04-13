@@ -275,7 +275,7 @@ module Plushie
         msg[:selector] = build_selector(selector) if selector
         @pool.send_message(msg, @session_id)
 
-        # Read responses -- handle interact_step (headless) or interact_response (mock)
+        # Read responses: handle interact_step (headless) or interact_response (mock)
         loop do
           response = @pool.read_message(@session_id, timeout: 30)
           response_type = (response[:type] || response["type"])&.to_sym
@@ -291,7 +291,7 @@ module Plushie
             break
           else
             # Subscription events or other messages that arrive during interact
-            # are silently consumed -- test sessions don't fire subscriptions
+            # are silently consumed: test sessions don't fire subscriptions
             # in mock mode, and headless mode delivers them via interact_step.
           end
         end

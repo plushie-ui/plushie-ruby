@@ -2,7 +2,7 @@
 
 module Plushie
   module Widget
-    # Grid layout -- arranges children in a fixed-column grid.
+    # Grid layout: arranges children in a fixed-column grid.
     #
     # @example
     #   g = Plushie::Widget::Grid.new("items", columns: 3, spacing: 8)
@@ -11,14 +11,14 @@ module Plushie
     #   node = g.build
     #
     # Props:
-    # - columns (integer) -- number of columns.
-    # - spacing (number) -- spacing between cells in pixels.
-    # - width (number) -- grid width in pixels.
-    # - height (number) -- grid height in pixels.
-    # - column_width (length) -- width of each column.
-    # - row_height (length) -- height of each row.
-    # - fluid (number) -- fluid mode max cell width in pixels.
-    # - a11y (hash) -- accessibility overrides.
+    # - columns (integer): number of columns.
+    # - spacing (number): spacing between cells in pixels.
+    # - width (number): grid width in pixels.
+    # - height (number): grid height in pixels.
+    # - column_width (length): width of each column.
+    # - row_height (length): height of each row.
+    # - fluid (number): fluid mode max cell width in pixels.
+    # - a11y (hash): accessibility overrides.
     class Grid < BuiltIn
       wire_type :grid
       children :many

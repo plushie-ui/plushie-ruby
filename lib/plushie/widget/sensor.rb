@@ -2,7 +2,7 @@
 
 module Plushie
   module Widget
-    # Sensor -- detects visibility and size changes on child content.
+    # Sensor: detects visibility and size changes on child content.
     #
     # @example
     #   s = Plushie::Widget::Sensor.new("detect", delay: 100, anticipate: 50)
@@ -10,11 +10,11 @@ module Plushie
     #   node = s.build
     #
     # Props:
-    # - delay (integer) -- delay in ms before emitting events.
-    # - anticipate (number) -- anticipation distance in pixels.
-    # - on_resize (string) -- event tag for resize events.
-    # - event_rate (integer) -- max events per second.
-    # - a11y (hash) -- accessibility overrides.
+    # - delay (integer): delay in ms before emitting events.
+    # - anticipate (number): anticipation distance in pixels.
+    # - on_resize (string): event tag for resize events.
+    # - event_rate (integer): max events per second.
+    # - a11y (hash): accessibility overrides.
     class Sensor < BuiltIn
       wire_type :sensor
       children :single

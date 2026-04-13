@@ -138,7 +138,7 @@ module Plushie
 
       # Declares an event that this widget can emit.
       #
-      # Event declarations are informational -- they document the widget's
+      # Event declarations are informational: they document the widget's
       # public event contract. Widgets with event declarations or
       # +handle_event+ participate in the event dispatch chain.
       #

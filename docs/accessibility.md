@@ -8,7 +8,7 @@ AT-SPI/Orca on Linux, and UI Automation/NVDA/JAWS on Windows.
 
 Screen reader users, keyboard-only users, and other AT users interact with
 the same widgets and receive the same events as mouse users. No special
-event handling is needed in your `update` -- AT actions produce the same
+event handling is needed in your `update`. AT actions produce the same
 `Event::Widget[type: :click, id: id]`, `Event::Widget[type: :input, ...]`
 events as direct interaction.
 
@@ -16,14 +16,14 @@ events as direct interaction.
 
 Iced's fork provides native accessibility support. Three pieces work together:
 
-1. **iced widgets report `Accessible` metadata** -- each widget declares
+1. **iced widgets report `Accessible` metadata**: each widget declares
    its role, label, and state to the accessibility system automatically.
 
-2. **TreeBuilder assembles the accesskit tree** -- iced walks the widget
+2. **TreeBuilder assembles the accesskit tree**: iced walks the widget
    tree during `operate()`, collecting metadata and building an accesskit
    `TreeUpdate`.
 
-3. **AT actions become native iced events** -- when an AT triggers an action,
+3. **AT actions become native iced events**: when an AT triggers an action,
    iced translates it to a native event. The renderer maps it to a standard
    plushie event and sends it to Ruby over the wire protocol.
 
@@ -77,7 +77,7 @@ Widget state is extracted from existing props automatically:
 
 ## The a11y prop
 
-Every widget accepts an `a11y` prop -- a hash of fields that override or
+Every widget accepts an `a11y` prop, a hash of fields that override or
 augment the inferred semantics.
 
 ### Fields
@@ -124,7 +124,7 @@ container("search_results", a11y: {role: :region, label: "Search results"}) do
   # ...
 end
 
-# Live regions -- AT announces changes automatically
+# Live regions: AT announces changes automatically
 text("save_status", "#{model.saved_count} items saved", a11y: {live: :polite})
 
 # Decorative elements hidden from AT
@@ -168,13 +168,13 @@ text_input("email", model.email, a11y: {required: true, label: "Email address"})
 ### Every interactive widget needs a name
 
 ```ruby
-# Good -- label is auto-inferred
+# Good: label is auto-inferred
 button("save", "Save document")
 
-# Good -- explicit a11y label for terse visual text
+# Good: explicit a11y label for terse visual text
 button("close", "X", a11y: {label: "Close dialog"})
 
-# Bad -- screen reader just announces "button"
+# Bad: screen reader just announces "button"
 button("do_thing", "")
 ```
 
@@ -213,8 +213,8 @@ end
 
 ### Live regions for dynamic content
 
-- `:polite` -- announced after the current speech finishes
-- `:assertive` -- interrupts current speech
+- `:polite`: announced after the current speech finishes
+- `:assertive`: interrupts current speech
 
 <!-- test: a11y_live_region_assertive -- keep this code block in sync with the test -->
 ```ruby
@@ -281,7 +281,7 @@ space(a11y: {hidden: true})
 
 ### Canvas widgets
 
-Canvas draws arbitrary shapes -- always provide alternative text:
+Canvas draws arbitrary shapes. Always provide alternative text:
 
 <!-- test: a11y_canvas_with_alt_text -- keep this code block in sync with the test -->
 ```ruby

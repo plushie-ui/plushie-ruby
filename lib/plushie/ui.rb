@@ -10,7 +10,7 @@ module Plushie
   #
   # Widgets without explicit IDs get auto-generated IDs derived from the
   # call site (e.g. +"auto:view:42"+). These are unstable across code
-  # changes -- any refactor that moves the call to a different line will
+  # changes: any refactor that moves the call to a different line will
   # change the ID. Always use explicit IDs for stateful widgets
   # (+text_input+, +text_editor+, +scrollable+, +combo_box+, +pane_grid+).
   #
@@ -147,7 +147,7 @@ module Plushie
 
     # Scrollable container. Wraps children in a scrollable viewport.
     #
-    # Always use an explicit ID -- scroll position is tied to the ID.
+    # Always use an explicit ID: scroll position is tied to the ID.
     #
     # @param id [String] widget ID
     # @param props [Hash] scroll options (:direction, :width, :height, etc.)
@@ -215,7 +215,7 @@ module Plushie
 
     # Single-line text input field.
     #
-    # Always use an explicit ID -- input state is tied to the ID.
+    # Always use an explicit ID: input state is tied to the ID.
     #
     # @param id [String] widget ID
     # @param value [String] current text value
@@ -229,7 +229,7 @@ module Plushie
 
     # Multi-line text editor.
     #
-    # Always use an explicit ID -- editor state is tied to the ID.
+    # Always use an explicit ID: editor state is tied to the ID.
     #
     # @param id [String] widget ID
     # @param content [String] current editor content
@@ -308,7 +308,7 @@ module Plushie
 
     # Searchable dropdown widget.
     #
-    # Always use an explicit ID -- combo box state is tied to the ID.
+    # Always use an explicit ID: combo box state is tied to the ID.
     #
     # @param id [String] widget ID
     # @param options [Array<String>] list of selectable options
@@ -544,7 +544,7 @@ module Plushie
 
     # Resizable pane grid container.
     #
-    # Always use an explicit ID -- pane state is tied to the ID.
+    # Always use an explicit ID: pane state is tied to the ID.
     #
     # @param id [String] widget ID
     # @param props [Hash] pane grid options (:spacing, :on_resize, :on_drag, etc.)

@@ -260,7 +260,7 @@ module Plushie
 
       entry = RegistryEntry.new(widget_module: widget_module, state: state, props: widget_props)
 
-      # View with local ID -- scoping applied by caller
+      # View with local ID: scoping applied by caller
       rendered = widget_module.view(local_id, widget_props, state)
 
       # Auto-apply standard options (a11y, event_rate) from caller props

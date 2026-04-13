@@ -43,7 +43,7 @@ end
 ```
 
 Every effect function returns a `Command`. The command must be returned
-from `update` as part of a `[model, command]` array -- discarding it
+from `update` as part of a `[model, command]` array; discarding it
 silently does nothing. The effect ID is auto-generated (e.g. `"ef_1"`)
 and embedded in the command payload.
 
@@ -51,7 +51,7 @@ Result keys come from the renderer as string keys, not symbols (e.g.
 `{"path" => path}`, not `{path: path}`).
 
 The result arrives as an `Event::Effect` in a subsequent `update` call.
-Effects are asynchronous -- the model is not blocked waiting for the result.
+Effects are asynchronous; the model is not blocked waiting for the result.
 
 ### Transport
 

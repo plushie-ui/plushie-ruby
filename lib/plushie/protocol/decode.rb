@@ -71,7 +71,7 @@ module Plushie
       end
 
       # -------------------------------------------------------------------
-      # Event decoding -- all 57 families
+      # Event decoding: all 57 families
       # -------------------------------------------------------------------
 
       # Decode an event message into the appropriate Event struct.

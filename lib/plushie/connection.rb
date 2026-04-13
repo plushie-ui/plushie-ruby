@@ -74,12 +74,12 @@ module Plushie
     # adapter via method calls.
     #
     # The adapter must respond to:
-    # - +on_bridge(connection)+ -- called during init, adapter stores connection ref
-    # - +send_data(data)+ -- called by Connection to write encoded bytes
+    # - +on_bridge(connection)+: called during init, adapter stores connection ref
+    # - +send_data(data)+: called by Connection to write encoded bytes
     #
     # The adapter calls back:
-    # - +connection.receive_data(data)+ -- when data arrives from the transport
-    # - +connection.transport_closed(reason)+ -- when the transport closes
+    # - +connection.receive_data(data)+: when data arrives from the transport
+    # - +connection.transport_closed(reason)+: when the transport closes
     #
     # @param adapter [#on_bridge, #send_data] iostream adapter object
     # @param format [:msgpack, :json] wire format
@@ -118,7 +118,7 @@ module Plushie
     end
 
     # Called by the iostream adapter when data arrives from the transport.
-    # The adapter is responsible for framing -- each call should deliver
+    # The adapter is responsible for framing: each call should deliver
     # one complete protocol message.
     #
     # @param data [String] a complete protocol message (decoded from framing)
@@ -279,7 +279,7 @@ module Plushie
       when :json then read_json_loop
       end
     rescue IOError, Errno::EPIPE
-      # Pipe closed -- expected on shutdown
+      # Pipe closed: expected on shutdown
     ensure
       dispatch_message({type: :connection_closed}) unless @closed
     end

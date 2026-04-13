@@ -2,7 +2,7 @@
 
 module Plushie
   module Widget
-    # Stack layout -- layers children on top of each other.
+    # Stack layout: layers children on top of each other.
     #
     # @example
     #   s = Plushie::Widget::Stack.new("layers", width: :fill, clip: true)
@@ -11,10 +11,10 @@ module Plushie
     #   node = s.build
     #
     # Props:
-    # - width (length) -- stack width.
-    # - height (length) -- stack height.
-    # - clip (boolean) -- clip overflowing children.
-    # - a11y (hash) -- accessibility overrides.
+    # - width (length): stack width.
+    # - height (length): stack height.
+    # - clip (boolean): clip overflowing children.
+    # - a11y (hash): accessibility overrides.
     class Stack < BuiltIn
       wire_type :stack
       children :many

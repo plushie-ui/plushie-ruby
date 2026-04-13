@@ -142,7 +142,7 @@ end
 ```
 
 Props: `spacing`, `padding`, `width`, `height`, `align_y`, `wrap` (new
-in plushie-iced -- wraps children to next line when they overflow).
+in plushie-iced; wraps children to next line when they overflow).
 
 ### container
 

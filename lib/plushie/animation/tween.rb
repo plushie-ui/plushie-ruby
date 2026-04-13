@@ -17,14 +17,14 @@ module Plushie
     # All easing functions take a +t+ value in 0.0..1.0 and return a
     # curved +t+ value. Available easings:
     #
-    # - +linear+ -- identity
-    # - +ease_in+ -- cubic ease in
-    # - +ease_out+ -- cubic ease out
-    # - +ease_in_out+ -- cubic ease in-out
-    # - +ease_in_quad+ -- quadratic ease in
-    # - +ease_out_quad+ -- quadratic ease out
-    # - +ease_in_out_quad+ -- quadratic ease in-out
-    # - +spring+ -- spring with overshoot
+    # - +linear+: identity
+    # - +ease_in+: cubic ease in
+    # - +ease_out+: cubic ease out
+    # - +ease_in_out+: cubic ease in-out
+    # - +ease_in_quad+: quadratic ease in
+    # - +ease_out_quad+: quadratic ease out
+    # - +ease_in_out_quad+: quadratic ease in-out
+    # - +spring+: spring with overshoot
     #
     # == Animation struct
     #

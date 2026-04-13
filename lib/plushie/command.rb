@@ -3,7 +3,7 @@
 module Plushie
   # Commands describe side effects that update wants the runtime to perform.
   #
-  # They are pure data -- inspectable, testable, serializable. The runtime
+  # They are pure data: inspectable, testable, serializable. The runtime
   # interprets them after update returns. Nothing executes inside update.
   #
   # @example Async work

@@ -107,7 +107,7 @@ class TestUI < Minitest::Test
       end
     end
 
-    # Context should be clean -- next build should work
+    # Context should be clean: next build should work
     node = column("after") do
       text("good", "works")
     end

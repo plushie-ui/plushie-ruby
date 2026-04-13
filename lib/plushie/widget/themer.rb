@@ -2,7 +2,7 @@
 
 module Plushie
   module Widget
-    # Themer -- per-subtree theme override.
+    # Themer: per-subtree theme override.
     #
     # @example
     #   t = Plushie::Widget::Themer.new("dark", :dark)
@@ -10,8 +10,8 @@ module Plushie
     #   node = t.build
     #
     # Props:
-    # - theme (symbol|hash) -- built-in theme atom or custom palette map.
-    # - a11y (hash) -- accessibility overrides.
+    # - theme (symbol|hash): built-in theme atom or custom palette map.
+    # - a11y (hash): accessibility overrides.
     class Themer < BuiltIn
       wire_type :themer
       children :single

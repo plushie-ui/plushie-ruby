@@ -70,7 +70,7 @@ module Plushie
 
     # Subscribe to keyboard press events.
     # Delivers {Event::Key}[type: :press, ...] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # The tag is for subscription management only: it does NOT appear in the event.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
@@ -81,7 +81,7 @@ module Plushie
 
     # Subscribe to keyboard release events.
     # Delivers {Event::Key}[type: :release, ...] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # The tag is for subscription management only: it does NOT appear in the event.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
@@ -93,7 +93,7 @@ module Plushie
     # Subscribe to modifier key state changes.
     # Delivers Event::Modifiers with the current modifier state to update when
     # shift, control, alt, or command keys change state.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # The tag is for subscription management only: it does NOT appear in the event.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
@@ -137,7 +137,7 @@ module Plushie
 
     # Subscribe to window close request events.
     # Delivers {Event::Window}[type: :close_requested, window_id:] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # The tag is for subscription management only: it does NOT appear in the event.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
@@ -148,7 +148,7 @@ module Plushie
 
     # Subscribe to window opened events.
     # Delivers {Event::Window}[type: :opened, window_id:, width:, height:] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # The tag is for subscription management only: it does NOT appear in the event.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
@@ -159,7 +159,7 @@ module Plushie
 
     # Subscribe to window resize events.
     # Delivers {Event::Window}[type: :resized, window_id:, width:, height:] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # The tag is for subscription management only: it does NOT appear in the event.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
@@ -170,7 +170,7 @@ module Plushie
 
     # Subscribe to window focus events.
     # Delivers {Event::Window}[type: :focused, window_id:] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # The tag is for subscription management only: it does NOT appear in the event.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
@@ -181,7 +181,7 @@ module Plushie
 
     # Subscribe to window unfocus events.
     # Delivers {Event::Window}[type: :unfocused, window_id:] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # The tag is for subscription management only: it does NOT appear in the event.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
@@ -192,7 +192,7 @@ module Plushie
 
     # Subscribe to window move events.
     # Delivers {Event::Window}[type: :moved, window_id:, x:, y:] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # The tag is for subscription management only: it does NOT appear in the event.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
@@ -214,7 +214,7 @@ module Plushie
 
     # Subscribe to IME (Input Method Editor) composition events.
     # Delivers {Event::Ime}[type: :enabled/:preedit/:commit/:disabled, ...] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # The tag is for subscription management only: it does NOT appear in the event.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
@@ -225,7 +225,7 @@ module Plushie
 
     # Subscribe to OS theme changes (light/dark mode).
     # Delivers {Event::System}[type: :theme_changed, data: theme_name] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # The tag is for subscription management only: it does NOT appear in the event.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
@@ -236,7 +236,7 @@ module Plushie
 
     # Subscribe to animation frame ticks for smooth animations.
     # Delivers {Event::System}[type: :animation_frame, data: delta_ms] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # The tag is for subscription management only: it does NOT appear in the event.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
@@ -247,7 +247,7 @@ module Plushie
 
     # Subscribe to file drag and drop events.
     # Delivers {Event::Window}[type: :file_dropped/:file_hovered, path:] to update.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # The tag is for subscription management only: it does NOT appear in the event.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
@@ -259,7 +259,7 @@ module Plushie
     # Subscribe to all renderer events (catch-all).
     # Delivers the raw event to update without filtering by type.
     # Useful for debugging or handling event types not covered by specific subscriptions.
-    # The tag is for subscription management only -- it does NOT appear in the event.
+    # The tag is for subscription management only: it does NOT appear in the event.
     #
     # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)

@@ -72,7 +72,7 @@ module Plushie
         begin
           wait_for_response(session_id, :reset_response, timeout: 5)
         rescue Timeout::Error
-          # Timeout on reset is not fatal -- the session is still removed
+          # Timeout on reset is not fatal: the session is still removed
         end
         @mutex.synchronize { @sessions.delete(session_id) }
       end

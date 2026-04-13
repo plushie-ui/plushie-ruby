@@ -28,7 +28,7 @@ end
 ```
 
 The typed widget builders (Layer 2 API) are also available for
-programmatic use -- see `Plushie::Widget::Button.new("id").build`.
+programmatic use; see `Plushie::Widget::Button.new("id").build`.
 
 ## Examples
 

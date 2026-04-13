@@ -6,8 +6,8 @@ module Plushie
   # Wire protocol between the Ruby runtime and the Rust renderer.
   #
   # Supports two formats:
-  # - :json    -- newline-delimited JSON (debugging/observability)
-  # - :msgpack -- MessagePack with 4-byte length prefix (default, production)
+  # - :json   : newline-delimited JSON (debugging/observability)
+  # - :msgpack: MessagePack with 4-byte length prefix (default, production)
   #
   # @see ~/projects/plushie-renderer/docs/protocol.md
   module Protocol
