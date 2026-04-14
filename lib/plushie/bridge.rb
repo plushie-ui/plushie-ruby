@@ -37,8 +37,14 @@ module Plushie
     # @param transport [:spawn, :stdio, Array(:iostream, adapter)] transport mode
     # @param log_level [Symbol] renderer log level
     # @param token [String, nil] authentication token for the renderer
+    # Default watchdog interval in seconds. Set to nil to disable.
+    DEFAULT_HEARTBEAT_INTERVAL = 30
+
+    # @param heartbeat_interval [Numeric, nil] max seconds between renderer
+    #   messages before triggering a restart. nil disables the watchdog.
     def initialize(event_queue:, format: :msgpack, binary: nil,
-      transport: :spawn, log_level: :error, token: nil)
+      transport: :spawn, log_level: :error, token: nil,
+      heartbeat_interval: DEFAULT_HEARTBEAT_INTERVAL)
       @event_queue = event_queue
       @format = format
       @binary = binary
@@ -48,6 +54,8 @@ module Plushie
       @connection = nil
       @retry_count = 0
       @settings = {}
+      @heartbeat_interval = heartbeat_interval
+      @heartbeat_timer = nil
       @logger = Logger.new($stderr, level: :warn, progname: "plushie")
     end
 
@@ -87,6 +95,7 @@ module Plushie
 
     # Stop the connection and clean up.
     def stop
+      cancel_heartbeat_timer
       @connection&.close
       @connection = nil
     end
@@ -131,26 +140,26 @@ module Plushie
     end
 
     def start_forwarder(conn_queue)
+      reset_heartbeat_timer
       Thread.new do
         while (msg = conn_queue.pop)
           begin
             case msg
             in {type: :connection_closed} | {type: :connection_error}
+              cancel_heartbeat_timer
               @event_queue.push([:renderer_exited, msg])
               attempt_restart
               break
             else
+              reset_heartbeat_timer
               @event_queue.push([:renderer_event, msg])
             end
           rescue => e
-            # Individual message dispatch error. Log and continue rather
-            # than killing the bridge. Partial/corrupt renderer output from
-            # a crash mid-write should use the restart mechanism, not take
-            # down the forwarder thread.
             @logger.warn("plushie: bridge forwarder message error: #{e.class}: #{e.message}")
           end
         end
       rescue => e
+        cancel_heartbeat_timer
         @event_queue.push([:renderer_exited, e])
       end.tap { |t| t.name = "plushie-bridge-forwarder" }
     end
@@ -188,6 +197,26 @@ module Plushie
           "Run `rake plushie:download` or `rake plushie:build` to update."
         )
       end
+    end
+
+    def reset_heartbeat_timer
+      cancel_heartbeat_timer
+      return unless @heartbeat_interval
+
+      @heartbeat_timer = Thread.new do
+        sleep(@heartbeat_interval)
+        @logger.warn(
+          "plushie: renderer unresponsive " \
+          "(no message in #{@heartbeat_interval}s), triggering restart"
+        )
+        @event_queue.push([:renderer_exited, {type: :heartbeat_timeout}])
+      end
+      @heartbeat_timer.name = "plushie-heartbeat"
+    end
+
+    def cancel_heartbeat_timer
+      @heartbeat_timer&.kill
+      @heartbeat_timer = nil
     end
 
     def handle_connect_failure(error)
