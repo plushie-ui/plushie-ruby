@@ -90,7 +90,12 @@ class TestRuntimeCommands < Minitest::Test
     assert @runner.async_tasks.key?(:slow)
 
     @runner.execute_commands(C.cancel(:slow))
-    refute @runner.async_tasks.key?(:slow)
+    # Entry is marked as cancelled (not deleted). The async result
+    # handler owns cleanup, preventing a race where Thread.kill
+    # triggers the rescue block that pushes an async_result after
+    # deletion.
+    assert @runner.async_tasks.key?(:slow)
+    assert_equal :cancelled, @runner.async_tasks[:slow][:nonce]
   end
 
   # -- :done dispatches immediately ----------------------------------------

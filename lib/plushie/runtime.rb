@@ -443,10 +443,21 @@ module Plushie
 
     def handle_async_result(tag, nonce, result)
       entry = @async_tasks[tag]
-      return unless entry && entry[:nonce] == nonce
-      @async_tasks.delete(tag)
-      dispatch_event(Event::Async.new(tag: tag, result: result))
-      notify_await_async(tag)
+      return unless entry
+
+      case entry[:nonce]
+      when :cancelled
+        # Task was intentionally cancelled. Silent cleanup.
+        @async_tasks.delete(tag)
+      when nonce
+        # Normal completion or crash. Dispatch through update.
+        @async_tasks.delete(tag)
+        dispatch_event(Event::Async.new(tag: tag, result: result))
+        notify_await_async(tag)
+      else
+        # Stale result from an old nonce. Already replaced by a new task.
+        nil
+      end
     end
 
     def handle_stream_value(tag, nonce, value)

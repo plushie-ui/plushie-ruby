@@ -112,9 +112,16 @@ module Plushie
       end
 
       # Cancel a running async/stream task.
+      # Marks the entry as cancelled instead of deleting it. The async
+      # result handler owns cleanup, preventing a race where Thread.kill
+      # triggers the rescue block that pushes an async_result after the
+      # entry was already deleted.
       def cancel_task(tag)
-        entry = @async_tasks.delete(tag)
-        entry&.fetch(:thread)&.kill
+        entry = @async_tasks[tag]
+        return unless entry && entry[:nonce] != :cancelled
+
+        entry[:thread]&.kill
+        @async_tasks[tag] = {thread: entry[:thread], nonce: :cancelled}
       end
 
       # Dispatch a done command immediately.
