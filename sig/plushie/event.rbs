@@ -12,15 +12,13 @@ module Plushie
       attr_reader value: untyped
       attr_reader window_id: String?
       attr_reader scope: Array[String]
-      attr_reader data: untyped
 
       def initialize: (
         type: Symbol,
         id: String,
         ?value: untyped,
         ?window_id: String?,
-        ?scope: Array[String],
-        ?data: untyped
+        ?scope: Array[String]
       ) -> void
     end
 
@@ -98,9 +96,9 @@ module Plushie
     class System
       attr_reader type: Symbol
       attr_reader tag: Symbol?
-      attr_reader data: untyped
+      attr_reader value: untyped
 
-      def initialize: (type: Symbol, ?tag: Symbol?, ?data: untyped) -> void
+      def initialize: (type: Symbol, ?tag: Symbol?, ?value: untyped) -> void
     end
 
     class Timer

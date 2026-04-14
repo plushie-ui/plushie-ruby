@@ -104,7 +104,11 @@ module Plushie
 
       def decode_event_inner(msg, require_window_id: true)
         family = msg["family"]
-        data = msg["data"] || {}
+        # The renderer uses "value" as the canonical event data field.
+        # Fall back to "data" for backwards compatibility with older renderers.
+        data = msg["value"] || msg["data"] || {}
+        data = {} unless data.is_a?(Hash) # scalar values stay in msg["value"]
+        wire_value = msg["value"]
         window_id_fn = require_window_id ? method(:require_window_id!) : method(:optional_window_id)
 
         case family
@@ -117,22 +121,22 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: family.to_sym, id: id,
-            value: msg["value"], window_id: window_id_fn.call(msg, family),
-            scope: scope, data: msg["data"]
+            value: wire_value, window_id: window_id_fn.call(msg, family),
+            scope: scope
           )
 
         when "sort"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :sort, id: id, window_id: window_id_fn.call(msg, family),
-            scope: scope, data: {column: data["column"]}
+            scope: scope, value: {column: data["column"]}
           )
 
         when "scrolled"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :scrolled, id: id, window_id: window_id_fn.call(msg, family),
-            scope: scope, data: {
+            scope: scope, value: {
               absolute_x: data["absolute_x"], absolute_y: data["absolute_y"],
               relative_x: data["relative_x"], relative_y: data["relative_y"],
               bounds: {width: data["bounds_width"], height: data["bounds_height"]},
@@ -141,14 +145,12 @@ module Plushie
           )
 
         # -- Unified pointer events -> Event::Widget ----------------------------
-        # All pointer interactions (canvas, mouse_area, subscription) use the
-        # same event types with device awareness in the data map.
 
         when "press"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :press, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {
+            value: {
               x: data["x"], y: data["y"],
               button: Parsers.parse_mouse_button(data["button"] || "left"),
               pointer: (data["pointer"] || "mouse").to_sym,
@@ -162,7 +164,7 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :release, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {
+            value: {
               x: data["x"], y: data["y"],
               button: Parsers.parse_mouse_button(data["button"] || "left"),
               pointer: (data["pointer"] || "mouse").to_sym,
@@ -176,7 +178,7 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :move, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {
+            value: {
               x: data["x"], y: data["y"],
               pointer: (data["pointer"] || "mouse").to_sym,
               finger: data["finger"],
@@ -189,7 +191,7 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :scroll, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {
+            value: {
               x: data["x"], y: data["y"],
               delta_x: data["delta_x"], delta_y: data["delta_y"],
               unit: data["unit"] ? Parsers.parse_scroll_unit(data["unit"]) : nil,
@@ -203,21 +205,21 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :enter, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {captured: data["captured"] || msg["captured"] || false}
+            value: {captured: data["captured"] || msg["captured"] || false}
           )
 
         when "exit"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :exit, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {captured: data["captured"] || msg["captured"] || false}
+            value: {captured: data["captured"] || msg["captured"] || false}
           )
 
         when "double_click"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :double_click, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {
+            value: {
               x: data["x"], y: data["y"],
               pointer: (data["pointer"] || "mouse").to_sym,
               modifiers: parse_modifiers(data["modifiers"])
@@ -228,7 +230,7 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :resize, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {width: data["width"], height: data["height"]}
+            value: {width: data["width"], height: data["height"]}
           )
 
         # -- Generic element events -> Event::Widget ----------------------------
@@ -249,14 +251,14 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :drag, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {x: data["x"], y: data["y"], delta_x: data["delta_x"], delta_y: data["delta_y"]}
+            value: {x: data["x"], y: data["y"], delta_x: data["delta_x"], delta_y: data["delta_y"]}
           )
 
         when "drag_end"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :drag_end, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: atomize_data(data)
+            value: atomize_data(data)
           )
 
         # -- Pane events -> Event::Widget --------------------------------------
@@ -265,14 +267,14 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :pane_resized, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {split: data["split"], ratio: data["ratio"]}
+            value: {split: data["split"], ratio: data["ratio"]}
           )
 
         when "pane_dragged"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :pane_dragged, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {
+            value: {
               pane: data["pane"], target: data["target"],
               action: Parsers.parse_pane_action(data["action"]),
               region: Parsers.parse_pane_region(data["region"]),
@@ -284,14 +286,14 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :pane_clicked, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {pane: data["pane"]}
+            value: {pane: data["pane"]}
           )
 
         when "pane_focus_cycle"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :pane_focus_cycle, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            data: {pane: data["pane"]}
+            value: {pane: data["pane"]}
           )
 
         # -- Animation events -> Event::Widget ----------------------------------
@@ -302,20 +304,17 @@ module Plushie
           Event::Widget.new(
             type: :transition_complete, id: id,
             window_id: window_id_fn.call(msg, family),
-            scope: scope, data: {tag: tag, prop: data["prop"]}
+            scope: scope, value: {tag: tag, prop: data["prop"]}
           )
 
         # -- Keyboard events -----------------------------------------------------
-        # Global key events (no id or empty id) -> Event::Key.
-        # Widget-scoped key events (non-empty id) -> Event::Widget with
-        # type :key_press/:key_release.
 
         when "key_press"
           if msg["id"] && !msg["id"].empty?
             id, scope = split_scoped_id(msg["id"])
             Event::Widget.new(
               type: :key_press, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-              data: {
+              value: {
                 key: Keys.parse_key(data["key"]),
                 modifiers: parse_modifiers(data["modifiers"])
               }
@@ -341,7 +340,7 @@ module Plushie
             id, scope = split_scoped_id(msg["id"])
             Event::Widget.new(
               type: :key_release, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-              data: {
+              value: {
                 key: Keys.parse_key(data["key"]),
                 modifiers: parse_modifiers(data["modifiers"])
               }
@@ -372,14 +371,13 @@ module Plushie
           )
 
         # -- Subscription pointer events -> Event::Widget ----------------------
-        # Delivered as WidgetEvents with id = window_id and scope = [].
 
         when "cursor_moved"
           window_id = msg["window_id"]
           Event::Widget.new(
             type: :move,
             id: window_id || "__global__", scope: [], window_id: window_id,
-            data: {
+            value: {
               x: data["x"], y: data["y"],
               pointer: :mouse,
               captured: msg["captured"] || false,
@@ -392,7 +390,7 @@ module Plushie
           Event::Widget.new(
             type: :enter,
             id: window_id || "__global__", scope: [], window_id: window_id,
-            data: {captured: msg["captured"] || false}
+            value: {captured: msg["captured"] || false}
           )
 
         when "cursor_left"
@@ -400,16 +398,17 @@ module Plushie
           Event::Widget.new(
             type: :exit,
             id: window_id || "__global__", scope: [], window_id: window_id,
-            data: {captured: msg["captured"] || false}
+            value: {captured: msg["captured"] || false}
           )
 
         when "button_pressed"
           window_id = msg["window_id"]
+          btn_value = wire_value.is_a?(String) ? wire_value : data["button"]
           Event::Widget.new(
             type: :press,
             id: window_id || "__global__", scope: [], window_id: window_id,
-            data: {
-              button: Parsers.parse_mouse_button(msg["value"]),
+            value: {
+              button: Parsers.parse_mouse_button(btn_value),
               pointer: :mouse, x: nil, y: nil,
               captured: msg["captured"] || false,
               modifiers: parse_modifiers(msg["modifiers"])
@@ -418,11 +417,12 @@ module Plushie
 
         when "button_released"
           window_id = msg["window_id"]
+          btn_value = wire_value.is_a?(String) ? wire_value : data["button"]
           Event::Widget.new(
             type: :release,
             id: window_id || "__global__", scope: [], window_id: window_id,
-            data: {
-              button: Parsers.parse_mouse_button(msg["value"]),
+            value: {
+              button: Parsers.parse_mouse_button(btn_value),
               pointer: :mouse, x: nil, y: nil,
               captured: msg["captured"] || false,
               modifiers: parse_modifiers(msg["modifiers"])
@@ -434,7 +434,7 @@ module Plushie
           Event::Widget.new(
             type: :scroll,
             id: window_id || "__global__", scope: [], window_id: window_id,
-            data: {
+            value: {
               delta_x: data["delta_x"], delta_y: data["delta_y"],
               unit: Parsers.parse_scroll_unit(data["unit"]),
               pointer: :mouse,
@@ -450,7 +450,7 @@ module Plushie
           Event::Widget.new(
             type: :press,
             id: window_id || "__global__", scope: [], window_id: window_id,
-            data: {
+            value: {
               pointer: :touch, finger: data["id"],
               x: data["x"], y: data["y"], button: :left,
               captured: msg["captured"] || false,
@@ -463,7 +463,7 @@ module Plushie
           Event::Widget.new(
             type: :move,
             id: window_id || "__global__", scope: [], window_id: window_id,
-            data: {
+            value: {
               pointer: :touch, finger: data["id"],
               x: data["x"], y: data["y"],
               captured: msg["captured"] || false,
@@ -476,7 +476,7 @@ module Plushie
           Event::Widget.new(
             type: :release,
             id: window_id || "__global__", scope: [], window_id: window_id,
-            data: {
+            value: {
               pointer: :touch, finger: data["id"],
               x: data["x"], y: data["y"],
               captured: msg["captured"] || false,
@@ -489,7 +489,7 @@ module Plushie
           Event::Widget.new(
             type: :release,
             id: window_id || "__global__", scope: [], window_id: window_id,
-            data: {
+            value: {
               pointer: :touch, finger: data["id"],
               x: data["x"], y: data["y"], lost: true,
               captured: msg["captured"] || false,
@@ -587,21 +587,21 @@ module Plushie
         # -- System events -> Event::System -----------------------------------
 
         when "animation_frame"
-          Event::System.new(type: :animation_frame, data: data["timestamp"] || msg["value"])
+          Event::System.new(type: :animation_frame, value: data["timestamp"] || wire_value)
 
         when "theme_changed"
-          Event::System.new(type: :theme_changed, data: msg["value"] || data["mode"])
+          Event::System.new(type: :theme_changed, value: wire_value || data["mode"])
 
         when "all_windows_closed"
           Event::System.new(type: :all_windows_closed)
 
         when "error"
-          if msg["id"] == "extension_command"
+          if msg["id"] == "extension_command" || msg["id"] == "command"
             Event::WidgetCommandError.new(
               reason: data["reason"] || "",
-              node_id: data["node_id"],
-              op: data["op"],
-              widget_type: data["extension"],
+              node_id: data["node_id"] || data["id"],
+              op: data["op"] || data["family"],
+              widget_type: data["extension"] || data["widget_type"],
               message: data["message"]
             )
           else
@@ -611,40 +611,40 @@ module Plushie
               else
                 {"id" => msg["id"], "details" => data}
               end
-            Event::System.new(type: :error, data: error_data)
+            Event::System.new(type: :error, value: error_data)
           end
 
         when "announce"
-          Event::System.new(type: :announce, data: data["text"])
+          Event::System.new(type: :announce, value: data["text"])
 
         when "session_error"
           Event::System.new(
             type: :session_error,
             tag: msg["session"],
-            data: data["error"] || data
+            value: data["error"] || data
           )
 
         when "session_closed"
           Event::System.new(
             type: :session_closed,
             tag: msg["session"],
-            data: data["reason"] || data
+            value: data["reason"] || data
           )
 
         # -- Diagnostic events -> Event::System ---------------------------------
 
         when "diagnostic"
-          Event::System.new(type: :diagnostic, data: data)
+          Event::System.new(type: :diagnostic, value: data)
 
-        # -- Fallback: extension/unknown events -> Event::Widget --------------
+        # -- Fallback: unknown events -> Event::Widget --------------------------
 
         else
           if msg["id"]
             id, scope = split_scoped_id(msg["id"])
             Event::Widget.new(
               type: family&.to_sym, id: id,
-              value: msg["value"], window_id: window_id_fn.call(msg, family),
-              scope: scope, data: msg["data"]
+              value: wire_value, window_id: window_id_fn.call(msg, family),
+              scope: scope
             )
           end
         end

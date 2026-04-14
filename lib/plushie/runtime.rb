@@ -312,7 +312,7 @@ module Plushie
 
       # Intercept prop validation diagnostics (never delivered to update)
       if event.is_a?(Event::System) && event.type == :diagnostic
-        @logger.warn("plushie: prop validation diagnostic: #{event.data.inspect}")
+        @logger.warn("plushie: prop validation diagnostic: #{event.value.inspect}")
         @diagnostics_mutex.synchronize { @diagnostics << event }
         return
       end

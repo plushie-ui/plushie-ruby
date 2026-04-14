@@ -23,9 +23,10 @@ module Plushie
     # (:pane_resized, :pane_dragged, :pane_clicked), animation events
     # (:transition_complete), and subscription pointer events.
     #
-    # The +data+ field carries type-specific payload as a Hash with
-    # symbol keys. Pointer events include +:pointer+ (mouse/touch/pen),
-    # +:button+, +:modifiers+, and coordinates.
+    # The +value+ field carries the event payload. For single-value
+    # events (input text, slider position, toggle state) it holds
+    # the scalar. For multi-field events (pointer coordinates, pane
+    # operations, key data) it holds a symbol-keyed Hash.
     #
     # The +scope+ array lists ancestor container IDs from immediate
     # parent to outermost. The window_id is appended as the last
@@ -34,25 +35,24 @@ module Plushie
     #
     # @!attribute [r] type [Symbol] event kind
     # @!attribute [r] id [String] widget ID that produced the event
-    # @!attribute [r] value [Object, nil] event value (text for :input, boolean for :toggle, etc.)
+    # @!attribute [r] value [Object, nil] event payload (scalar or symbol-keyed Hash)
     # @!attribute [r] window_id [String, nil] window that produced the event
     # @!attribute [r] scope [Array<String>] reversed ancestor scope chain (immediate parent first, window_id last)
-    # @!attribute [r] data [Hash, nil] type-specific event data
     #
     # @example Click
     #   in Event::Widget[type: :click, id: "save"]
     # @example Input with value
     #   in Event::Widget[type: :input, id: "search", value:]
     # @example Pointer press
-    #   in Event::Widget[type: :press, id: "canvas", data: {x:, y:, button: :left}]
+    #   in Event::Widget[type: :press, id: "canvas", value: {x:, y:, button: :left}]
     # @example Enter (cursor hover or touch enter)
     #   in Event::Widget[type: :enter, id: "hover_zone"]
     # @example Resize (sensor)
-    #   in Event::Widget[type: :resize, id: "content", data: {width:, height:}]
+    #   in Event::Widget[type: :resize, id: "content", value: {width:, height:}]
     # @example Pane resized
-    #   in Event::Widget[type: :pane_resized, id: "editor", data: {ratio:}]
-    Widget = Data.define(:type, :id, :value, :window_id, :scope, :data) do
-      def initialize(type:, id:, value: nil, window_id: nil, scope: [], data: nil)
+    #   in Event::Widget[type: :pane_resized, id: "editor", value: {ratio:}]
+    Widget = Data.define(:type, :id, :value, :window_id, :scope) do
+      def initialize(type:, id:, value: nil, window_id: nil, scope: [])
         super
       end
     end
@@ -181,14 +181,14 @@ module Plushie
     #
     # @!attribute [r] type [Symbol] :theme_changed, :animation_frame
     # @!attribute [r] tag [Symbol, nil] subscription tag (for :animation_frame)
-    # @!attribute [r] data [Object, nil] event payload (theme name for :theme_changed, delta ms for :animation_frame)
+    # @!attribute [r] value [Object, nil] event payload (theme name for :theme_changed, delta ms for :animation_frame)
     #
     # @example Theme changed
-    #   in Event::System[type: :theme_changed, data: theme]
+    #   in Event::System[type: :theme_changed, value: theme]
     # @example Animation frame
-    #   in Event::System[type: :animation_frame, data: delta_ms]
-    System = Data.define(:type, :tag, :data) do
-      def initialize(type:, tag: nil, data: nil)
+    #   in Event::System[type: :animation_frame, value: delta_ms]
+    System = Data.define(:type, :tag, :value) do
+      def initialize(type:, tag: nil, value: nil)
         super
       end
     end

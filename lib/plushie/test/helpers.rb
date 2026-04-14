@@ -153,7 +153,7 @@ module Plushie
         diagnostics = session.get_diagnostics
         return if diagnostics.empty?
 
-        details = diagnostics.map { |d| "  - #{d.data.inspect}" }.join("\n")
+        details = diagnostics.map { |d| "  - #{d.value.inspect}" }.join("\n")
         flunk "Expected no prop validation diagnostics, but found:\n#{details}"
       end
 

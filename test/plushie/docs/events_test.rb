@@ -145,17 +145,17 @@ class DocsEventsTest < Minitest::Test
 
   # -- Widget scroll event --
 
-  def test_events_widget_scroll_data_match
-    data = {
+  def test_events_widget_scroll_value_match
+    scroll_data = {
       "absolute_x" => 0.0, "absolute_y" => 150.0,
       "relative_x" => 0.0, "relative_y" => 0.99,
       "bounds_width" => 400.0, "bounds_height" => 300.0,
       "content_width" => 400.0, "content_height" => 1200.0
     }
-    event = E::Widget.new(type: :scroll, id: "log_view", data: data)
+    event = E::Widget.new(type: :scroll, id: "log_view", value: scroll_data)
     case event
-    in E::Widget[type: :scroll, id: "log_view", data:]
-      at_bottom = data["relative_y"] >= 0.99
+    in E::Widget[type: :scroll, id: "log_view", value:]
+      at_bottom = value["relative_y"] >= 0.99
       assert at_bottom
     else
       flunk "expected scroll event to match"
@@ -221,9 +221,9 @@ class DocsEventsTest < Minitest::Test
   end
 
   def test_events_pointer_move_match
-    event = E::Widget.new(type: :move, id: "canvas_area", data: {x: 100.5, y: 200.3, pointer: :mouse})
+    event = E::Widget.new(type: :move, id: "canvas_area", value: {x: 100.5, y: 200.3, pointer: :mouse})
     case event
-    in E::Widget[type: :move, id: "canvas_area", data: {x:, y:}]
+    in E::Widget[type: :move, id: "canvas_area", value: {x:, y:}]
       assert_equal 100.5, x
       assert_equal 200.3, y
     else
@@ -232,9 +232,9 @@ class DocsEventsTest < Minitest::Test
   end
 
   def test_events_pointer_press_match
-    event = E::Widget.new(type: :press, id: "draw_area", data: {x: 50.0, y: 75.0, button: :left, pointer: :mouse})
+    event = E::Widget.new(type: :press, id: "draw_area", value: {x: 50.0, y: 75.0, button: :left, pointer: :mouse})
     case event
-    in E::Widget[type: :press, id: "draw_area", data: {x:, y:, button: :left}]
+    in E::Widget[type: :press, id: "draw_area", value: {x:, y:, button: :left}]
       assert_equal 50.0, x
       assert_equal 75.0, y
     else
@@ -245,9 +245,9 @@ class DocsEventsTest < Minitest::Test
   # -- Resize event (sensor) --
 
   def test_events_resize_match
-    event = E::Widget.new(type: :resize, id: "content_area", data: {width: 800.0, height: 600.0})
+    event = E::Widget.new(type: :resize, id: "content_area", value: {width: 800.0, height: 600.0})
     case event
-    in E::Widget[type: :resize, id: "content_area", data: {width:, height:}]
+    in E::Widget[type: :resize, id: "content_area", value: {width:, height:}]
       assert_equal 800.0, width
       assert_equal 600.0, height
     else
@@ -258,9 +258,9 @@ class DocsEventsTest < Minitest::Test
   # -- Pane events (now Widget with prefixed types) --
 
   def test_events_pane_resized_match
-    event = E::Widget.new(type: :pane_resized, id: "editor", data: {split: :horizontal, ratio: 0.5})
+    event = E::Widget.new(type: :pane_resized, id: "editor", value: {split: :horizontal, ratio: 0.5})
     case event
-    in E::Widget[type: :pane_resized, id: "editor", data: {split:, ratio:}]
+    in E::Widget[type: :pane_resized, id: "editor", value: {split:, ratio:}]
       assert_equal :horizontal, split
       assert_equal 0.5, ratio
     else
@@ -269,9 +269,9 @@ class DocsEventsTest < Minitest::Test
   end
 
   def test_events_pane_clicked_match
-    event = E::Widget.new(type: :pane_clicked, id: "editor", data: {pane: "left"})
+    event = E::Widget.new(type: :pane_clicked, id: "editor", value: {pane: "left"})
     case event
-    in E::Widget[type: :pane_clicked, id: "editor", data: {pane:}]
+    in E::Widget[type: :pane_clicked, id: "editor", value: {pane:}]
       assert_equal "left", pane
     else
       flunk "expected pane clicked event to match"
@@ -305,9 +305,9 @@ class DocsEventsTest < Minitest::Test
   # -- Subscription pointer events (delivered as Widget) --
 
   def test_events_subscription_move_match
-    event = E::Widget.new(type: :move, id: "main", data: {x: 320.0, y: 240.0, pointer: :mouse})
+    event = E::Widget.new(type: :move, id: "main", value: {x: 320.0, y: 240.0, pointer: :mouse})
     case event
-    in E::Widget[type: :move, data: {x:, y:, pointer: :mouse}]
+    in E::Widget[type: :move, value: {x:, y:, pointer: :mouse}]
       assert_equal 320.0, x
       assert_equal 240.0, y
     else
@@ -316,9 +316,9 @@ class DocsEventsTest < Minitest::Test
   end
 
   def test_events_subscription_press_match
-    event = E::Widget.new(type: :press, id: "main", data: {button: :left, pointer: :mouse})
+    event = E::Widget.new(type: :press, id: "main", value: {button: :left, pointer: :mouse})
     case event
-    in E::Widget[type: :press, data: {button: :left, pointer: :mouse}]
+    in E::Widget[type: :press, value: {button: :left, pointer: :mouse}]
       pass
     else
       flunk "expected subscription press event to match"
@@ -326,9 +326,9 @@ class DocsEventsTest < Minitest::Test
   end
 
   def test_events_subscription_scroll_match
-    event = E::Widget.new(type: :scroll, id: "main", data: {delta_x: 0.0, delta_y: -3.0, unit: :line, pointer: :mouse})
+    event = E::Widget.new(type: :scroll, id: "main", value: {delta_x: 0.0, delta_y: -3.0, unit: :line, pointer: :mouse})
     case event
-    in E::Widget[type: :scroll, data: {delta_y:, unit: :line}]
+    in E::Widget[type: :scroll, value: {delta_y:, unit: :line}]
       assert_equal(-3.0, delta_y)
     else
       flunk "expected subscription scroll event to match"
@@ -338,9 +338,9 @@ class DocsEventsTest < Minitest::Test
   # -- Touch subscription events (delivered as Widget) --
 
   def test_events_touch_press_match
-    event = E::Widget.new(type: :press, id: "main", data: {pointer: :touch, finger: 0, x: 100.0, y: 200.0})
+    event = E::Widget.new(type: :press, id: "main", value: {pointer: :touch, finger: 0, x: 100.0, y: 200.0})
     case event
-    in E::Widget[type: :press, data: {pointer: :touch, finger:, x:, y:}]
+    in E::Widget[type: :press, value: {pointer: :touch, finger:, x:, y:}]
       assert_equal 0, finger
       assert_equal 100.0, x
       assert_equal 200.0, y
@@ -408,9 +408,9 @@ class DocsEventsTest < Minitest::Test
   # -- System events --
 
   def test_events_system_animation_frame_match
-    event = E::System.new(type: :animation_frame, data: 16.67)
+    event = E::System.new(type: :animation_frame, value: 16.67)
     case event
-    in E::System[type: :animation_frame, data: timestamp]
+    in E::System[type: :animation_frame, value: timestamp]
       assert_equal 16.67, timestamp
     else
       flunk "expected system animation_frame event to match"
@@ -418,9 +418,9 @@ class DocsEventsTest < Minitest::Test
   end
 
   def test_events_system_theme_changed_match
-    event = E::System.new(type: :theme_changed, data: "dark")
+    event = E::System.new(type: :theme_changed, value: "dark")
     case event
-    in E::System[type: :theme_changed, data: mode]
+    in E::System[type: :theme_changed, value: mode]
       assert_equal "dark", mode
     else
       flunk "expected system theme_changed event to match"
