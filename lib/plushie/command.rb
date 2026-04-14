@@ -6,11 +6,27 @@ module Plushie
   # They are pure data: inspectable, testable, serializable. The runtime
   # interprets them after update returns. Nothing executes inside update.
   #
+  # == Widget commands
+  #
+  # Widget-targeted commands (focus, scroll, text cursor, pane grid,
+  # native widget ops) use the unified wire format:
+  #   {type: "command", id: "widget_id", family: "op_name", value: ...}
+  #
+  # All named constructors (focus, scroll_to, select_all, etc.) call
+  # +widget_command+ internally. Use +widget_command+ directly for
+  # native widget operations.
+  #
   # @example Async work
   #   [model, Command.async(-> { fetch_data }, :data_loaded)]
   #
   # @example Focus a widget
   #   [model, Command.focus("input_field")]
+  #
+  # @example Scroll to top
+  #   [model, Command.scroll_to("content", 0)]
+  #
+  # @example Native widget command
+  #   [model, Command.widget_command("chart-1", "append_data", {values: [1.0, 2.5]})]
   #
   # @example Multiple commands
   #   [model, Command.batch([Command.focus("input"), Command.send_after(3000, :auto_save)])]
@@ -66,6 +82,38 @@ module Plushie
     def self.batch(commands) = Cmd.new(type: :batch, payload: {commands:})
 
     # -------------------------------------------------------------------
+    # Widget command (unified wire format)
+    # -------------------------------------------------------------------
+
+    # Send a command to a widget by ID.
+    #
+    # Uses the unified wire format matching events:
+    #   {"type": "command", "id": "gauge", "family": "set_value", "value": 72.0}
+    #
+    # The +value+ defaults to nil for commands with no payload (e.g. reset).
+    # The +family+ string identifies the operation. For native widgets, it
+    # maps to the Rust widget's handle_widget_op dispatch.
+    #
+    # @param id [String] target widget ID (supports "window#path" format)
+    # @param family [String] operation name
+    # @param value [Object, nil] operation-specific data
+    # @return [Cmd]
+    def self.widget_command(id, family, value = nil)
+      Cmd.new(type: :command, payload: {id: id, family: family.to_s, value: value})
+    end
+
+    # Send a batch of widget commands processed atomically in one cycle.
+    #
+    # Each command in the list is a +{id:, family:, value:}+ Hash.
+    # All commands are applied before any resulting events are emitted.
+    #
+    # @param commands [Array<Hash>] each with :id, :family, :value keys
+    # @return [Cmd]
+    def self.widget_commands(commands)
+      Cmd.new(type: :commands, payload: {commands: commands})
+    end
+
+    # -------------------------------------------------------------------
     # Focus
     # -------------------------------------------------------------------
 
@@ -77,14 +125,16 @@ module Plushie
     # @param widget_id [String]
     # @return [Cmd]
     def self.focus(widget_id)
-      Cmd.new(type: :focus, payload: target_payload(widget_id))
+      widget_command(widget_id, "focus")
     end
 
+    # Move focus to the next focusable widget.
     # @return [Cmd]
-    def self.focus_next = Cmd.new(type: :focus_next, payload: {})
+    def self.focus_next = Cmd.new(type: :widget_op, payload: {op: "focus_next"})
 
+    # Move focus to the previous focusable widget.
     # @return [Cmd]
-    def self.focus_previous = Cmd.new(type: :focus_previous, payload: {})
+    def self.focus_previous = Cmd.new(type: :widget_op, payload: {op: "focus_previous"})
 
     # -------------------------------------------------------------------
     # Text editing
@@ -94,29 +144,29 @@ module Plushie
     # @param widget_id [String]
     # @return [Cmd]
     def self.select_all(widget_id)
-      Cmd.new(type: :select_all, payload: target_payload(widget_id))
+      widget_command(widget_id, "select_all")
     end
 
-    # Move cursor to front. Supports +"window#path"+.
+    # Move cursor to the beginning. Supports +"window#path"+.
     # @param widget_id [String]
     # @return [Cmd]
     def self.move_cursor_to_front(widget_id)
-      Cmd.new(type: :move_cursor_to_front, payload: target_payload(widget_id))
+      widget_command(widget_id, "move_cursor_to_front")
     end
 
-    # Move cursor to end. Supports +"window#path"+.
+    # Move cursor to the end. Supports +"window#path"+.
     # @param widget_id [String]
     # @return [Cmd]
     def self.move_cursor_to_end(widget_id)
-      Cmd.new(type: :move_cursor_to_end, payload: target_payload(widget_id))
+      widget_command(widget_id, "move_cursor_to_end")
     end
 
-    # Move cursor to position. Supports +"window#path"+.
+    # Move cursor to a specific position. Supports +"window#path"+.
     # @param widget_id [String]
     # @param position [Integer]
     # @return [Cmd]
     def self.move_cursor_to(widget_id, position)
-      Cmd.new(type: :move_cursor_to, payload: target_payload(widget_id, position: position))
+      widget_command(widget_id, "move_cursor_to", {position: position})
     end
 
     # Select a range of text. Supports +"window#path"+.
@@ -125,44 +175,90 @@ module Plushie
     # @param end_pos [Integer]
     # @return [Cmd]
     def self.select_range(widget_id, start_pos, end_pos)
-      Cmd.new(type: :select_range, payload: target_payload(widget_id, start: start_pos, end: end_pos))
+      widget_command(widget_id, "select_range", {start: start_pos, end: end_pos})
     end
 
     # -------------------------------------------------------------------
     # Scroll
     # -------------------------------------------------------------------
 
-    # Scroll to offset. Supports +"window#path"+.
+    # Scroll to an absolute vertical offset. Supports +"window#path"+.
     # @param widget_id [String]
-    # @param offset_y [Numeric]
+    # @param offset [Numeric] vertical offset in pixels
     # @return [Cmd]
-    def self.scroll_to(widget_id, offset_y)
-      Cmd.new(type: :scroll_to, payload: target_payload(widget_id, offset_y: offset_y))
+    def self.scroll_to(widget_id, offset)
+      widget_command(widget_id, "scroll_to", {x: 0.0, y: offset})
     end
 
-    # Snap to relative position. Supports +"window#path"+.
+    # Snap to a relative position (0.0 to 1.0). Supports +"window#path"+.
     # @param widget_id [String]
-    # @param x [Float] relative position 0.0-1.0
-    # @param y [Float] relative position 0.0-1.0
+    # @param x [Float] horizontal relative position
+    # @param y [Float] vertical relative position
     # @return [Cmd]
     def self.snap_to(widget_id, x, y)
-      Cmd.new(type: :snap_to, payload: target_payload(widget_id, x: x, y: y))
+      widget_command(widget_id, "snap_to", {x: x, y: y})
     end
 
-    # Snap to end. Supports +"window#path"+.
+    # Snap to the end of scrollable content. Supports +"window#path"+.
     # @param widget_id [String]
     # @return [Cmd]
     def self.snap_to_end(widget_id)
-      Cmd.new(type: :snap_to_end, payload: target_payload(widget_id))
+      widget_command(widget_id, "snap_to_end")
     end
 
-    # Scroll by delta. Supports +"window#path"+.
+    # Scroll by a relative delta. Supports +"window#path"+.
     # @param widget_id [String]
-    # @param x [Numeric]
-    # @param y [Numeric]
+    # @param x [Numeric] horizontal delta
+    # @param y [Numeric] vertical delta
     # @return [Cmd]
     def self.scroll_by(widget_id, x, y)
-      Cmd.new(type: :scroll_by, payload: target_payload(widget_id, x: x, y: y))
+      widget_command(widget_id, "scroll_by", {x: x, y: y})
+    end
+
+    # -------------------------------------------------------------------
+    # PaneGrid operations
+    # -------------------------------------------------------------------
+
+    # Split a pane in the pane grid.
+    # @param grid_id [String]
+    # @param pane_id [String]
+    # @param axis [Symbol] :horizontal or :vertical
+    # @param new_pane_id [String]
+    # @return [Cmd]
+    def self.pane_split(grid_id, pane_id, axis, new_pane_id)
+      widget_command(grid_id, "pane_split", {pane: pane_id, axis: axis.to_s, new_pane_id: new_pane_id})
+    end
+
+    # Close a pane in the pane grid.
+    # @param grid_id [String]
+    # @param pane_id [String]
+    # @return [Cmd]
+    def self.pane_close(grid_id, pane_id)
+      widget_command(grid_id, "pane_close", {pane: pane_id})
+    end
+
+    # Swap two panes in the pane grid.
+    # @param grid_id [String]
+    # @param pane_a [String]
+    # @param pane_b [String]
+    # @return [Cmd]
+    def self.pane_swap(grid_id, pane_a, pane_b)
+      widget_command(grid_id, "pane_swap", {a: pane_a, b: pane_b})
+    end
+
+    # Maximize a pane in the pane grid.
+    # @param grid_id [String]
+    # @param pane_id [String]
+    # @return [Cmd]
+    def self.pane_maximize(grid_id, pane_id)
+      widget_command(grid_id, "pane_maximize", {pane: pane_id})
+    end
+
+    # Restore all panes from maximized state.
+    # @param grid_id [String]
+    # @return [Cmd]
+    def self.pane_restore(grid_id)
+      widget_command(grid_id, "pane_restore")
     end
 
     # -------------------------------------------------------------------
@@ -171,7 +267,7 @@ module Plushie
 
     # @param window_id [String]
     # @return [Cmd]
-    def self.close_window(window_id) = Cmd.new(type: :close_window, payload: {window_id:})
+    def self.close_window(window_id) = Cmd.new(type: :widget_op, payload: {op: "close_window", window_id: window_id})
 
     # @param window_id [String]
     # @param width [Integer]
@@ -340,49 +436,6 @@ module Plushie
     def self.get_system_info(tag) = Cmd.new(type: :system_query, payload: {op: :get_system_info, tag: tag.to_s})
 
     # -------------------------------------------------------------------
-    # Canvas operations
-    # -------------------------------------------------------------------
-
-    # Focus a specific element within a canvas widget. Supports +"window#canvas"+.
-    # @param canvas_id [String]
-    # @param element_id [String]
-    # @return [Cmd]
-    def self.focus_element(canvas_id, element_id)
-      Cmd.new(type: :widget_op, payload: target_payload(canvas_id, op: "focus_element", element_id: element_id))
-    end
-
-    # -------------------------------------------------------------------
-    # PaneGrid operations
-    # -------------------------------------------------------------------
-
-    # @param grid_id [String]
-    # @param pane_id [String]
-    # @param axis [Symbol] :horizontal, :vertical
-    # @param new_pane_id [String]
-    # @return [Cmd]
-    def self.pane_split(grid_id, pane_id, axis, new_pane_id) = Cmd.new(type: :widget_op, payload: {op: :pane_split, target: grid_id, pane: pane_id, axis: axis.to_s, new_pane_id:})
-
-    # @param grid_id [String]
-    # @param pane_id [String]
-    # @return [Cmd]
-    def self.pane_close(grid_id, pane_id) = Cmd.new(type: :widget_op, payload: {op: :pane_close, target: grid_id, pane: pane_id})
-
-    # @param grid_id [String]
-    # @param pane_a [String]
-    # @param pane_b [String]
-    # @return [Cmd]
-    def self.pane_swap(grid_id, pane_a, pane_b) = Cmd.new(type: :widget_op, payload: {op: :pane_swap, target: grid_id, a: pane_a, b: pane_b})
-
-    # @param grid_id [String]
-    # @param pane_id [String]
-    # @return [Cmd]
-    def self.pane_maximize(grid_id, pane_id) = Cmd.new(type: :widget_op, payload: {op: :pane_maximize, target: grid_id, pane: pane_id})
-
-    # @param grid_id [String]
-    # @return [Cmd]
-    def self.pane_restore(grid_id) = Cmd.new(type: :widget_op, payload: {op: :pane_restore, target: grid_id})
-
-    # -------------------------------------------------------------------
     # Image operations
     # -------------------------------------------------------------------
 
@@ -457,22 +510,6 @@ module Plushie
     def self.announce(text) = Cmd.new(type: :widget_op, payload: {op: :announce, text:})
 
     # -------------------------------------------------------------------
-    # Extension
-    # -------------------------------------------------------------------
-
-    # Send a command to a native widget.
-    # @param node_id [String]
-    # @param op [String]
-    # @param payload [Hash]
-    # @return [Cmd]
-    def self.widget_command(node_id, op, payload = {}) = Cmd.new(type: :extension_command, payload: {node_id:, op:, data: payload})
-
-    # Batch multiple widget commands.
-    # @param commands [Array<Hash>] each with :node_id, :op, :payload
-    # @return [Cmd]
-    def self.widget_commands(commands) = Cmd.new(type: :extension_commands, payload: {commands:})
-
-    # -------------------------------------------------------------------
     # Test / headless
     # -------------------------------------------------------------------
 
@@ -480,36 +517,5 @@ module Plushie
     # @param timestamp [Integer] frame timestamp in milliseconds
     # @return [Cmd]
     def self.advance_frame(timestamp) = Cmd.new(type: :advance_frame, payload: {timestamp:})
-
-    # Parse a widget ID that may include a window qualifier.
-    #
-    # +"main#form/save"+ splits into +["main", "form/save"]+.
-    # +"save"+ returns +[nil, "save"]+.
-    #
-    # @param widget_id [String]
-    # @return [Array(String, String), Array(nil, String)]
-    # @api private
-    def self.parse_target(widget_id)
-      return [nil, widget_id] unless widget_id.is_a?(String)
-      parts = widget_id.split("#", 2)
-      (parts.length == 2 && !parts[0].empty?) ? parts : [nil, widget_id]
-    end
-
-    # Build a payload hash with target and optional window_id.
-    # Merges any additional keyword args into the payload.
-    #
-    # @param widget_id [String] possibly window-qualified ID
-    # @param extra [Hash] additional payload fields
-    # @return [Hash]
-    # @api private
-    def self.target_payload(widget_id, **extra)
-      window_id, target = parse_target(widget_id)
-      payload = {target: target}
-      payload[:window_id] = window_id if window_id
-      payload.merge!(extra) unless extra.empty?
-      payload
-    end
-
-    private_class_method :parse_target, :target_payload
   end
 end

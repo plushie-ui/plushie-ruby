@@ -88,9 +88,6 @@ module Plushie
     def self.list_images: (Symbol tag) -> Cmd
     def self.clear_images: () -> Cmd
 
-    # Canvas element focus
-    def self.focus_element: (String canvas_id, String element_id) -> Cmd
-
     # Widget queries
     def self.tree_hash: (Symbol tag) -> Cmd
     def self.find_focused: (Symbol tag) -> Cmd
@@ -101,8 +98,8 @@ module Plushie
     # Accessibility
     def self.announce: (String text) -> Cmd
 
-    # Widget commands
-    def self.widget_command: (String node_id, String op, ?Hash[Symbol, untyped] payload) -> Cmd
+    # Widget commands (unified)
+    def self.widget_command: (String id, String family, ?untyped value) -> Cmd
     def self.widget_commands: (Array[Hash[Symbol, untyped]] commands) -> Cmd
 
     # Test

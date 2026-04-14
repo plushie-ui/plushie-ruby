@@ -38,14 +38,15 @@ class DocsCommandsTest < Minitest::Test
 
   def test_commands_focus_construct
     cmd = C.focus("todo_input")
-    assert_equal :focus, cmd.type
-    assert_equal "todo_input", cmd.payload[:target]
+    assert_equal :command, cmd.type
+    assert_equal "todo_input", cmd.payload[:id]
+    assert_equal "focus", cmd.payload[:family]
   end
 
   def test_commands_batch_construct
     cmd = C.batch([C.focus("name_input"), C.send_after(5000, :auto_save)])
     assert_equal :batch, cmd.type
-    assert_equal :focus, cmd.payload[:commands][0].type
+    assert_equal :command, cmd.payload[:commands][0].type
     assert_equal :send_after, cmd.payload[:commands][1].type
   end
 
@@ -58,7 +59,8 @@ class DocsCommandsTest < Minitest::Test
 
   def test_commands_close_window_construct
     cmd = C.close_window("main")
-    assert_equal :close_window, cmd.type
+    assert_equal :widget_op, cmd.type
+    assert_equal "close_window", cmd.payload[:op]
     assert_equal "main", cmd.payload[:window_id]
   end
 
@@ -66,54 +68,58 @@ class DocsCommandsTest < Minitest::Test
 
   def test_commands_scroll_to_construct
     cmd = C.scroll_to("chat_log", 500)
-    assert_equal :scroll_to, cmd.type
-    assert_equal "chat_log", cmd.payload[:target]
-    assert_equal 500, cmd.payload[:offset_y]
+    assert_equal :command, cmd.type
+    assert_equal "chat_log", cmd.payload[:id]
+    assert_equal "scroll_to", cmd.payload[:family]
+    assert_equal({x: 0.0, y: 500}, cmd.payload[:value])
   end
 
   def test_commands_snap_to_construct
     cmd = C.snap_to("scroll_area", 0.0, 0.5)
-    assert_equal :snap_to, cmd.type
-    assert_equal "scroll_area", cmd.payload[:target]
-    assert_equal 0.0, cmd.payload[:x]
-    assert_equal 0.5, cmd.payload[:y]
+    assert_equal :command, cmd.type
+    assert_equal "scroll_area", cmd.payload[:id]
+    assert_equal "snap_to", cmd.payload[:family]
+    assert_equal({x: 0.0, y: 0.5}, cmd.payload[:value])
   end
 
   def test_commands_snap_to_end_construct
     cmd = C.snap_to_end("chat_log")
-    assert_equal :snap_to_end, cmd.type
-    assert_equal "chat_log", cmd.payload[:target]
+    assert_equal :command, cmd.type
+    assert_equal "chat_log", cmd.payload[:id]
+    assert_equal "snap_to_end", cmd.payload[:family]
   end
 
   def test_commands_scroll_by_construct
     cmd = C.scroll_by("log_view", 0, 100)
-    assert_equal :scroll_by, cmd.type
-    assert_equal "log_view", cmd.payload[:target]
-    assert_equal 0, cmd.payload[:x]
-    assert_equal 100, cmd.payload[:y]
+    assert_equal :command, cmd.type
+    assert_equal "log_view", cmd.payload[:id]
+    assert_equal "scroll_by", cmd.payload[:family]
+    assert_equal({x: 0, y: 100}, cmd.payload[:value])
   end
 
   # -- Text operations --
 
   def test_commands_select_all_construct
     cmd = C.select_all("editor")
-    assert_equal :select_all, cmd.type
-    assert_equal "editor", cmd.payload[:target]
+    assert_equal :command, cmd.type
+    assert_equal "editor", cmd.payload[:id]
+    assert_equal "select_all", cmd.payload[:family]
   end
 
   def test_commands_move_cursor_to_construct
     cmd = C.move_cursor_to("editor", 42)
-    assert_equal :move_cursor_to, cmd.type
-    assert_equal "editor", cmd.payload[:target]
-    assert_equal 42, cmd.payload[:position]
+    assert_equal :command, cmd.type
+    assert_equal "editor", cmd.payload[:id]
+    assert_equal "move_cursor_to", cmd.payload[:family]
+    assert_equal({position: 42}, cmd.payload[:value])
   end
 
   def test_commands_select_range_construct
     cmd = C.select_range("editor", 5, 10)
-    assert_equal :select_range, cmd.type
-    assert_equal "editor", cmd.payload[:target]
-    assert_equal 5, cmd.payload[:start]
-    assert_equal 10, cmd.payload[:end]
+    assert_equal :command, cmd.type
+    assert_equal "editor", cmd.payload[:id]
+    assert_equal "select_range", cmd.payload[:family]
+    assert_equal({start: 5, end: 10}, cmd.payload[:value])
   end
 
   # -- Window management --
@@ -170,20 +176,20 @@ class DocsCommandsTest < Minitest::Test
 
   def test_commands_pane_split_construct
     cmd = C.pane_split("pane_grid", "editor", :horizontal, "new_editor")
-    assert_equal :widget_op, cmd.type
-    assert_equal :pane_split, cmd.payload[:op]
-    assert_equal "pane_grid", cmd.payload[:target]
-    assert_equal "editor", cmd.payload[:pane]
-    assert_equal "horizontal", cmd.payload[:axis]
-    assert_equal "new_editor", cmd.payload[:new_pane_id]
+    assert_equal :command, cmd.type
+    assert_equal "pane_split", cmd.payload[:family]
+    assert_equal "pane_grid", cmd.payload[:id]
+    assert_equal "editor", cmd.payload[:value][:pane]
+    assert_equal "horizontal", cmd.payload[:value][:axis]
+    assert_equal "new_editor", cmd.payload[:value][:new_pane_id]
   end
 
   def test_commands_pane_close_construct
     cmd = C.pane_close("pane_grid", "editor")
-    assert_equal :widget_op, cmd.type
-    assert_equal :pane_close, cmd.payload[:op]
-    assert_equal "pane_grid", cmd.payload[:target]
-    assert_equal "editor", cmd.payload[:pane]
+    assert_equal :command, cmd.type
+    assert_equal "pane_close", cmd.payload[:family]
+    assert_equal "pane_grid", cmd.payload[:id]
+    assert_equal "editor", cmd.payload[:value][:pane]
   end
 
   # -- Image operations --
@@ -207,10 +213,10 @@ class DocsCommandsTest < Minitest::Test
 
   def test_commands_widget_command_construct
     cmd = C.widget_command("term-1", "write", {data: "hello"})
-    assert_equal :extension_command, cmd.type
-    assert_equal "term-1", cmd.payload[:node_id]
-    assert_equal "write", cmd.payload[:op]
-    assert_equal({data: "hello"}, cmd.payload[:data])
+    assert_equal :command, cmd.type
+    assert_equal "term-1", cmd.payload[:id]
+    assert_equal "write", cmd.payload[:family]
+    assert_equal({data: "hello"}, cmd.payload[:value])
   end
 
   # -- Animation --

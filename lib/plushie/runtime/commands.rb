@@ -26,16 +26,15 @@ module Plushie
         when :send_after then execute_send_after(cmd.payload[:delay], cmd.payload[:event])
         when :exit then @running = false
 
-        # Widget operations (sent to renderer via bridge)
-        when :focus, :focus_next, :focus_previous,
-          :select_all, :move_cursor_to_front, :move_cursor_to_end,
-          :move_cursor_to, :select_range,
-          :scroll_to, :snap_to, :snap_to_end, :scroll_by
-          send_widget_op(cmd.type, cmd.payload)
+        # Unified widget-targeted command (focus, scroll, text, pane, native)
+        when :command
+          send_command(cmd.payload)
 
-        when :close_window
-          send_widget_op(:close_window, cmd.payload)
+        # Batched widget-targeted commands
+        when :commands
+          send_commands(cmd.payload[:commands])
 
+        # Global widget operations (not targeted at a specific widget)
         when :widget_op
           send_widget_op(cmd.payload[:op], cmd.payload.except(:op))
 
@@ -59,13 +58,6 @@ module Plushie
         # Image operations
         when :image_op
           send_image_op(cmd.payload)
-
-        # Extensions
-        when :extension_command
-          send_extension_command(cmd.payload)
-
-        when :extension_commands
-          send_extension_commands(cmd.payload[:commands])
 
         # Test
         when :advance_frame
@@ -233,19 +225,19 @@ module Plushie
         )
       end
 
-      # Send a single extension command.
-      def send_extension_command(payload)
+      # Send a single widget-targeted command via the unified wire format.
+      def send_command(payload)
         @bridge.send_encoded(
-          Protocol::Encode.encode_extension_command(
-            payload[:node_id], payload[:op].to_s, payload[:data] || {}, @format
+          Protocol::Encode.encode_command(
+            payload[:id], payload[:family], payload[:value], @format
           )
         )
       end
 
-      # Send batched extension commands.
-      def send_extension_commands(commands)
+      # Send batched widget-targeted commands.
+      def send_commands(commands)
         @bridge.send_encoded(
-          Protocol::Encode.encode_extension_commands(commands, @format)
+          Protocol::Encode.encode_commands(commands, @format)
         )
       end
 

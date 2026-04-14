@@ -165,7 +165,7 @@ class DocsTutorialTest < Minitest::Test
     assert_equal "Buy milk", model.todos.first[:text]
     assert_equal "todo_1", model.todos.first[:id]
     assert_equal false, model.todos.first[:done]
-    assert_equal :focus, cmd.type
+    assert_equal :command, cmd.type
   end
 
   def test_tutorial_step2_empty_submit_noop
@@ -241,8 +241,8 @@ class DocsTutorialTest < Minitest::Test
     model = Todo::Model.new(todos: [], input: "Buy milk", filter: :all, next_id: 1)
     _model, cmd = @app.update(model, Plushie::Event::Widget.new(type: :submit, id: "new_todo"))
 
-    assert_equal :focus, cmd.type
-    assert_equal "app/new_todo", cmd.payload[:target]
+    assert_equal :command, cmd.type
+    assert_equal "app/new_todo", cmd.payload[:id]
   end
 
   # -- Step 6: filtering --

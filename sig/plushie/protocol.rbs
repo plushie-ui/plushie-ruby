@@ -43,9 +43,9 @@ module Plushie
       # Image operations
       def self.encode_image_op: (String op, Hash[Symbol, untyped] payload, ?Symbol format) -> String
 
-      # Extension commands
-      def self.encode_extension_command: (String node_id, String op, Hash[Symbol, untyped] payload, ?Symbol format) -> String
-      def self.encode_extension_commands: (Array[Hash[Symbol, untyped]] commands, ?Symbol format) -> String
+      # Widget-targeted commands (unified wire format)
+      def self.encode_command: (String id, String family, ?untyped value, ?Symbol format) -> String
+      def self.encode_commands: (Array[Hash[Symbol, untyped]] commands, ?Symbol format) -> String
 
       # Queries
       def self.encode_query: (String id, String target, ?Hash[Symbol, untyped] selector, ?Symbol format) -> String

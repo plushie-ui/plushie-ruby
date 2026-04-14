@@ -77,17 +77,17 @@ module Plushie
       def initialize: (tag: Symbol?, result: untyped) -> void
     end
 
-    class WidgetCommandError
+    class CommandError
       attr_reader reason: String
-      attr_reader node_id: String?
-      attr_reader op: String?
+      attr_reader id: String?
+      attr_reader family: String?
       attr_reader widget_type: String?
       attr_reader message: String?
 
       def initialize: (
         reason: String,
-        ?node_id: String?,
-        ?op: String?,
+        ?id: String?,
+        ?family: String?,
         ?widget_type: String?,
         ?message: String?
       ) -> void

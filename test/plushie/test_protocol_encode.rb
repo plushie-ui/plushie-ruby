@@ -94,21 +94,24 @@ class TestProtocolEncode < Minitest::Test
     refute_nil result["pixels"]
   end
 
-  def test_encode_extension_command
-    result = JSON.parse(E.encode_extension_command("chart-1", "append", {values: [1, 2]}, :json))
-    assert_equal "extension_command", result["type"]
-    assert_equal "chart-1", result["node_id"]
-    assert_equal "append", result["op"]
+  def test_encode_command
+    result = JSON.parse(E.encode_command("chart-1", "append", {values: [1, 2]}, :json))
+    assert_equal "command", result["type"]
+    assert_equal "chart-1", result["id"]
+    assert_equal "append", result["family"]
+    assert_equal [1, 2], result["value"]["values"]
   end
 
-  def test_encode_extension_commands_batch
+  def test_encode_commands_batch
     cmds = [
-      {node_id: "a", op: "push", payload: {v: 1}},
-      {node_id: "b", op: "clear", payload: {}}
+      {id: "a", family: "push", value: {v: 1}},
+      {id: "b", family: "clear", value: nil}
     ]
-    result = JSON.parse(E.encode_extension_commands(cmds, :json))
-    assert_equal "extension_commands", result["type"]
+    result = JSON.parse(E.encode_commands(cmds, :json))
+    assert_equal "commands", result["type"]
     assert_equal 2, result["commands"].length
+    assert_equal "a", result["commands"][0]["id"]
+    assert_equal "push", result["commands"][0]["family"]
   end
 
   def test_encode_query
@@ -163,8 +166,8 @@ class TestProtocolEncode < Minitest::Test
       E.encode_window_op(:close, "w", {}, :json),
       E.encode_effect("e1", "clipboard_read", {}, :json),
       E.encode_image_op("delete_image", {handle: "x"}, :json),
-      E.encode_extension_command("n", "op", {}, :json),
-      E.encode_extension_commands([], :json),
+      E.encode_command("n", "op", nil, :json),
+      E.encode_commands([], :json),
       E.encode_query("q", "find", {}, :json),
       E.encode_interact("i", "click", nil, {}, :json),
       E.encode_tree_hash("t", "n", :json),

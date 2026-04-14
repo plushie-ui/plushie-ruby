@@ -162,15 +162,21 @@ module Plushie
     #   in Event::Effect[tag: :import, result: :cancelled]
     Effect = Data.define(:tag, :result)
 
-    # Renderer error for a widget command.
+    # Renderer error for a command.
+    #
+    # Emitted when the renderer cannot deliver or execute a command.
     #
     # @!attribute [r] reason [String] machine-readable error reason
-    # @!attribute [r] node_id [String, nil] target widget node ID
-    # @!attribute [r] op [String, nil] command operation name
+    # @!attribute [r] id [String, nil] target widget ID
+    # @!attribute [r] family [String, nil] command family name
     # @!attribute [r] widget_type [String, nil] widget type name
     # @!attribute [r] message [String, nil] human-readable error text
-    WidgetCommandError = Data.define(:reason, :node_id, :op, :widget_type, :message) do
-      def initialize(reason:, node_id: nil, op: nil, widget_type: nil, message: nil)
+    #
+    # @example
+    #   in Event::CommandError[family:, id:, message:]
+    #     logger.warn("command #{family} failed on #{id}: #{message}")
+    CommandError = Data.define(:reason, :id, :family, :widget_type, :message) do
+      def initialize(reason:, id: nil, family: nil, widget_type: nil, message: nil)
         super
       end
     end

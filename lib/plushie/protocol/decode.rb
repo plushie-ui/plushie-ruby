@@ -596,12 +596,13 @@ module Plushie
           Event::System.new(type: :all_windows_closed)
 
         when "error"
-          if msg["id"] == "extension_command" || msg["id"] == "command"
-            Event::WidgetCommandError.new(
+          error_kind = data.is_a?(Hash) ? data["kind"] : nil
+          if error_kind == "command" || msg["id"] == "command" || msg["id"] == "extension_command"
+            Event::CommandError.new(
               reason: data["reason"] || "",
-              node_id: data["node_id"] || data["id"],
-              op: data["op"] || data["family"],
-              widget_type: data["extension"] || data["widget_type"],
+              id: data["id"] || data["node_id"],
+              family: data["family"] || data["op"],
+              widget_type: data["widget_type"] || data["extension"],
               message: data["message"]
             )
           else

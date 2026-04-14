@@ -56,73 +56,89 @@ class TestCommand < Minitest::Test
 
   def test_focus
     cmd = C.focus("input_field")
-    assert_equal :focus, cmd.type
-    assert_equal "input_field", cmd.payload[:target]
+    assert_equal :command, cmd.type
+    assert_equal "input_field", cmd.payload[:id]
+    assert_equal "focus", cmd.payload[:family]
   end
 
   def test_focus_next
-    assert_equal :focus_next, C.focus_next.type
+    assert_equal :widget_op, C.focus_next.type
+    assert_equal "focus_next", C.focus_next.payload[:op]
   end
 
   def test_focus_previous
-    assert_equal :focus_previous, C.focus_previous.type
+    assert_equal :widget_op, C.focus_previous.type
+    assert_equal "focus_previous", C.focus_previous.payload[:op]
   end
 
   # -- Text editing --------------------------------------------------------
 
   def test_select_all
     cmd = C.select_all("editor")
-    assert_equal :select_all, cmd.type
-    assert_equal "editor", cmd.payload[:target]
+    assert_equal :command, cmd.type
+    assert_equal "editor", cmd.payload[:id]
+    assert_equal "select_all", cmd.payload[:family]
   end
 
   def test_move_cursor_to_front
-    assert_equal :move_cursor_to_front, C.move_cursor_to_front("ed").type
+    cmd = C.move_cursor_to_front("ed")
+    assert_equal :command, cmd.type
+    assert_equal "move_cursor_to_front", cmd.payload[:family]
   end
 
   def test_move_cursor_to_end
-    assert_equal :move_cursor_to_end, C.move_cursor_to_end("ed").type
+    cmd = C.move_cursor_to_end("ed")
+    assert_equal :command, cmd.type
+    assert_equal "move_cursor_to_end", cmd.payload[:family]
   end
 
   def test_move_cursor_to
     cmd = C.move_cursor_to("ed", 5)
-    assert_equal :move_cursor_to, cmd.type
-    assert_equal 5, cmd.payload[:position]
+    assert_equal :command, cmd.type
+    assert_equal "move_cursor_to", cmd.payload[:family]
+    assert_equal({position: 5}, cmd.payload[:value])
   end
 
   def test_select_range
     cmd = C.select_range("ed", 2, 8)
-    assert_equal :select_range, cmd.type
-    assert_equal 2, cmd.payload[:start]
-    assert_equal 8, cmd.payload[:end]
+    assert_equal :command, cmd.type
+    assert_equal "select_range", cmd.payload[:family]
+    assert_equal({start: 2, end: 8}, cmd.payload[:value])
   end
 
   # -- Scroll --------------------------------------------------------------
 
   def test_scroll_to
     cmd = C.scroll_to("list", 100)
-    assert_equal :scroll_to, cmd.type
+    assert_equal :command, cmd.type
+    assert_equal "scroll_to", cmd.payload[:family]
+    assert_equal({x: 0.0, y: 100}, cmd.payload[:value])
   end
 
   def test_snap_to
     cmd = C.snap_to("list", 0.0, 1.0)
-    assert_equal :snap_to, cmd.type
+    assert_equal :command, cmd.type
+    assert_equal "snap_to", cmd.payload[:family]
   end
 
   def test_snap_to_end
-    assert_equal :snap_to_end, C.snap_to_end("list").type
+    cmd = C.snap_to_end("list")
+    assert_equal :command, cmd.type
+    assert_equal "snap_to_end", cmd.payload[:family]
   end
 
   def test_scroll_by
     cmd = C.scroll_by("list", 0, 50)
-    assert_equal :scroll_by, cmd.type
+    assert_equal :command, cmd.type
+    assert_equal "scroll_by", cmd.payload[:family]
   end
 
   # -- Window ops ----------------------------------------------------------
 
   def test_close_window
     cmd = C.close_window("settings")
-    assert_equal :close_window, cmd.type
+    assert_equal :widget_op, cmd.type
+    assert_equal "close_window", cmd.payload[:op]
     assert_equal "settings", cmd.payload[:window_id]
   end
 
@@ -219,13 +235,16 @@ class TestCommand < Minitest::Test
 
   def test_pane_split
     cmd = C.pane_split("grid", "p1", :horizontal, "p2")
-    assert_equal :widget_op, cmd.type
-    assert_equal :pane_split, cmd.payload[:op]
+    assert_equal :command, cmd.type
+    assert_equal "pane_split", cmd.payload[:family]
+    assert_equal "grid", cmd.payload[:id]
+    assert_equal "p1", cmd.payload[:value][:pane]
   end
 
   def test_pane_close
     cmd = C.pane_close("grid", "p1")
-    assert_equal :pane_close, cmd.payload[:op]
+    assert_equal :command, cmd.type
+    assert_equal "pane_close", cmd.payload[:family]
   end
 
   # -- Image ops -----------------------------------------------------------
@@ -298,13 +317,15 @@ class TestCommand < Minitest::Test
 
   def test_widget_command
     cmd = C.widget_command("chart-1", "append", {values: [1, 2]})
-    assert_equal :extension_command, cmd.type
-    assert_equal "chart-1", cmd.payload[:node_id]
+    assert_equal :command, cmd.type
+    assert_equal "chart-1", cmd.payload[:id]
+    assert_equal "append", cmd.payload[:family]
+    assert_equal({values: [1, 2]}, cmd.payload[:value])
   end
 
   def test_widget_commands
-    cmd = C.widget_commands([{node_id: "a", op: "push", payload: {}}])
-    assert_equal :extension_commands, cmd.type
+    cmd = C.widget_commands([{id: "a", family: "push", value: {}}])
+    assert_equal :commands, cmd.type
   end
 
   # -- Test / headless -----------------------------------------------------

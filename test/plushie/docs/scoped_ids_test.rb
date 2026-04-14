@@ -136,8 +136,8 @@ class DocsScopedIdsTest < Minitest::Test
 
   def test_scoped_ids_command_focus_scoped
     cmd = Plushie::Command.focus("sidebar/form/email")
-    assert_equal :focus, cmd.type
-    assert_equal "sidebar/form/email", cmd.payload[:target]
+    assert_equal :command, cmd.type
+    assert_equal "sidebar/form/email", cmd.payload[:id]
   end
 
   # -- Tree.find with scoped paths --

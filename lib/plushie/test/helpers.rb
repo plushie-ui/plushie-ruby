@@ -76,10 +76,12 @@ module Plushie
       # @param element_id [String] the element ID within the canvas
       def click_element(canvas_id, element_id) = session.interact("canvas_element_click", canvas_id, {"element_id" => element_id})
 
-      # Focus a canvas element by sending a focus_element command.
+      # Focus a canvas element by sending a focus command to the element path.
       # @param canvas_id [String] the canvas widget ID
       # @param element_id [String] the element ID within the canvas
-      def focus_element(canvas_id, element_id) = session.command(Command.focus_element(canvas_id, element_id))
+      def focus_element(canvas_id, element_id)
+        session.command(Command.widget_command(canvas_id, "focus_element", {element_id: element_id}))
+      end
 
       # -- Queries -------------------------------------------------------------
 

@@ -218,33 +218,36 @@ module Plushie
       end
 
       # ---------------------------------------------------------------
-      # Extension commands
+      # Widget-targeted commands
       # ---------------------------------------------------------------
 
-      # Send a command directly to a native widget extension.
+      # Send a command to a widget by ID.
       #
-      # @param node_id [String] target extension widget ID
-      # @param op [String] command name
-      # @param payload [Hash] command data
+      # Uses the unified wire format matching events:
+      # {type: "command", id: "widget_id", family: "op_name", value: ...}
+      #
+      # @param id [String] target widget ID (scoped path)
+      # @param family [String] operation name
+      # @param value [Object, nil] operation-specific data
       # @param format [:msgpack, :json]
       # @return [String]
-      def encode_extension_command(node_id, op, payload, format = :msgpack)
+      def encode_command(id, family, value = nil, format = :msgpack)
         encode({
-          type: "extension_command", session: "",
-          node_id: node_id, op: op.to_s, payload: payload
+          type: "command", session: "",
+          id: id, family: family.to_s, value: value
         }, format)
       end
 
-      # Send multiple extension commands in a single message.
+      # Send multiple widget-targeted commands in a single message.
       #
-      # @param commands [Array<Hash>] each with :node_id, :op, :payload
+      # @param commands [Array<Hash>] each with :id, :family, :value
       # @param format [:msgpack, :json]
       # @return [String]
-      def encode_extension_commands(commands, format = :msgpack)
+      def encode_commands(commands, format = :msgpack)
         encode({
-          type: "extension_commands", session: "",
+          type: "commands", session: "",
           commands: commands.map { |c|
-            {node_id: c[:node_id], op: c[:op].to_s, payload: c[:payload] || {}}
+            {id: c[:id], family: c[:family].to_s, value: c[:value]}
           }
         }, format)
       end

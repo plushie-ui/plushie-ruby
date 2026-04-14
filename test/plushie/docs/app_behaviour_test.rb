@@ -115,8 +115,8 @@ class DocsAppBehaviourTest < Minitest::Test
     model = model.with(input: "Buy milk")
     model, cmd = @app.update(model, Plushie::Event::Widget.new(type: :submit, id: "todo_field"))
 
-    assert_equal :focus, cmd.type
-    assert_equal "todo_field", cmd.payload[:target]
+    assert_equal :command, cmd.type
+    assert_equal "todo_field", cmd.payload[:id]
     assert_equal "", model.input
   end
 

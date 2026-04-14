@@ -76,8 +76,8 @@ class DocsTestingDocTest < Minitest::Test
     model, cmd = MyApp.new.update(model, Plushie::Event::Widget.new(type: :submit, id: "todo_input", value: "Buy milk"))
 
     assert_equal "Buy milk", model.todos.first[:text]
-    assert_equal :focus, cmd.type
-    assert_equal "todo_input", cmd.payload[:target]
+    assert_equal :command, cmd.type
+    assert_equal "todo_input", cmd.payload[:id]
   end
 
   # -- Testing view: tree structure --
