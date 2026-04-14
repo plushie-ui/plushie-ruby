@@ -132,13 +132,21 @@ module Plushie
     def start_forwarder(conn_queue)
       Thread.new do
         while (msg = conn_queue.pop)
-          case msg
-          in {type: :connection_closed} | {type: :connection_error}
-            @event_queue.push([:renderer_exited, msg])
-            attempt_restart
-            break
-          else
-            @event_queue.push([:renderer_event, msg])
+          begin
+            case msg
+            in {type: :connection_closed} | {type: :connection_error}
+              @event_queue.push([:renderer_exited, msg])
+              attempt_restart
+              break
+            else
+              @event_queue.push([:renderer_event, msg])
+            end
+          rescue => e
+            # Individual message dispatch error. Log and continue rather
+            # than killing the bridge. Partial/corrupt renderer output from
+            # a crash mid-write should use the restart mechanism, not take
+            # down the forwarder thread.
+            @logger.warn("plushie: bridge forwarder message error: #{e.class}: #{e.message}")
           end
         end
       rescue => e
