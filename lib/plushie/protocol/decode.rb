@@ -45,7 +45,8 @@ module Plushie
       def decode_message(data, format = :msgpack)
         msg = decode(data, format)
         return nil if msg.key?("error")
-        dispatch_message(msg)
+        result = dispatch_message(msg)
+        normalize_binary_fields(result, format)
       end
 
       # Dispatch an already-deserialized message hash.
@@ -134,7 +135,8 @@ module Plushie
             scope: scope, data: {
               absolute_x: data["absolute_x"], absolute_y: data["absolute_y"],
               relative_x: data["relative_x"], relative_y: data["relative_y"],
-              bounds: data["bounds"], content_bounds: data["content_bounds"]
+              bounds: {width: data["bounds_width"], height: data["bounds_height"]},
+              content_bounds: {width: data["content_width"], height: data["content_height"]}
             }
           )
 
@@ -683,6 +685,7 @@ module Plushie
         when "ok" then [:ok, msg["result"]]
         when "cancelled" then :cancelled
         when "error" then [:error, msg["error"]]
+        when "unsupported" then [:error, :unsupported]
         else
           # Legacy fallback for older renderers
           if msg["error"]
@@ -900,6 +903,22 @@ module Plushie
         case cursor
         when Hash then [cursor["start"], cursor["end"]]
         when Array then [cursor[0], cursor[1]] if cursor.length == 2
+        end
+      end
+
+      # Normalize format-specific binary representations so consumers
+      # don't need to know the wire format. JSON encodes raw bytes as
+      # base64 strings; this decodes them back to raw binaries after
+      # dispatch.
+      def normalize_binary_fields(message, format)
+        return message unless format == :json && message.is_a?(Hash)
+
+        if message[:type] == :screenshot_response && message[:rgba].is_a?(String)
+          require "base64"
+          decoded = Base64.decode64(message[:rgba])
+          message.merge(rgba: decoded)
+        else
+          message
         end
       end
     end
