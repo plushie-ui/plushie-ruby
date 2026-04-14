@@ -249,8 +249,37 @@ module Plushie
         TOML
       end
 
+      # Built-in widget type names reserved by the renderer. Native widgets
+      # must not use these names because the renderer dispatches built-ins
+      # before extensions, silently shadowing the custom widget.
+      BUILTIN_WIDGET_TYPES = %w[
+        column row container stack grid pin keyed_column float responsive
+        text button checkbox radio toggler slider vertical_slider
+        progress_bar text_input text_editor pick_list combo_box
+        tooltip image svg qr_code markdown scrollable canvas
+        rule space pane_grid rich_text table overlay sensor
+        pointer_area window themer
+      ].freeze
+
+      # Reject native widgets whose type names shadow built-in widgets.
+      def check_builtin_collisions!(widgets)
+        widgets.each do |mod|
+          type_names = mod.type_names.map(&:to_s)
+          collisions = type_names & BUILTIN_WIDGET_TYPES
+          next if collisions.empty?
+
+          raise Error,
+            "Widget #{mod.name} uses type name(s) #{collisions.inspect} " \
+            "that shadow built-in widgets. The renderer dispatches built-ins " \
+            "before native widgets, so these would be silently ignored. " \
+            "Choose a different type name."
+        end
+      end
+
       # Generate main.rs with widget registrations.
       def generate_main_rs(widgets)
+        check_builtin_collisions!(widgets) unless widgets.empty?
+
         builder_expr = if widgets.empty?
           "PlushieAppBuilder::new()"
         else

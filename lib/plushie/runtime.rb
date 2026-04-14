@@ -27,6 +27,9 @@ module Plushie
     # @param dev_dirs [Array<String>, nil] directories to watch (default: ["lib/"])
     def initialize(app:, transport: :spawn, format: :msgpack, daemon: false,
       binary: nil, log_level: :error, token: nil, dev: false, dev_dirs: nil)
+      validate_app!(app)
+      validate_transport!(transport)
+
       @app = app
       @transport = transport
       @format = format
@@ -634,6 +637,27 @@ module Plushie
         dispatch_event(Event::Widget.new(
           type: :blurred, id: id, window_id: event.window_id, scope: event.scope
         ))
+      end
+    end
+
+    # -- Init validation -------------------------------------------------------
+
+    def validate_app!(app)
+      missing = %i[init update view].reject { |m| app.respond_to?(m) }
+      return if missing.empty?
+
+      raise ArgumentError,
+        "app must respond to #{missing.join(", ")}. " \
+        "Include Plushie::App or define init/update/view methods."
+    end
+
+    def validate_transport!(transport)
+      case transport
+      when :spawn, :stdio then nil
+      when Array
+        raise ArgumentError, "unsupported transport: #{transport.inspect}" unless transport[0] == :iostream
+      else
+        raise ArgumentError, "unsupported transport: #{transport.inspect}. Expected :spawn, :stdio, or [:iostream, adapter]"
       end
     end
 

@@ -102,6 +102,10 @@ module Plushie
     def handle_renderer_restarted: () -> void
     def fail_pending_interact: (String reason) -> void
 
+    # Init validation
+    def validate_app!: (untyped app) -> void
+    def validate_transport!: (untyped transport) -> void
+
     # Status-based focus tracking
     def handle_status_event: (Event::Widget event) -> void
 

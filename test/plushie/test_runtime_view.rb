@@ -10,7 +10,11 @@ class TestRuntimeView < Minitest::Test
       @view_tree = view_tree
     end
 
+    def init(_opts) = nil
+    def update(model, _event) = model
     def view(_model) = @view_tree
+    def subscribe(_model) = []
+    def settings = {}
   end
 
   def runtime_for(view_tree)
