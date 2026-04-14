@@ -19,6 +19,11 @@ module Plushie
         @socket = socket
         @connection = nil
         @reader = nil
+
+        # Disable Nagle's algorithm for low-latency protocol messages.
+        if socket.respond_to?(:setsockopt)
+          socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
+        end
       end
 
       # Called by the Connection during iostream setup.
