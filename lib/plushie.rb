@@ -102,6 +102,7 @@ require_relative "plushie/data"
 require_relative "plushie/state"
 require_relative "plushie/key_modifiers"
 require_relative "plushie/dev_server"
+require_relative "plushie/widget_set"
 
 # Native desktop GUI framework for Ruby, powered by iced.
 #

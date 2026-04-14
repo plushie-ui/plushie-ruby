@@ -7,6 +7,14 @@ module Plushie
       def self.clear: () -> nil
     end
 
+    module MemoCache
+      def self.prev: () -> Hash[untyped, untyped]
+      def self.current: () -> Hash[untyped, untyped]
+      def self.seed: (Hash[untyped, untyped] cache) -> void
+      def self.store: (untyped key, untyped value) -> void
+      def self.capture: () -> Hash[untyped, untyped]
+    end
+
     # Windows
     private def window: (String id, **untyped props) ?{ () -> void } -> Node
 

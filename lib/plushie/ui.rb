@@ -59,7 +59,76 @@ module Plushie
       end
     end
 
+    # Thread-local memo cache used during tree normalization.
+    # The runtime seeds the previous cache before normalize and
+    # captures the new cache after.
+    # @api private
+    module MemoCache
+      # @return [Hash] the previous render's memo cache
+      def self.prev = Thread.current[:_plushie_memo_prev] || {}
+
+      # @return [Hash] the current render's memo cache (being built)
+      def self.current = Thread.current[:_plushie_memo_current] || {}
+
+      # Set the previous cache (called by runtime before normalize).
+      def self.seed(cache) = Thread.current[:_plushie_memo_prev] = cache
+
+      # Store a memo result in the current cache.
+      def self.store(key, value)
+        (Thread.current[:_plushie_memo_current] ||= {})[key] = value
+      end
+
+      # Capture and clear the current cache (called by runtime after normalize).
+      def self.capture
+        result = Thread.current[:_plushie_memo_current] || {}
+        Thread.current[:_plushie_memo_current] = nil
+        Thread.current[:_plushie_memo_prev] = nil
+        result
+      end
+    end
+
     private
+
+    # Cache a subtree based on a dependency term.
+    #
+    # When +deps+ is structurally equal to the previous render's value
+    # for this memo site, the cached normalized subtree is reused,
+    # making the diff O(1) for unchanged subtrees.
+    #
+    #   window "main" do
+    #     memo(model.sidebar_version) do
+    #       sidebar(model.sidebar_data)
+    #     end
+    #   end
+    #
+    # The body is only evaluated when +deps+ changes. For dynamic lists,
+    # include the item key in deps:
+    #
+    #   model.items.each do |item|
+    #     memo([item.id, item.version]) do
+    #       item_card(item)
+    #     end
+    #   end
+    #
+    # @param deps [Object] dependency value (compared with == between renders)
+    # @yield the subtree to cache
+    def memo(deps, &block)
+      # Generate a unique site ID based on caller location
+      site = block.source_location.join(":")
+
+      node = Node.new(
+        id: "memo:#{site}",
+        type: "__memo__",
+        meta: {__memo_deps__: deps, __memo_block__: block}
+      )
+
+      ctx = Context.current
+      if ctx
+        ctx << node
+      else
+        node
+      end
+    end
 
     # =========================================================================
     # Windows

@@ -59,6 +59,8 @@ module Plushie
       @consecutive_view_errors = 0
       @widget_statuses = {}    # id -> status string
       @focused_widget_id = nil # currently focused widget ID
+      # @type var @memo_cache: Hash[untyped, untyped]
+      @memo_cache = {}         # memo cache across render cycles
       @diagnostics = []        # accumulated prop validation diagnostics
       @diagnostics_mutex = Mutex.new
       @pending_stub_acks = {}  # kind -> Queue (for sync ack round-trip)
@@ -447,7 +449,10 @@ module Plushie
     end
 
     def normalize_view_tree(view_tree)
-      Tree.normalize_view(view_tree, registry: @canvas_widgets)
+      UI::MemoCache.seed(@memo_cache)
+      result = Tree.normalize_view(view_tree, registry: @canvas_widgets)
+      @memo_cache = UI::MemoCache.capture
+      result
     end
 
     # Re-send the last known snapshot. Used as a fallback when view
@@ -674,12 +679,57 @@ module Plushie
       end
     end
 
+    VIEW_ERROR_WARN_THRESHOLD = 5
+
     def handle_view_error(error)
       @consecutive_view_errors += 1
       handle_callback_error("view", error)
-      if @consecutive_view_errors == 5
-        @logger.warn("plushie: view has failed 5 consecutive times; UI is stale")
+      if @consecutive_view_errors == VIEW_ERROR_WARN_THRESHOLD
+        @logger.warn("plushie: view has failed #{VIEW_ERROR_WARN_THRESHOLD} consecutive times; UI is stale")
+        inject_frozen_ui_overlay if @dev
       end
+    end
+
+    # In dev mode, inject a red error bar into the stale tree to alert
+    # the developer that the UI is frozen due to view errors.
+    def inject_frozen_ui_overlay
+      tree = @previous_tree
+      return unless tree && @bridge
+
+      overlay_node = Node.new(
+        id: "__frozen_ui__",
+        type: "container",
+        props: {
+          width: "fill",
+          height: 40,
+          padding: 8,
+          style: {background: "#dc2626"}
+        },
+        children: [
+          Node.new(id: "__frozen_ui_text__", type: "text", props: {
+            content: "View error: UI is frozen. Fix the error and save to reload.",
+            size: 14,
+            color: "#ffffff"
+          })
+        ]
+      )
+
+      # Inject the overlay as the first child of the root
+      if tree.children.any?
+        first_window = tree.children[0]
+        new_children = [overlay_node] + first_window.children
+        new_window = first_window.with(children: new_children)
+        rest = tree.children[1..] || []
+        new_tree = tree.with(children: [new_window] + rest)
+
+        bridge = @bridge
+        ops = Tree.diff(@previous_tree, new_tree)
+        if !ops.empty? && bridge
+          @previous_tree = new_tree
+        end
+      end
+    rescue => e
+      @logger.debug("plushie: failed to inject frozen UI overlay: #{e.message}")
     end
 
     # Re-render after a widget's handle_event returned {:update_state, ...}

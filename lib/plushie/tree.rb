@@ -219,6 +219,11 @@ module Plushie
         warn "plushie: tree depth reached #{DEPTH_WARNING}, approaching limit of #{MAX_DEPTH}"
       end
 
+      # Handle memo nodes: check cache, evaluate block if miss
+      if node.type == "__memo__" && node.meta
+        return normalize_memo(node, scope, registry, window_id, depth)
+      end
+
       # Validate user-provided IDs (non-auto)
       validate_user_id!(node.id) unless node.id.start_with?("auto:")
 
@@ -372,6 +377,50 @@ module Plushie
     end
     private_class_method :check_duplicate_ids!
 
+    # Handle a __memo__ node during normalization.
+    # Checks the memo cache; on hit returns the cached subtree,
+    # on miss evaluates the block and caches the result.
+    def self.normalize_memo(node, scope, registry, window_id, depth)
+      deps = node.meta[:__memo_deps__]
+      block = node.meta[:__memo_block__]
+      cache_key = [node.id, scope, window_id, deps]
+
+      prev_cache = UI::MemoCache.prev
+      cached = prev_cache[cache_key]
+
+      if cached
+        # Cache hit: reuse previous normalized subtree
+        UI::MemoCache.store(cache_key, cached)
+        cached
+      else
+        # Cache miss: evaluate the block, normalize, cache
+        # @type var children: Array[Node]
+        children = []
+        UI::Context.push(children)
+        begin
+          block.call
+        ensure
+          UI::Context.pop
+        end
+
+        # Normalize the memo body. If the block produced a single child,
+        # normalize it directly. If multiple, wrap in a transparent container.
+        result = if children.length == 1
+          normalize_node(children[0], scope, registry, window_id, depth + 1)
+        elsif children.length > 1
+          wrapper = Node.new(id: node.id, type: "container",
+            children: children)
+          normalize_node(wrapper, scope, registry, window_id, depth + 1)
+        else
+          Node.new(id: node.id, type: "container")
+        end
+
+        UI::MemoCache.store(cache_key, result)
+        result
+      end
+    end
+    private_class_method :normalize_memo
+
     # Printable ASCII range (0x21-0x7E), excludes space and control characters.
     VALID_ID_PATTERN = /\A[\x21-\x7e]+\z/
 
@@ -438,6 +487,26 @@ module Plushie
     end
     private_class_method :encode_props
 
+    # Compare two list-valued props by element ID instead of structural equality.
+    # Returns true if both are Arrays, all elements have an :id or "id" key,
+    # and the ID-keyed content is equivalent.
+    # @api private
+    def self.id_keyed_lists_equal?(old_val, new_val)
+      return false unless old_val.is_a?(Array) && new_val.is_a?(Array)
+      return false if old_val.length != new_val.length
+      return false if old_val.empty?
+
+      # Check that all elements are Hashes with an :id key
+      return false unless old_val.all? { |e| e.is_a?(Hash) && (e.key?(:id) || e.key?("id")) }
+      return false unless new_val.all? { |e| e.is_a?(Hash) && (e.key?(:id) || e.key?("id")) }
+
+      # Build ID-keyed lookup and compare
+      # @type var old_by_id: Hash[untyped, Hash[untyped, untyped]]
+      old_by_id = old_val.each_with_object({}) { |e, h| h[e[:id] || e["id"]] = e }
+      new_val.all? { |e| old_by_id[e[:id] || e["id"]] == e }
+    end
+    private_class_method :id_keyed_lists_equal?
+
     # -- Diff internals ----------------------------------------------------
 
     def self.diff_node(old, new, path)
@@ -458,9 +527,17 @@ module Plushie
       # @type var changed: Hash[String, untyped]
       changed = {}
 
-      # Changed or added keys
+      # Changed or added keys.
+      # For list-valued props where every element has an :id, compare
+      # by ID to avoid sending the full list when content is unchanged
+      # (common for canvas shape lists that are rebuilt each render).
       new_props.each do |k, v|
-        changed[k.to_s] = v unless old_props.key?(k) && old_props[k] == v
+        if old_props.key?(k)
+          old_v = old_props[k]
+          next if old_v == v
+          next if id_keyed_lists_equal?(old_v, v)
+        end
+        changed[k.to_s] = v
       end
 
       # Removed keys -> nil

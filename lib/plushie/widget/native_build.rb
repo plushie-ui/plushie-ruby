@@ -329,9 +329,25 @@ module Plushie
           check_collisions!(widgets)
           check_crate_name_collisions!(widgets)
           check_widget_versions!(crate_paths)
+
+          # Validate crate paths exist
+          crate_paths.each do |mod, path|
+            unless File.directory?(path)
+              raise Error,
+                "widget #{mod.name} crate directory not found at #{path}. " \
+                "Check the native_crate path configuration."
+            end
+          end
         end
 
         generate_workspace(build_dir, bin_name, widgets, crate_paths)
+
+        # Cargo.lock management for reproducible builds
+        lock_src = File.join(build_dir, "..", "Cargo.lock")
+        workspace_lock = File.join(build_dir, "Cargo.lock")
+        if File.exist?(lock_src) && !File.exist?(workspace_lock)
+          FileUtils.cp(lock_src, workspace_lock)
+        end
 
         source_path = ENV["PLUSHIE_SOURCE_PATH"] || Plushie.configuration.source_path
         source_info = if source_path && File.directory?(source_path)
@@ -356,6 +372,11 @@ module Plushie
         end
 
         puts "Build succeeded."
+
+        # Copy updated Cargo.lock back for reproducible builds
+        if File.exist?(workspace_lock)
+          FileUtils.cp(workspace_lock, lock_src)
+        end
 
         binary_src = File.join(build_dir, "target", profile, bin_name)
         unless File.exist?(binary_src)

@@ -113,6 +113,10 @@ module Plushie
     INTERACT_TIMEOUT_S: Integer
     def handle_interact_timeout: (String id) -> void
 
+    # View errors
+    VIEW_ERROR_WARN_THRESHOLD: Integer
+    def inject_frozen_ui_overlay: () -> void
+
     # Error handling
     def handle_callback_error: (String callback_name, Exception error, ?hint: String?) -> void
     def handle_view_error: (Exception error) -> void

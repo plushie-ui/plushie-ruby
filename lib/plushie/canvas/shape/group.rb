@@ -55,8 +55,23 @@ module Plushie
           h[:show_focus_ring] = show_focus_ring unless show_focus_ring.nil?
           h[:focus_ring_radius] = focus_ring_radius unless focus_ring_radius.nil?
           h[:focusable] = focusable unless focusable.nil?
-          h[:a11y] = a11y if a11y
+          h[:a11y] = resolve_a11y if resolve_a11y
           h
+        end
+
+        # Resolve a11y: explicit overrides take priority, otherwise
+        # infer defaults from interactive fields so canvas elements
+        # are visible to assistive technology.
+        def resolve_a11y
+          return a11y if a11y
+
+          if focusable
+            {role: "group", label: tooltip}
+          elsif on_click
+            {role: "button"}
+          elsif draggable
+            {role: "slider"}
+          end
         end
       end
     end

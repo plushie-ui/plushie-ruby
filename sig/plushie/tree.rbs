@@ -21,6 +21,8 @@ module Plushie
     def self.infer_radio_groups: (Array[Node] children) -> Array[Node]
     def self.check_duplicate_ids!: (Array[Node] children) -> void
     def self.validate_user_id!: (String? id) -> void
+    def self.normalize_memo: (Node node, String scope, Hash[String, CanvasWidget::RegistryEntry]? registry, String? window_id, Integer depth) -> Node
+    def self.id_keyed_lists_equal?: (untyped old_val, untyped new_val) -> bool
     def self.encode_value: (untyped value) -> untyped
     def self.encode_props: (Hash[Symbol | String, untyped] props) -> Hash[String, untyped]
     def self.diff_node: (Node old, Node new, Array[Integer] path) -> Array[Hash[String, untyped]]

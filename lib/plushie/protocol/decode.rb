@@ -694,7 +694,8 @@ module Plushie
           backend: msg["backend"],
           transport: msg["transport"],
           native_widgets: msg["native_widgets"] || [],
-          widgets: msg["widgets"] || []
+          widgets: msg["widgets"] || [],
+          widget_sets: msg["widget_sets"] || []
         }
       end
 
