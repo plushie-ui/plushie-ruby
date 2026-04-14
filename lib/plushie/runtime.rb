@@ -694,9 +694,10 @@ module Plushie
       @effect_ids.clear
     end
 
-    # Flush pending stub ack queues so callers don't hang.
+    # Flush pending stub ack queues with an error so callers know the old
+    # renderer's stub registry was lost. Callers must re-register.
     def flush_pending_stub_acks
-      @pending_stub_acks.each_value { |q| q.push(:ok) }
+      @pending_stub_acks.each_value { |q| q.push({error: "renderer_restarted"}) }
       @pending_stub_acks.clear
     end
 
