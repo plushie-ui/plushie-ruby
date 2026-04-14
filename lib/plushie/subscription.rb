@@ -7,14 +7,14 @@ module Plushie
   # the list each cycle and starts/stops subscriptions automatically.
   #
   #   def subscribe(model)
-  #     subs = [Subscription.on_key_press(:keys)]
+  #     subs = [Subscription.on_key_press]
   #     subs << Subscription.every(1000, :tick) if model.timer_running
   #     subs
   #   end
   #
-  # Tag semantics differ by type:
-  # - Timer subs: tag appears in the Timer event struct
-  # - Renderer subs: tag is management-only (NOT in the event struct)
+  # Timer subscriptions require a tag (it appears in the Timer event).
+  # Renderer subscriptions do not take a tag; they are identified by
+  # their kind and optional window scope.
   #
   class Subscription
     # An immutable subscription specification.
@@ -24,12 +24,12 @@ module Plushie
     # starting new ones and stopping removed ones automatically.
     #
     # @!attribute [r] type [Symbol] subscription type (:every, :on_key_press, etc.)
-    # @!attribute [r] tag [Symbol] identifier for subscription management and (for timers) event correlation
+    # @!attribute [r] tag [Symbol, nil] identifier for timer event correlation (timers only)
     # @!attribute [r] interval [Integer, nil] interval in milliseconds (only for :every)
     # @!attribute [r] max_rate [Integer, nil] maximum events per second (nil = unlimited)
     # @!attribute [r] window_id [String, nil] window scope (nil = all windows)
     Sub = Data.define(:type, :tag, :interval, :max_rate, :window_id) do
-      def initialize(type:, tag:, interval: nil, max_rate: nil, window_id: nil)
+      def initialize(type:, tag: nil, interval: nil, max_rate: nil, window_id: nil)
         super
       end
 
@@ -37,16 +37,25 @@ module Plushie
       # Used by the runtime to diff subscription lists between cycles.
       # Timer subs include the interval so that changing the interval
       # creates a new subscription rather than updating the existing one.
+      # Renderer subs are keyed by type and window_id.
       #
       # @return [Array] unique identity tuple for this subscription
       def key
         if type == :every
           [:every, interval, tag]
-        elsif window_id
-          [type, tag, window_id]
         else
-          [type, tag]
+          [type, window_id]
         end
+      end
+
+      # Derive the wire tag sent to the renderer. Window-scoped
+      # subscriptions include the window_id so they don't collide
+      # with global subscriptions of the same kind.
+      #
+      # @return [String]
+      def wire_tag
+        kind = type.to_s
+        window_id ? "#{kind}:#{window_id}" : kind
       end
 
       # Set the maximum event rate (events per second).
@@ -70,202 +79,183 @@ module Plushie
 
     # Subscribe to keyboard press events.
     # Delivers {Event::Key}[type: :press, ...] to update.
-    # The tag is for subscription management only: it does NOT appear in the event.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_key_press(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_key_press, tag:, max_rate:, window_id: window)
+    def self.on_key_press(max_rate: nil, window: nil)
+      Sub.new(type: :on_key_press, max_rate:, window_id: window)
     end
 
     # Subscribe to keyboard release events.
     # Delivers {Event::Key}[type: :release, ...] to update.
-    # The tag is for subscription management only: it does NOT appear in the event.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_key_release(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_key_release, tag:, max_rate:, window_id: window)
+    def self.on_key_release(max_rate: nil, window: nil)
+      Sub.new(type: :on_key_release, max_rate:, window_id: window)
     end
 
     # Subscribe to modifier key state changes.
-    # Delivers Event::Modifiers with the current modifier state to update when
-    # shift, control, alt, or command keys change state.
-    # The tag is for subscription management only: it does NOT appear in the event.
+    # Delivers Event::Modifiers with the current modifier state.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_modifiers_changed(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_modifiers_changed, tag:, max_rate:, window_id: window)
+    def self.on_modifiers_changed(max_rate: nil, window: nil)
+      Sub.new(type: :on_modifiers_changed, max_rate:, window_id: window)
     end
 
     # Subscribe to pointer movement events (mouse or touch).
     # Delivers Event::Widget with type: :move, pointer data in data map.
-    # The tag is for subscription management only.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_pointer_move(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_pointer_move, tag:, max_rate:, window_id: window)
+    def self.on_pointer_move(max_rate: nil, window: nil)
+      Sub.new(type: :on_pointer_move, max_rate:, window_id: window)
     end
 
     # Subscribe to pointer button press/release events (mouse or touch).
     # Delivers Event::Widget with type: :press/:release, pointer data in data map.
-    # The tag is for subscription management only.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_pointer_button(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_pointer_button, tag:, max_rate:, window_id: window)
+    def self.on_pointer_button(max_rate: nil, window: nil)
+      Sub.new(type: :on_pointer_button, max_rate:, window_id: window)
     end
 
     # Subscribe to pointer scroll events.
     # Delivers Event::Widget with type: :scroll, pointer data in data map.
-    # The tag is for subscription management only.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_pointer_scroll(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_pointer_scroll, tag:, max_rate:, window_id: window)
+    def self.on_pointer_scroll(max_rate: nil, window: nil)
+      Sub.new(type: :on_pointer_scroll, max_rate:, window_id: window)
     end
 
     # Subscribe to window close request events.
     # Delivers {Event::Window}[type: :close_requested, window_id:] to update.
-    # The tag is for subscription management only: it does NOT appear in the event.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_window_close(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_window_close, tag:, max_rate:, window_id: window)
+    def self.on_window_close(max_rate: nil, window: nil)
+      Sub.new(type: :on_window_close, max_rate:, window_id: window)
     end
 
     # Subscribe to window opened events.
     # Delivers {Event::Window}[type: :opened, window_id:, width:, height:] to update.
-    # The tag is for subscription management only: it does NOT appear in the event.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_window_open(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_window_open, tag:, max_rate:, window_id: window)
+    def self.on_window_open(max_rate: nil, window: nil)
+      Sub.new(type: :on_window_open, max_rate:, window_id: window)
     end
 
     # Subscribe to window resize events.
     # Delivers {Event::Window}[type: :resized, window_id:, width:, height:] to update.
-    # The tag is for subscription management only: it does NOT appear in the event.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_window_resize(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_window_resize, tag:, max_rate:, window_id: window)
+    def self.on_window_resize(max_rate: nil, window: nil)
+      Sub.new(type: :on_window_resize, max_rate:, window_id: window)
     end
 
     # Subscribe to window focus events.
     # Delivers {Event::Window}[type: :focused, window_id:] to update.
-    # The tag is for subscription management only: it does NOT appear in the event.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_window_focus(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_window_focus, tag:, max_rate:, window_id: window)
+    def self.on_window_focus(max_rate: nil, window: nil)
+      Sub.new(type: :on_window_focus, max_rate:, window_id: window)
     end
 
     # Subscribe to window unfocus events.
     # Delivers {Event::Window}[type: :unfocused, window_id:] to update.
-    # The tag is for subscription management only: it does NOT appear in the event.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_window_unfocus(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_window_unfocus, tag:, max_rate:, window_id: window)
+    def self.on_window_unfocus(max_rate: nil, window: nil)
+      Sub.new(type: :on_window_unfocus, max_rate:, window_id: window)
     end
 
     # Subscribe to window move events.
     # Delivers {Event::Window}[type: :moved, window_id:, x:, y:] to update.
-    # The tag is for subscription management only: it does NOT appear in the event.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_window_move(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_window_move, tag:, max_rate:, window_id: window)
+    def self.on_window_move(max_rate: nil, window: nil)
+      Sub.new(type: :on_window_move, max_rate:, window_id: window)
     end
 
     # Subscribe to touch events.
     # Delivers Event::Widget with type: :press/:move/:release, pointer: :touch in data.
-    # The tag is for subscription management only.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_pointer_touch(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_pointer_touch, tag:, max_rate:, window_id: window)
+    def self.on_pointer_touch(max_rate: nil, window: nil)
+      Sub.new(type: :on_pointer_touch, max_rate:, window_id: window)
     end
 
     # Subscribe to IME (Input Method Editor) composition events.
     # Delivers {Event::Ime}[type: :enabled/:preedit/:commit/:disabled, ...] to update.
-    # The tag is for subscription management only: it does NOT appear in the event.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_ime(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_ime, tag:, max_rate:, window_id: window)
+    def self.on_ime(max_rate: nil, window: nil)
+      Sub.new(type: :on_ime, max_rate:, window_id: window)
     end
 
     # Subscribe to OS theme changes (light/dark mode).
     # Delivers {Event::System}[type: :theme_changed, data: theme_name] to update.
-    # The tag is for subscription management only: it does NOT appear in the event.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_theme_change(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_theme_change, tag:, max_rate:, window_id: window)
+    def self.on_theme_change(max_rate: nil, window: nil)
+      Sub.new(type: :on_theme_change, max_rate:, window_id: window)
     end
 
     # Subscribe to animation frame ticks for smooth animations.
     # Delivers {Event::System}[type: :animation_frame, data: delta_ms] to update.
-    # The tag is for subscription management only: it does NOT appear in the event.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_animation_frame(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_animation_frame, tag:, max_rate:, window_id: window)
+    def self.on_animation_frame(max_rate: nil, window: nil)
+      Sub.new(type: :on_animation_frame, max_rate:, window_id: window)
     end
 
     # Subscribe to file drag and drop events.
     # Delivers {Event::Window}[type: :file_dropped/:file_hovered, path:] to update.
-    # The tag is for subscription management only: it does NOT appear in the event.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_file_drop(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_file_drop, tag:, max_rate:, window_id: window)
+    def self.on_file_drop(max_rate: nil, window: nil)
+      Sub.new(type: :on_file_drop, max_rate:, window_id: window)
     end
 
     # Subscribe to all renderer events (catch-all).
     # Delivers the raw event to update without filtering by type.
     # Useful for debugging or handling event types not covered by specific subscriptions.
-    # The tag is for subscription management only: it does NOT appear in the event.
     #
-    # @param tag [Symbol] subscription management tag
     # @param max_rate [Integer, nil] max events per second (nil = unlimited)
+    # @param window [String, nil] window scope (nil = all windows)
     # @return [Sub]
-    def self.on_event(tag, max_rate: nil, window: nil)
-      Sub.new(type: :on_event, tag:, max_rate:, window_id: window)
+    def self.on_event(max_rate: nil, window: nil)
+      Sub.new(type: :on_event, max_rate:, window_id: window)
     end
 
     # Scope a list of subscriptions to a specific window.
@@ -275,8 +265,8 @@ module Plushie
     # events from all windows.
     #
     #   Subscription.for_window("editor", [
-    #     Subscription.on_key_press(:editor_keys),
-    #     Subscription.on_pointer_move(:editor_mouse, max_rate: 60)
+    #     Subscription.on_key_press(max_rate: 60),
+    #     Subscription.on_pointer_move(max_rate: 60)
     #   ])
     #
     # @param window_id [String]

@@ -68,7 +68,7 @@ class TestRuntimeSubscriptions < Minitest::Test
   # -- Adding a renderer subscription sends subscribe ---------------------
 
   def test_adding_renderer_subscription_sends_subscribe
-    @app.subs = [Sub.on_key_press(:keys)]
+    @app.subs = [Sub.on_key_press]
     @runner.sync_subscriptions
 
     assert_equal 1, @bridge.messages.length
@@ -78,7 +78,7 @@ class TestRuntimeSubscriptions < Minitest::Test
   # -- Removing a subscription sends unsubscribe --------------------------
 
   def test_removing_subscription_sends_unsubscribe
-    @app.subs = [Sub.on_key_press(:keys)]
+    @app.subs = [Sub.on_key_press]
     @runner.sync_subscriptions
 
     @bridge.messages.clear
@@ -107,7 +107,7 @@ class TestRuntimeSubscriptions < Minitest::Test
   # -- Short-circuit when key list unchanged --------------------------------
 
   def test_short_circuit_when_keys_unchanged
-    @app.subs = [Sub.on_key_press(:keys)]
+    @app.subs = [Sub.on_key_press]
     @runner.sync_subscriptions
     @bridge.messages.clear
 
@@ -119,12 +119,12 @@ class TestRuntimeSubscriptions < Minitest::Test
   # -- Max rate update re-sends subscribe ----------------------------------
 
   def test_max_rate_update_resends_subscribe
-    @app.subs = [Sub.on_key_press(:keys, max_rate: 10)]
+    @app.subs = [Sub.on_key_press(max_rate: 10)]
     @runner.sync_subscriptions
     @bridge.messages.clear
 
     # Change max_rate on same sub key
-    @app.subs = [Sub.on_key_press(:keys, max_rate: 30)]
+    @app.subs = [Sub.on_key_press(max_rate: 30)]
     @runner.sync_subscriptions
 
     # Should have re-sent a subscribe with the new rate

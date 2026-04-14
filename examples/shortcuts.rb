@@ -35,7 +35,7 @@ class Shortcuts
   end
 
   def subscribe(_model)
-    [Subscription.on_key_press(:keys)]
+    [Subscription.on_key_press]
   end
 
   def view(model)

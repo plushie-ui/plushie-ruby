@@ -94,7 +94,7 @@ module Plushie
           entry[:thread]&.kill
         when :renderer
           @bridge.send_encoded(
-            Protocol::Encode.encode_unsubscribe(entry[:kind], @format, tag: entry[:tag])
+            Protocol::Encode.encode_unsubscribe(entry[:kind], @format, tag: entry[:wire_tag])
           )
         end
       end
@@ -118,12 +118,14 @@ module Plushie
 
       # Start a renderer subscription (send subscribe message to bridge).
       def start_renderer_subscription(spec)
+        wire_tag = spec.wire_tag
+
         @bridge.send_encoded(
-          Protocol::Encode.encode_subscribe(spec.type, spec.tag, @format,
+          Protocol::Encode.encode_subscribe(spec.type, wire_tag, @format,
             max_rate: spec.max_rate, window_id: spec.window_id)
         )
 
-        {sub_type: :renderer, kind: spec.type, tag: spec.tag,
+        {sub_type: :renderer, kind: spec.type, wire_tag: wire_tag,
          max_rate: spec.max_rate, window_id: spec.window_id}
       end
 
@@ -140,11 +142,12 @@ module Plushie
         return unless entry && entry[:sub_type] == :renderer && entry[:max_rate] != spec.max_rate
 
         # Re-send subscribe with new rate
+        wire_tag = spec.wire_tag
         @bridge.send_encoded(
-          Protocol::Encode.encode_subscribe(spec.type, spec.tag, @format,
+          Protocol::Encode.encode_subscribe(spec.type, wire_tag, @format,
             max_rate: spec.max_rate, window_id: spec.window_id)
         )
-        @subscriptions[key] = entry.merge(max_rate: spec.max_rate)
+        @subscriptions[key] = entry.merge(max_rate: spec.max_rate, wire_tag: wire_tag)
       end
     end
   end

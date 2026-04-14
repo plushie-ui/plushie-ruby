@@ -36,7 +36,7 @@ class DocsAppBehaviourTest < Minitest::Test
     end
 
     def subscribe(model)
-      subs = [Subscription.on_key_press(:key_event)]
+      subs = [Subscription.on_key_press]
 
       if model.auto_refresh
         [Subscription.every(5000, :refresh)] + subs
@@ -128,7 +128,7 @@ class DocsAppBehaviourTest < Minitest::Test
 
     assert_equal 1, subs.length
     assert_equal :on_key_press, subs.first.type
-    assert_equal :key_event, subs.first.tag
+    assert_nil subs.first.tag
   end
 
   def test_app_behaviour_subscribe_with_auto_refresh

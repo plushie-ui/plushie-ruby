@@ -148,20 +148,20 @@ class DocsRunningTest < Minitest::Test
   # -- Subscription with max_rate (from running.md) --
 
   def test_subscription_max_rate
-    sub = Plushie::Subscription.on_pointer_move(:mouse, max_rate: 30)
+    sub = Plushie::Subscription.on_pointer_move(max_rate: 30)
     assert_equal :on_pointer_move, sub.type
-    assert_equal :mouse, sub.tag
+    assert_nil sub.tag
     assert_equal 30, sub.max_rate
   end
 
   def test_subscription_animation_frame_max_rate
-    sub = Plushie::Subscription.on_animation_frame(:frame, max_rate: 60)
+    sub = Plushie::Subscription.on_animation_frame(max_rate: 60)
     assert_equal :on_animation_frame, sub.type
     assert_equal 60, sub.max_rate
   end
 
   def test_subscription_capture_only
-    sub = Plushie::Subscription.on_pointer_move(:capture, max_rate: 0)
+    sub = Plushie::Subscription.on_pointer_move(max_rate: 0)
     assert_equal 0, sub.max_rate
   end
 end

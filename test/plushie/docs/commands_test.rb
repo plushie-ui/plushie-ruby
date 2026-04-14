@@ -231,15 +231,15 @@ class DocsCommandsTest < Minitest::Test
   end
 
   def test_subscription_on_key_press_construct
-    sub = Plushie::Subscription.on_key_press(:key_event)
+    sub = Plushie::Subscription.on_key_press
     assert_equal :on_key_press, sub.type
-    assert_equal :key_event, sub.tag
+    assert_nil sub.tag
   end
 
   def test_subscription_on_pointer_move_with_max_rate
-    sub = Plushie::Subscription.on_pointer_move(:mouse, max_rate: 30)
+    sub = Plushie::Subscription.on_pointer_move(max_rate: 30)
     assert_equal :on_pointer_move, sub.type
-    assert_equal :mouse, sub.tag
+    assert_nil sub.tag
     assert_equal 30, sub.max_rate
   end
 end

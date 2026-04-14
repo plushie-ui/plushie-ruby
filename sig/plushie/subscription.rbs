@@ -2,37 +2,37 @@ module Plushie
   class Subscription
     class Sub
       attr_reader type: Symbol
-      attr_reader tag: String | Symbol
+      attr_reader tag: Symbol?
       attr_reader interval: Integer?
       attr_reader max_rate: Integer?
       attr_reader window_id: String?
 
-      def initialize: (type: Symbol, tag: String | Symbol, ?interval: Integer?, ?max_rate: Integer?, ?window_id: String?) -> void
+      def initialize: (type: Symbol, ?tag: Symbol?, ?interval: Integer?, ?max_rate: Integer?, ?window_id: String?) -> void
 
       def key: () -> Array[untyped]
-      def with: (**untyped changes) -> Sub
+      def wire_tag: () -> String
       def with_max_rate: (Integer rate) -> Sub
     end
 
     def self.every: (Integer interval_ms, Symbol tag) -> Sub
-    def self.on_key_press: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_key_release: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_modifiers_changed: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_pointer_move: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_pointer_button: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_pointer_scroll: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_window_close: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_window_open: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_window_resize: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_window_focus: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_window_unfocus: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_window_move: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_pointer_touch: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_ime: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_theme_change: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_animation_frame: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_file_drop: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
-    def self.on_event: (Symbol tag, ?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_key_press: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_key_release: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_modifiers_changed: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_pointer_move: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_pointer_button: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_pointer_scroll: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_window_close: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_window_open: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_window_resize: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_window_focus: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_window_unfocus: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_window_move: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_pointer_touch: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_ime: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_theme_change: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_animation_frame: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_file_drop: (?max_rate: Integer?, ?window: String?) -> Sub
+    def self.on_event: (?max_rate: Integer?, ?window: String?) -> Sub
     def self.for_window: (String window_id, Array[Sub] subscriptions) -> Array[Sub]
   end
 end
