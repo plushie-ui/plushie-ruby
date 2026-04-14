@@ -20,6 +20,8 @@ module Plushie
         ?window_id: String?,
         ?scope: Array[String]
       ) -> void
+
+      def with: (**untyped) -> Widget
     end
 
     class Key

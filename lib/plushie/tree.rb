@@ -306,15 +306,18 @@ module Plushie
     # untouched (but still counted toward size_of_set for siblings).
     def self.infer_radio_groups(children)
       # Group radio nodes by their group prop
+      # @type var groups: Hash[String, Array[[Node, Integer]]]
       groups = {}
       children.each_with_index do |node, idx|
-        group = node.type == "radio" && node.props[:group]
+        next unless node.type == "radio"
+        group = node.props[:group] || node.props["group"]
         next unless group.is_a?(String)
         (groups[group] ||= []) << [node, idx]
       end
 
       return children if groups.empty?
 
+      # @type var patches: Hash[Integer, Hash[String, untyped]]
       patches = {}
       groups.each_value do |members|
         size = members.length
@@ -472,8 +475,10 @@ module Plushie
       end
 
       # Build lookup maps
+      # @type var old_by_id: Hash[String, [Node, Integer]]
       old_by_id = {}
       old_children.each_with_index { |c, i| old_by_id[c.id] = [c, i] }
+      # @type var new_by_id: Hash[String, [Node, Integer]]
       new_by_id = {}
       new_children.each_with_index { |c, i| new_by_id[c.id] = [c, i] }
 
@@ -497,6 +502,7 @@ module Plushie
       end
 
       # Remove nodes not in new, and nodes not in the LIS (they'll be re-inserted)
+      # @type var removed_indices: Array[Integer]
       removed_indices = []
       old_children.each_with_index do |child, idx|
         removed_indices << idx unless new_by_id.key?(child.id) && stable_old_ids.include?(child.id)
@@ -507,7 +513,9 @@ module Plushie
         .map { |idx| {"op" => "remove_child", "path" => path, "index" => idx} }
 
       # Walk new children: update stable nodes in place, insert moved/new nodes
+      # @type var update_ops: Array[Hash[String, untyped]]
       update_ops = []
+      # @type var insert_ops: Array[Hash[String, untyped]]
       insert_ops = []
 
       new_children.each_with_index do |child, new_idx|
@@ -534,8 +542,10 @@ module Plushie
       return Set.new if arr.empty?
 
       # tails[i] = smallest tail element for IS of length i+1
+      # @type var tails: Array[Integer]
       tails = []
       # predecessors and positions for backtracking
+      # @type var positions: Array[Integer]
       positions = []
       predecessors = Array.new(arr.length, -1)
 
