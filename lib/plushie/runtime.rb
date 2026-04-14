@@ -197,6 +197,7 @@ module Plushie
     end
 
     def build_settings
+      # @type var settings: Hash[Symbol, untyped]
       settings = begin
         @app.settings
       rescue => e

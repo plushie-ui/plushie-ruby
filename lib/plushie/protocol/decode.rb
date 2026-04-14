@@ -841,6 +841,7 @@ module Plushie
           scope = parts.reverse
         else
           local = path
+          # @type var scope: Array[String]
           scope = []
         end
 
