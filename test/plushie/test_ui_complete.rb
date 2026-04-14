@@ -223,9 +223,13 @@ class TestUIComplete < Minitest::Test
     end
 
     assert_equal "canvas", node.type
-    assert_equal 2, node.props[:layers].keys.length
-    assert_equal "rect", node.props[:layers]["bg"].first[:type]
-    assert_equal "circle", node.props[:layers]["fg"].first[:type]
+    assert_equal 2, node.children.length
+    bg_layer = node.children[0]
+    fg_layer = node.children[1]
+    assert_equal "__layer__", bg_layer.type
+    assert_equal "__layer__", fg_layer.type
+    assert_equal "rect", bg_layer.children[0].type
+    assert_equal "circle", fg_layer.children[0].type
   end
 
   def test_canvas_with_flat_shapes
@@ -234,7 +238,9 @@ class TestUIComplete < Minitest::Test
       canvas_line(0, 0, 100, 100)
     end
 
-    assert_equal 2, node.props[:shapes].length
+    assert_equal 2, node.children.length
+    assert_equal "rect", node.children[0].type
+    assert_equal "line", node.children[1].type
   end
 
   def test_canvas_text_shape
@@ -244,9 +250,10 @@ class TestUIComplete < Minitest::Test
       end
     end
 
-    shape = node.props[:layers]["text_layer"].first
-    assert_equal "text", shape[:type]
-    assert_equal "Hello", shape[:content]
+    layer = node.children[0]
+    shape = layer.children[0]
+    assert_equal "text", shape.type
+    assert_equal "Hello", shape.props[:content]
   end
 
   def test_canvas_path_shape
@@ -260,8 +267,26 @@ class TestUIComplete < Minitest::Test
       end
     end
 
-    shape = node.props[:layers]["paths"].first
-    assert_equal "path", shape[:type]
-    assert_equal 3, shape[:commands].length
+    layer = node.children[0]
+    shape = layer.children[0]
+    assert_equal "path", shape.type
+    assert_equal 3, shape.props[:commands].length
+  end
+
+  def test_canvas_interactive
+    node = canvas("c", width: 100, height: 100) do
+      layer("ui") do
+        canvas_interactive("btn", on_click: true, cursor: "pointer") do
+          canvas_rect(0, 0, 80, 30, fill: "#3498db")
+        end
+      end
+    end
+
+    layer = node.children[0]
+    interactive = layer.children[0]
+    assert_equal "group", interactive.type
+    assert_equal "btn", interactive.id
+    assert_equal true, interactive.props[:on_click]
+    assert_equal "rect", interactive.children[0].type
   end
 end

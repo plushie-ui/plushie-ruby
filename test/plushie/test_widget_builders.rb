@@ -135,23 +135,25 @@ class TestWidgetBuilders < Minitest::Test
   end
 
   def test_canvas_build
-    c = Plushie::Widget::Canvas.new("chart",
-      width: 400, height: 300,
-      shapes: [{type: "rect", x: 0, y: 0, w: 400, h: 300}])
+    c = Plushie::Widget::Canvas.new("chart", width: 400, height: 300)
     node = c.build
     assert_equal "canvas", node.type
     assert_equal 400, node.props[:width]
-    assert_equal 1, node.props[:shapes].length
   end
 
   def test_canvas_add_layer
+    bg_rect = Plushie::Node.new(id: "r1", type: "rect", props: {x: 0, y: 0, w: 200, h: 200})
+    fg_circle = Plushie::Node.new(id: "c1", type: "circle", props: {x: 100, y: 100, r: 50})
+
     c = Plushie::Widget::Canvas.new("chart", width: 200, height: 200)
-      .add_layer("bg", [{type: "rect", x: 0, y: 0, w: 200, h: 200}])
-      .add_layer("fg", [{type: "circle", x: 100, y: 100, r: 50}])
+      .add_layer("bg", [bg_rect])
+      .add_layer("fg", [fg_circle])
     node = c.build
-    assert_equal 2, node.props[:layers].keys.length
-    assert_equal "rect", node.props[:layers]["bg"].first[:type]
-    assert_equal "circle", node.props[:layers]["fg"].first[:type]
+    assert_equal 2, node.children.length
+    assert_equal "__layer__", node.children[0].type
+    assert_equal "__layer__", node.children[1].type
+    assert_equal "rect", node.children[0].children[0].type
+    assert_equal "circle", node.children[1].children[0].type
   end
 
   def test_table_build

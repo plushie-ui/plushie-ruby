@@ -680,89 +680,77 @@ module Plushie
     #     end
     #   end
     def canvas(id, **props, &block)
-      if block
-        layers = {}
-        shapes = []
-        old_canvas_ctx = Thread.current[:_plushie_canvas_ctx]
-        Thread.current[:_plushie_canvas_ctx] = {layers: layers, shapes: shapes}
-        begin
-          block.call
-        ensure
-          Thread.current[:_plushie_canvas_ctx] = old_canvas_ctx
-        end
-        props = props.merge(layers: layers) unless layers.empty?
-        props = props.merge(shapes: shapes) unless shapes.empty?
-      end
-      _plushie_leaf("canvas", id, props)
+      _plushie_container("canvas", id, props, &block)
     end
 
     # Named layer inside a canvas block.
     #
-    # Layers are drawn in declaration order. Each layer gets its own
-    # cache, so unchanged layers skip re-rendering.
+    # Layers are drawn in declaration order. Each layer maps to an
+    # iced Cache on the renderer side; only changed layers are
+    # re-tessellated. On the wire this encodes as +type: "__layer__"+.
     #
-    # @param name [String] layer name
+    # @param name [String] layer name (used for cache keying)
     # @yield shapes to draw in this layer
-    # @return [void]
-    # @raise [RuntimeError] if called outside a canvas block
+    # @return [Node]
     # @example
     #   canvas("scene", width: 200, height: 200) do
     #     layer("background") { canvas_rect(0, 0, 200, 200, fill: "#fff") }
     #     layer("foreground") { canvas_circle(100, 100, 20, fill: "#f00") }
     #   end
     def layer(name, &block)
-      ctx = Thread.current[:_plushie_canvas_ctx]
-      raise "layer must be called inside a canvas block" unless ctx
-      shape_list = []
-      old = Thread.current[:_plushie_canvas_shapes]
-      Thread.current[:_plushie_canvas_shapes] = shape_list
-      begin
-        block.call
-      ensure
-        Thread.current[:_plushie_canvas_shapes] = old
-      end
-      ctx[:layers][name] = shape_list
+      _plushie_container("__layer__", name, {name: name}, &block)
     end
 
-    # Group of shapes inside a canvas or layer block.
+    # Structural group inside a canvas or layer block.
     #
-    # Groups can apply shared transforms and clipping to their children.
-    # Interactive fields (id, on_click, cursor, etc.) live at the top
-    # level of the group. x:/y: kwargs are desugared into a leading
-    # translate in the transforms array.
+    # Groups apply shared transforms and clipping to their children.
+    # They are purely structural: no interactivity, no required ID.
+    # For interactive elements, use +canvas_interactive+.
     #
-    # @param id [String, nil] optional group id for interactive hit testing
-    # @param opts [Hash] group options (:transforms, :clip, :opacity, etc.)
+    # @param opts [Hash] group options (:transforms, :clip, :opacity, x:, y:)
     # @yield shapes to include in the group
-    # @return [Hash] the group shape descriptor
+    # @return [Node]
     # @example
-    #   canvas("grouped", width: 200, height: 200) do
-    #     layer("main") do
-    #       canvas_group(transforms: [Canvas::Shape.translate(50, 50)]) do
-    #         canvas_rect(0, 0, 100, 100, fill: "#0f0")
-    #         canvas_circle(50, 50, 30, fill: "#00f")
-    #       end
-    #     end
+    #   canvas_group(x: 50, y: 50) do
+    #     canvas_rect(0, 0, 100, 100, fill: "#0f0")
     #   end
     def canvas_group(id = nil, x: nil, y: nil, transforms: nil, **opts, &block)
-      shape_list = []
-      old = Thread.current[:_plushie_canvas_shapes]
-      Thread.current[:_plushie_canvas_shapes] = shape_list
-      begin
-        block.call
-      ensure
-        Thread.current[:_plushie_canvas_shapes] = old
-      end
-
+      props = opts.dup
       xforms = Array(transforms)
       xforms.unshift(Canvas::Shape.translate(x, y)) if x || y
+      props[:transforms] = xforms.map { |t| t.respond_to?(:to_wire) ? t.to_wire : t } unless xforms.empty?
 
-      shape = {type: "group", children: shape_list}
-      shape[:transforms] = xforms.map { |t| t.respond_to?(:to_wire) ? t.to_wire : t } unless xforms.empty?
-      shape[:id] = id if id
-      shape.merge!(opts)
-      _plushie_add_canvas_shape(shape)
-      shape
+      group_id = id || "auto:group_#{_plushie_canvas_counter}"
+      _plushie_container("group", group_id, props, &block)
+    end
+
+    # Interactive canvas element.
+    #
+    # Requires an explicit ID for hit testing, focus tracking, a11y,
+    # and automation. Supports click, hover, drag, focus, and keyboard
+    # interaction.
+    #
+    # On the wire this encodes as +type: "group"+ (same as structural
+    # groups). The split is API-level clarity: +canvas_interactive+
+    # communicates that the element responds to user input.
+    #
+    # @param id [String] element ID (required)
+    # @param opts [Hash] :on_click, :on_hover, :draggable, :cursor, :a11y, etc.
+    # @yield shapes to include in the interactive element
+    # @return [Node]
+    # @example
+    #   canvas_interactive("btn", on_click: true, cursor: "pointer") do
+    #     canvas_rect(0, 0, 100, 40, fill: "#3498db")
+    #   end
+    def canvas_interactive(id, x: nil, y: nil, transforms: nil, **opts, &block)
+      raise ArgumentError, "canvas_interactive requires an explicit ID" if id.nil? || id.empty?
+
+      props = opts.dup
+      xforms = Array(transforms)
+      xforms.unshift(Canvas::Shape.translate(x, y)) if x || y
+      props[:transforms] = xforms.map { |t| t.respond_to?(:to_wire) ? t.to_wire : t } unless xforms.empty?
+
+      _plushie_container("group", id, props, &block)
     end
 
     # Draw a rectangle on the canvas.
@@ -776,102 +764,70 @@ module Plushie
     # @example
     #   canvas_rect(10, 10, 80, 40, fill: "#07f", radius: 4)
     def canvas_rect(x, y, w, h, **opts)
-      shape = Canvas::Shape.rect(x, y, w, h, **opts)
-      _plushie_add_canvas_shape(shape)
-      shape
+      _plushie_canvas_shape("rect", {x: x, y: y, w: w, h: h}.merge(opts))
     end
 
     # Draw a circle on the canvas.
-    #
-    # @param x [Numeric] x-coordinate of the center
-    # @param y [Numeric] y-coordinate of the center
+    # @param x [Numeric] center x
+    # @param y [Numeric] center y
     # @param r [Numeric] radius
-    # @param opts [Hash] shape options (:fill, :stroke, :stroke_width, etc.)
-    # @return [Hash] the shape descriptor
-    # @example
-    #   canvas_circle(100, 100, 50, fill: "#f00")
+    # @param opts [Hash] :fill, :stroke, :stroke_width, :opacity
+    # @return [Node]
     def canvas_circle(x, y, r, **opts)
-      shape = Canvas::Shape.circle(x, y, r, **opts)
-      _plushie_add_canvas_shape(shape)
-      shape
+      _plushie_canvas_shape("circle", {x: x, y: y, r: r}.merge(opts))
     end
 
     # Draw a line on the canvas.
-    #
-    # @param x1 [Numeric] x-coordinate of the start point
-    # @param y1 [Numeric] y-coordinate of the start point
-    # @param x2 [Numeric] x-coordinate of the end point
-    # @param y2 [Numeric] y-coordinate of the end point
-    # @param opts [Hash] shape options (:stroke, :stroke_width, :dash, etc.)
-    # @return [Hash] the shape descriptor
-    # @example
-    #   canvas_line(0, 0, 100, 100, stroke: "#000", stroke_width: 2)
+    # @param x1 [Numeric] start x
+    # @param y1 [Numeric] start y
+    # @param x2 [Numeric] end x
+    # @param y2 [Numeric] end y
+    # @param opts [Hash] :stroke, :stroke_width, :dash, :opacity
+    # @return [Node]
     def canvas_line(x1, y1, x2, y2, **opts)
-      shape = Canvas::Shape.line(x1, y1, x2, y2, **opts)
-      _plushie_add_canvas_shape(shape)
-      shape
+      _plushie_canvas_shape("line", {x1: x1, y1: y1, x2: x2, y2: y2}.merge(opts))
     end
 
     # Draw text on the canvas.
-    #
-    # @param x [Numeric] x-coordinate of the text origin
-    # @param y [Numeric] y-coordinate of the text origin
-    # @param content [String] text content to render
-    # @param opts [Hash] shape options (:size, :color, :font, :align, etc.)
-    # @return [Hash] the shape descriptor
-    # @example
-    #   canvas_text(10, 20, "Hello", size: 16, color: "#333")
+    # @param x [Numeric] text origin x
+    # @param y [Numeric] text origin y
+    # @param content [String] text content
+    # @param opts [Hash] :size, :color, :font, :align, :opacity
+    # @return [Node]
     def canvas_text(x, y, content, **opts)
-      shape = Canvas::Shape.canvas_text(x, y, content, **opts)
-      _plushie_add_canvas_shape(shape)
-      shape
+      _plushie_canvas_shape("text", {x: x, y: y, content: content}.merge(opts))
     end
 
-    # Draw a path on the canvas from a list of SVG-style commands.
-    #
-    # @param commands [Array, String] path commands (e.g. [[:M, 0, 0], [:L, 100, 100]])
-    # @param opts [Hash] shape options (:fill, :stroke, :stroke_width, :close, etc.)
-    # @return [Hash] the shape descriptor
-    # @example
-    #   canvas_path([[:M, 0, 0], [:L, 50, 80], [:L, 100, 0], [:Z]], fill: "#0a0")
+    # Draw a path on the canvas.
+    # @param commands [Array] path commands
+    # @param opts [Hash] :fill, :stroke, :stroke_width, :close, :opacity
+    # @return [Node]
     def canvas_path(commands, **opts)
-      shape = Canvas::Shape.path(commands, **opts)
-      _plushie_add_canvas_shape(shape)
-      shape
+      _plushie_canvas_shape("path", {commands: commands}.merge(opts))
     end
 
     # Draw an image on the canvas.
-    #
-    # @param source [String] image path or URL
-    # @param x [Numeric] x-coordinate of the top-left corner
-    # @param y [Numeric] y-coordinate of the top-left corner
+    # @param source [String] image path or handle
+    # @param x [Numeric] top-left x
+    # @param y [Numeric] top-left y
     # @param w [Numeric] width
     # @param h [Numeric] height
-    # @param opts [Hash] shape options (:opacity, :filter_method, etc.)
-    # @return [Hash] the shape descriptor
-    # @example
-    #   canvas_image("sprite.png", 10, 10, 32, 32)
+    # @param opts [Hash] :opacity, :rotation, :filter_method
+    # @return [Node]
     def canvas_image(source, x, y, w, h, **opts)
-      shape = Canvas::Shape.canvas_image(source, x, y, w, h, **opts)
-      _plushie_add_canvas_shape(shape)
-      shape
+      _plushie_canvas_shape("image", {source: source, x: x, y: y, w: w, h: h}.merge(opts))
     end
 
     # Draw an SVG on the canvas.
-    #
-    # @param source [String] SVG content string or file path
-    # @param x [Numeric] x-coordinate of the top-left corner
-    # @param y [Numeric] y-coordinate of the top-left corner
+    # @param source [String] SVG content or file path
+    # @param x [Numeric] top-left x
+    # @param y [Numeric] top-left y
     # @param w [Numeric] width
     # @param h [Numeric] height
-    # @param opts [Hash] shape options (:opacity, etc.)
-    # @return [Hash] the shape descriptor
-    # @example
-    #   canvas_svg("<svg>...</svg>", 0, 0, 100, 100)
+    # @param opts [Hash] :opacity
+    # @return [Node]
     def canvas_svg(source, x, y, w, h, **opts)
-      shape = Canvas::Shape.canvas_svg(source, x, y, w, h, **opts)
-      _plushie_add_canvas_shape(shape)
-      shape
+      _plushie_canvas_shape("svg", {source: source, x: x, y: y, w: w, h: h}.merge(opts))
     end
 
     # =========================================================================
@@ -960,14 +916,19 @@ module Plushie
     # @api private
     # @param shape [Hash] shape descriptor
     # @return [void]
-    def _plushie_add_canvas_shape(shape)
-      target = Thread.current[:_plushie_canvas_shapes]
-      if target
-        target << shape
-      else
-        ctx = Thread.current[:_plushie_canvas_ctx]
-        ctx[:shapes] << shape if ctx
-      end
+    # Build a canvas shape as a leaf Node and add it to the current context.
+    # Shapes get auto-generated IDs since they don't need stable identity
+    # for user-facing purposes (the parent group/interactive handles that).
+    # @api private
+    def _plushie_canvas_shape(type, props)
+      id = "auto:shape_#{_plushie_canvas_counter}"
+      _plushie_leaf(type, id, props)
+    end
+
+    # Monotonically increasing counter for auto-generated canvas IDs.
+    # @api private
+    def _plushie_canvas_counter
+      Thread.current[:_plushie_canvas_counter] = (Thread.current[:_plushie_canvas_counter] || 0) + 1
     end
   end
 end
