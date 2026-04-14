@@ -102,6 +102,9 @@ module Plushie
     def handle_renderer_restarted: () -> void
     def fail_pending_interact: (String reason) -> void
 
+    # Status-based focus tracking
+    def handle_status_event: (Event::Widget event) -> void
+
     # Error handling
     def handle_callback_error: (String callback_name, Exception error, ?hint: String?) -> void
     def handle_view_error: (Exception error) -> void

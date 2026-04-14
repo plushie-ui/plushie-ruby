@@ -74,8 +74,10 @@ module Plushie
       def decode_message: (String data, ?Symbol format) -> (untyped | nil)
       def dispatch_message: (Hash[String, untyped] msg) -> (untyped | nil)
       def decode_event: (Hash[String, untyped] msg, ?require_window_id: bool) -> untyped
+      def decode_event_inner: (Hash[String, untyped] msg, ?require_window_id: bool) -> untyped
+      def normalize_binary_fields: (untyped message, Symbol format) -> untyped
       def decode_hello: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
-      def decode_effect_response: (Hash[String, untyped] msg) -> Event::Effect
+      def decode_effect_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
       def decode_query_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
       def decode_op_query_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
       def decode_interact_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
