@@ -21,7 +21,7 @@ module Plushie
     # - line_height (number|hash): line height.
     # - padding (number): uniform padding in pixels.
     # - wrapping (symbol): text wrapping mode.
-    # - ime_purpose (string): IME input purpose: "normal", "secure", "terminal".
+    # - input_purpose (string): input purpose hint: "normal", "secure", "terminal", "number", "decimal", "phone", "email", "url", "search".
     # - highlight_syntax (string): language for syntax highlighting.
     # - highlight_theme (string): highlighter theme.
     # - style (symbol|hash): named style or style map.
@@ -33,7 +33,7 @@ module Plushie
       wire_type :text_editor
       children :none
       prop :content, :placeholder, :width, :height, :min_height, :max_height,
-        :font, :size, :line_height, :padding, :wrapping, :ime_purpose,
+        :font, :size, :line_height, :padding, :wrapping, :input_purpose,
         :highlight_syntax, :highlight_theme, :style, :key_bindings,
         :placeholder_color, :selection_color, :a11y
     end
