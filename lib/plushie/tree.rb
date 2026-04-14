@@ -430,19 +430,7 @@ module Plushie
         return [{"op" => "replace_node", "path" => path, "node" => node_to_wire(new)}]
       end
 
-      # Check children first (reorder detection may produce a full replace)
-      child_result = diff_children(old.children, new.children, path)
-      if child_result == :reordered
-        return [{"op" => "replace_node", "path" => path, "node" => node_to_wire(new)}]
-      end
-
-      child_ops = case child_result
-      when Array
-        child_result
-      else
-        raise "unexpected diff result"
-      end
-
+      child_ops = diff_children(old.children, new.children, path)
       prop_ops = diff_props(old.props, new.props, path)
       prop_ops + child_ops
     end
@@ -470,55 +458,127 @@ module Plushie
     private_class_method :diff_props
 
     def self.diff_children(old_children, new_children, path)
-      # @type var old_by_id: Hash[String, [Node, Integer]]
+      old_ids = old_children.map(&:id)
+      new_ids = new_children.map(&:id)
+
+      # Fast path: identical ID sequence -> pairwise prop diff only
+      if old_ids == new_ids
+        return old_children.each_with_index.flat_map { |old_child, idx|
+          diff_node(old_child, new_children[idx], path + [idx])
+        }
+      end
+
+      # Build lookup maps
       old_by_id = {}
       old_children.each_with_index { |c, i| old_by_id[c.id] = [c, i] }
-      # @type var new_by_id: Hash[String, [Node, Integer]]
       new_by_id = {}
       new_children.each_with_index { |c, i| new_by_id[c.id] = [c, i] }
 
-      # Reorder detection: compare sequence of IDs that appear in both
-      # old and new. If the relative order changed, fall back to
-      # replace_node for the parent. This is O(n), not LCS.
-      common_old = old_children.map(&:id).select { |id| new_by_id.key?(id) }
-      common_new = new_children.map(&:id).select { |id| old_by_id.key?(id) }
-      return :reordered if common_old != common_new
+      # Map old positions of surviving nodes to their new positions
+      # for LIS computation
+      surviving_old_indices = new_ids.filter_map { |id|
+        old_by_id[id]&.last
+      }
 
-      # Removals: old IDs not in new, highest index first
-      removed_indices = old_by_id
-        .reject { |id, _| new_by_id.key?(id) }
-        .map { |_, (_, idx)| idx }
+      # Compute LIS: elements in the longest increasing subsequence of
+      # old indices maintain their relative order and don't need to move.
+      lis_set = lis_indices(surviving_old_indices)
+
+      # Build the set of old IDs that are in the LIS (don't need to move)
+      stable_old_ids = Set.new
+      surviving_idx = 0
+      new_ids.each do |id|
+        next unless old_by_id.key?(id)
+        stable_old_ids.add(id) if lis_set.include?(surviving_idx)
+        surviving_idx += 1
+      end
+
+      # Remove nodes not in new, and nodes not in the LIS (they'll be re-inserted)
+      removed_indices = []
+      old_children.each_with_index do |child, idx|
+        removed_indices << idx unless new_by_id.key?(child.id) && stable_old_ids.include?(child.id)
+      end
 
       remove_ops = removed_indices
         .sort.reverse
         .map { |idx| {"op" => "remove_child", "path" => path, "index" => idx} }
 
-      # Walk new children for updates and inserts
-      # @type var update_ops: Array[Hash[String, untyped]]
+      # Walk new children: update stable nodes in place, insert moved/new nodes
       update_ops = []
-      # @type var insert_ops: Array[Hash[String, untyped]]
       insert_ops = []
+      current_stable_idx = 0
 
-      new_children.each_with_index do |child, idx|
-        if (entry = old_by_id[child.id])
-          old_child, old_idx = entry
-          # Adjust old index for removals that happened before it
+      new_children.each_with_index do |child, new_idx|
+        if stable_old_ids.include?(child.id)
+          # Stable node: diff in place
+          old_child, old_idx = old_by_id[child.id]
           adjusted = index_after_removals(old_idx, removed_indices)
-          child_path = path + [adjusted]
-          update_ops.concat(diff_node(old_child, child, child_path))
+          update_ops.concat(diff_node(old_child, child, path + [adjusted]))
+          current_stable_idx += 1
         else
-          insert_ops << {"op" => "insert_child", "path" => path, "index" => idx,
+          # Moved or new node: insert at the correct position
+          insert_ops << {"op" => "insert_child", "path" => path, "index" => new_idx,
                          "node" => node_to_wire(child)}
         end
       end
 
-      # Protocol-mandated order: removals, then updates, then inserts
       remove_ops + update_ops + insert_ops
     end
     private_class_method :diff_children
 
+    # Compute the indices of the Longest Increasing Subsequence.
+    # Returns a Set of indices into the input array.
+    # O(n log n) using patience sorting.
+    def self.lis_indices(arr)
+      return Set.new if arr.empty?
+
+      # tails[i] = smallest tail element for IS of length i+1
+      tails = []
+      # predecessors and positions for backtracking
+      positions = []
+      predecessors = Array.new(arr.length, -1)
+
+      arr.each_with_index do |val, i|
+        # Binary search for the leftmost tail >= val
+        lo, hi = 0, tails.length
+        while lo < hi
+          mid = (lo + hi) / 2
+          if arr[positions[mid]] < val
+            lo = mid + 1
+          else
+            hi = mid
+          end
+        end
+
+        positions[lo] = i
+        tails[lo] = val
+        predecessors[i] = (lo > 0) ? positions[lo - 1] : -1
+      end
+
+      # Backtrack to recover the LIS indices
+      result = Set.new
+      k = positions[tails.length - 1]
+      while k >= 0
+        result.add(k)
+        k = predecessors[k]
+      end
+      result
+    end
+    private_class_method :lis_indices
+
     def self.index_after_removals(old_idx, removed_indices)
-      old_idx - removed_indices.count { |ri| ri < old_idx }
+      # Binary search for count of removals before old_idx
+      lo, hi = 0, removed_indices.length
+      sorted = removed_indices.sort
+      while lo < hi
+        mid = (lo + hi) / 2
+        if sorted[mid] < old_idx
+          lo = mid + 1
+        else
+          hi = mid
+        end
+      end
+      old_idx - lo
     end
     private_class_method :index_after_removals
   end

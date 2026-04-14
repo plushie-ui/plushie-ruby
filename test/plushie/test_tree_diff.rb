@@ -163,10 +163,14 @@ class TestTreeDiff < Minitest::Test
       node("c"), node("a"), node("b")
     ])
     ops = Plushie::Tree.diff(old, new_tree)
-    # Reorder -> full replace_node for the parent
-    assert_equal 1, ops.length
-    assert_equal "replace_node", ops[0]["op"]
-    assert_equal [], ops[0]["path"]
+    # LIS-based diff: "a" and "b" form the LIS (keep in place),
+    # "c" is removed from old position and inserted at new position.
+    remove_ops = ops.select { |op| op["op"] == "remove_child" }
+    insert_ops = ops.select { |op| op["op"] == "insert_child" }
+    assert_equal 1, remove_ops.length, "expected 1 remove for 'c'"
+    assert_equal 1, insert_ops.length, "expected 1 insert for 'c'"
+    assert_equal "c", insert_ops[0]["node"]["id"]
+    assert_equal 0, insert_ops[0]["index"]
   end
 
   # -- Mixed operations -----------------------------------------------------
