@@ -925,7 +925,10 @@ module Plushie
       _plushie_leaf(type, id, props)
     end
 
-    # Monotonically increasing counter for auto-generated canvas IDs.
+    # Counter for auto-generated canvas shape and group IDs. The
+    # runtime resets this to 0 before each view evaluation so IDs
+    # are stable across renders (same view code produces the same
+    # IDs, enabling efficient diffing).
     # @api private
     def _plushie_canvas_counter
       Thread.current[:_plushie_canvas_counter] = (Thread.current[:_plushie_canvas_counter] || 0) + 1

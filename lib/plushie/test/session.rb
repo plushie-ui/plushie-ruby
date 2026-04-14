@@ -340,6 +340,7 @@ module Plushie
       end
 
       def normalize_view
+        Thread.current[:_plushie_canvas_counter] = 0
         tree_list = Tree.normalize(@app.view(@model))
         tree_list.is_a?(Array) ? tree_list.first : tree_list
       end

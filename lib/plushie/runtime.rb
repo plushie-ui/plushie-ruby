@@ -406,6 +406,7 @@ module Plushie
     # -- Rendering -----------------------------------------------------------
 
     def render_and_snapshot
+      Thread.current[:_plushie_canvas_counter] = 0
       @previous_tree = normalize_view_tree(@app.view(@model))
       @canvas_widgets = CanvasWidget.derive_registry(@previous_tree) if @previous_tree
 
@@ -423,6 +424,7 @@ module Plushie
     end
 
     def render_and_patch
+      Thread.current[:_plushie_canvas_counter] = 0
       new_tree = normalize_view_tree(@app.view(@model))
       @canvas_widgets = CanvasWidget.derive_registry(new_tree) if new_tree
 
