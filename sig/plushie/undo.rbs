@@ -1,11 +1,15 @@
 module Plushie
   class Undo
+    DEFAULT_MAX_SIZE: Integer
+
     class State
       attr_reader current: untyped
+      attr_reader max_size: Integer
+      attr_reader undo_size: Integer
       attr_reader undo_stack: Array[Entry]
       attr_reader redo_stack: Array[Entry]
 
-      def initialize: (current: untyped, undo_stack: Array[Entry], redo_stack: Array[Entry]) -> void
+      def initialize: (current: untyped, max_size: Integer, undo_size: Integer, undo_stack: Array[Entry], redo_stack: Array[Entry]) -> void
 
       def with: (**untyped changes) -> State
     end
@@ -23,8 +27,8 @@ module Plushie
     end
 
     def self.timestamp: () -> Integer
-    def self.new: (untyped model) -> State
-    def self.apply: (State u, Hash[Symbol, untyped] command) -> State
+    def self.new: (untyped model, ?max_size: Integer) -> State
+    def self.push: (State u, Hash[Symbol, untyped] command) -> State
     def self.undo: (State u) -> State
     def self.redo: (State u) -> State
     def self.current: (State u) -> untyped

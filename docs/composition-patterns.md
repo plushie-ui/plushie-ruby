@@ -911,7 +911,7 @@ Undo/redo stack with coalescing.
 undo = Plushie::Undo.new(model)
 
 # Apply a command (records it for undo)
-undo = Plushie::Undo.apply(undo, {
+undo = Plushie::Undo.push(undo, {
   apply: ->(m) { m.with(name: "Bob") },
   undo: ->(m) { m.with(name: "Alice") },
   label: "Rename to Bob"
@@ -928,7 +928,7 @@ undo = Plushie::Undo.redo(undo)
 Plushie::Undo.current(undo).name  # => "Bob"
 
 # Coalescing (group rapid changes, like typing)
-undo = Plushie::Undo.apply(undo, {
+undo = Plushie::Undo.push(undo, {
   apply: ->(m) { m.with(text: m.text + "a") },
   undo: ->(m) { m.with(text: m.text[0..-2]) },
   coalesce: [:typing, "editor"],

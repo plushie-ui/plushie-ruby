@@ -402,11 +402,11 @@ class DocsCompositionPatternsTest < Minitest::Test
 
   UndoModel = Plushie::Model.define(:name)
 
-  def test_state_helper_undo_apply_and_undo
+  def test_state_helper_undo_push_and_undo
     model = UndoModel.new(name: "Alice")
 
     undo = Plushie::Undo.new(model)
-    undo = Plushie::Undo.apply(undo, {
+    undo = Plushie::Undo.push(undo, {
       apply: ->(m) { m.with(name: "Bob") },
       undo: ->(m) { m.with(name: "Alice") },
       label: "Rename to Bob"

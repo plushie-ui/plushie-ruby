@@ -96,7 +96,7 @@ class Notes
         label: "edit title"
       }
 
-      model.with(undo: Plushie::Undo.apply(model.undo, cmd))
+      model.with(undo: Plushie::Undo.push(model.undo, cmd))
 
     in Event::Widget[type: :input, id: "body", value:]
       old_text = Plushie::Undo.current(model.undo)[:text]
@@ -107,7 +107,7 @@ class Notes
         label: "edit body"
       }
 
-      model.with(undo: Plushie::Undo.apply(model.undo, cmd))
+      model.with(undo: Plushie::Undo.push(model.undo, cmd))
 
     in Event::Widget[type: :click, id: "undo"]
       model.with(undo: Plushie::Undo.undo(model.undo))
