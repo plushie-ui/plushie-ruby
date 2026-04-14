@@ -1,0 +1,11 @@
+module Plushie
+  class Command
+    module Image
+      def self.create_image: (String handle, ?String? data, ?width: Integer?, ?height: Integer?, ?pixels: String?) -> Cmd
+      def self.update_image: (String handle, ?String? data, ?width: Integer?, ?height: Integer?, ?pixels: String?) -> Cmd
+      def self.delete_image: (String handle) -> Cmd
+      def self.list_images: (Symbol tag) -> Cmd
+      def self.clear_images: () -> Cmd
+    end
+  end
+end

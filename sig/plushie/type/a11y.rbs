@@ -1,0 +1,43 @@
+module Plushie
+  module Type
+    module A11y
+      FIELD_KEYS: Array[Symbol]
+      VALID_ROLES: Array[Symbol]
+
+      class Spec
+        attr_reader role: Symbol?
+        attr_reader label: String?
+        attr_reader description: String?
+        attr_reader hidden: bool?
+        attr_reader expanded: bool?
+        attr_reader required: bool?
+        attr_reader level: Integer?
+        attr_reader live: String?
+        attr_reader busy: bool?
+        attr_reader invalid: bool?
+        attr_reader modal: bool?
+        attr_reader read_only: bool?
+        attr_reader mnemonic: String?
+        attr_reader toggled: bool?
+        attr_reader selected: bool?
+        attr_reader value: String?
+        attr_reader orientation: String?
+        attr_reader labelled_by: String?
+        attr_reader described_by: String?
+        attr_reader error_message: String?
+        attr_reader disabled: bool?
+        attr_reader position_in_set: Integer?
+        attr_reader size_of_set: Integer?
+        attr_reader has_popup: String?
+
+        def initialize: (**untyped) -> void
+        def to_wire: () -> Hash[Symbol, untyped]
+      end
+
+      def self.from_opts: (Hash[Symbol, untyped] opts) -> Spec
+      def self.cast: (Spec | Hash[Symbol, untyped] | nil value) -> Hash[Symbol, untyped]?
+      def self.encode: (Spec | Hash[Symbol, untyped] | nil value) -> Hash[Symbol, untyped]?
+      def self.validate_mnemonic!: (String? char) -> void
+    end
+  end
+end

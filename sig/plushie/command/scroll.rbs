@@ -1,0 +1,10 @@
+module Plushie
+  class Command
+    module Scroll
+      def self.scroll_to: (String widget_id, Numeric x, Numeric y) -> Cmd
+      def self.snap_to: (String widget_id, Float x, Float y) -> Cmd
+      def self.snap_to_end: (String widget_id) -> Cmd
+      def self.scroll_by: (String widget_id, Numeric x, Numeric y) -> Cmd
+    end
+  end
+end

@@ -1,0 +1,11 @@
+module Plushie
+  class Command
+    module Text
+      def self.select_all: (String widget_id) -> Cmd
+      def self.move_cursor_to_front: (String widget_id) -> Cmd
+      def self.move_cursor_to_end: (String widget_id) -> Cmd
+      def self.move_cursor_to: (String widget_id, Integer position) -> Cmd
+      def self.select_range: (String widget_id, Integer start_pos, Integer end_pos) -> Cmd
+    end
+  end
+end

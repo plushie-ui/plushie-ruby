@@ -1,0 +1,14 @@
+module Plushie
+  class Command
+    module WindowQuery
+      def self.get_window_size: (String window_id, Symbol tag) -> Cmd
+      def self.get_window_position: (String window_id, Symbol tag) -> Cmd
+      def self.is_maximized: (String window_id, Symbol tag) -> Cmd
+      def self.is_minimized: (String window_id, Symbol tag) -> Cmd
+      def self.get_mode: (String window_id, Symbol tag) -> Cmd
+      def self.get_scale_factor: (String window_id, Symbol tag) -> Cmd
+      def self.raw_id: (String window_id, Symbol tag) -> Cmd
+      def self.monitor_size: (String window_id, Symbol tag) -> Cmd
+    end
+  end
+end

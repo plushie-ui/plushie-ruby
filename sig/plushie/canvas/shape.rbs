@@ -77,8 +77,9 @@ module Plushie
         attr_reader stroke: untyped
         attr_reader stroke_width: Numeric?
         attr_reader opacity: Numeric?
+        attr_reader radius: Numeric | Hash[Symbol, Numeric] | nil
 
-        def initialize: (x: Numeric, y: Numeric, w: Numeric, h: Numeric, ?fill: untyped, ?stroke: untyped, ?stroke_width: Numeric?, ?opacity: Numeric?) -> void
+        def initialize: (x: Numeric, y: Numeric, w: Numeric, h: Numeric, ?fill: untyped, ?stroke: untyped, ?stroke_width: Numeric?, ?opacity: Numeric?, ?radius: Numeric | Hash[Symbol, Numeric] | nil) -> void
         def []: (Symbol key) -> untyped
         def to_wire: () -> Hash[Symbol, untyped]
       end
@@ -290,7 +291,7 @@ module Plushie
       # Transform value constructors
       def self.translate: (Numeric x, Numeric y) -> Translate
 
-      def self.rotate: (Numeric angle) -> Rotate
+      def self.rotate: (?Numeric? angle, ?degrees: Numeric?, ?radians: Numeric?) -> Rotate
 
       def self.scale: (Numeric x, ?Numeric? y) -> Scale
 

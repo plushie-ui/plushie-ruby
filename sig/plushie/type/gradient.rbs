@@ -1,0 +1,9 @@
+module Plushie
+  module Type
+    module Gradient
+      def self.linear: (Array[Numeric] from, Array[Numeric] to, Array[Array[untyped]] stops) -> Hash[Symbol, untyped]
+      def self.linear_from_angle: (Numeric angle, Array[Array[untyped]] stops) -> Hash[Symbol, untyped]
+      def self.encode: (Hash[Symbol, untyped] value) -> Hash[Symbol, untyped]
+    end
+  end
+end

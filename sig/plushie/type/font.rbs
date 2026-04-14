@@ -1,0 +1,23 @@
+module Plushie
+  module Type
+    module Font
+      WEIGHTS: Array[Symbol]
+      STYLES: Array[Symbol]
+      STRETCHES: Array[Symbol]
+      FIELD_KEYS: Array[Symbol]
+
+      class Spec
+        attr_reader family: String?
+        attr_reader weight: Symbol?
+        attr_reader style: Symbol?
+        attr_reader stretch: Symbol?
+
+        def initialize: (?family: String?, ?weight: Symbol?, ?style: Symbol?, ?stretch: Symbol?) -> void
+        def with: (**untyped changes) -> Spec
+      end
+
+      def self.from_opts: (Hash[Symbol, untyped] opts) -> Spec
+      def self.encode: (Symbol | String | Spec | Hash[Symbol, untyped] value) -> (String | Hash[Symbol, untyped])
+    end
+  end
+end

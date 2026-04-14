@@ -1,0 +1,29 @@
+module Plushie
+  class Command
+    module Window
+      def self.close_window: (String window_id) -> Cmd
+      def self.resize_window: (String window_id, Integer width, Integer height) -> Cmd
+      def self.move_window: (String window_id, Integer x, Integer y) -> Cmd
+      def self.maximize_window: (String window_id, ?bool maximized) -> Cmd
+      def self.minimize_window: (String window_id, ?bool minimized) -> Cmd
+      def self.set_window_mode: (String window_id, Symbol mode) -> Cmd
+      def self.toggle_maximize: (String window_id) -> Cmd
+      def self.toggle_decorations: (String window_id) -> Cmd
+      def self.focus_window: (String window_id) -> Cmd
+      def self.set_window_level: (String window_id, Symbol level) -> Cmd
+      def self.drag_window: (String window_id) -> Cmd
+      def self.drag_resize_window: (String window_id, Symbol direction) -> Cmd
+      def self.request_user_attention: (String window_id, Symbol urgency) -> Cmd
+      def self.screenshot: (String window_id, Symbol tag) -> Cmd
+      def self.set_resizable: (String window_id, bool resizable) -> Cmd
+      def self.set_min_size: (String window_id, Integer width, Integer height) -> Cmd
+      def self.set_max_size: (String window_id, Integer width, Integer height) -> Cmd
+      def self.enable_mouse_passthrough: (String window_id) -> Cmd
+      def self.disable_mouse_passthrough: (String window_id) -> Cmd
+      def self.show_system_menu: (String window_id) -> Cmd
+      def self.set_icon: (String window_id, String rgba_data, Integer width, Integer height) -> Cmd
+      def self.set_resize_increments: (String window_id, Integer width, Integer height) -> Cmd
+      def self.allow_automatic_tabbing: (bool enabled) -> Cmd
+    end
+  end
+end
