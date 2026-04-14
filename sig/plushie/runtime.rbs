@@ -22,12 +22,14 @@ module Plushie
     @pending_effects: Hash[String, Thread]
     @effect_tags: Hash[Symbol, String]
     @effect_ids: Hash[String, Symbol]
-    @pending_timers: Hash[untyped, Thread]
+    @pending_timers: Hash[untyped, Hash[Symbol, untyped]]
     @subscriptions: Hash[untyped, Hash[Symbol, untyped]]
     @subscription_keys: Array[untyped]
     @canvas_widgets: Hash[String, CanvasWidget::RegistryEntry]
     @consecutive_errors: Integer
     @consecutive_view_errors: Integer
+    @widget_statuses: Hash[String, String]
+    @focused_widget_id: String?
     @diagnostics: Array[Event::System]
     @diagnostics_mutex: Mutex
     @pending_stub_acks: Hash[String, Thread::Queue[untyped]]
@@ -54,6 +56,7 @@ module Plushie
     def register_effect_stub: (String kind, untyped response, ?timeout: Numeric) -> :ok
     def unregister_effect_stub: (String kind, ?timeout: Numeric) -> :ok
     def get_diagnostics: () -> Array[Event::System]
+    def get_focused: () -> String?
     def interact: (String action, ?untyped selector, ?Hash[Symbol, untyped] payload, ?timeout: Numeric) -> Array[untyped]
     def await_async: (Symbol tag, ?timeout: Numeric) -> :ok
 

@@ -543,6 +543,8 @@ module Plushie
       flush_pending_effects_on_exit
       flush_pending_stub_acks
       @canvas_widgets = {}
+      @widget_statuses = {}
+      @focused_widget_id = nil
       begin
         @model = @app.handle_renderer_exit(@model, reason)
       rescue => e
@@ -563,6 +565,8 @@ module Plushie
       flush_pending_effects_on_exit
       flush_pending_stub_acks
       @canvas_widgets = {}
+      @widget_statuses = {}
+      @focused_widget_id = nil
       # Keep @previous_tree intact. render_and_snapshot overwrites it on
       # success. If view fails, resend_last_snapshot uses it as a fallback
       # so the new renderer has something to display.

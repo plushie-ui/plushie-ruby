@@ -506,7 +506,6 @@ module Plushie
       # Walk new children: update stable nodes in place, insert moved/new nodes
       update_ops = []
       insert_ops = []
-      current_stable_idx = 0
 
       new_children.each_with_index do |child, new_idx|
         if stable_old_ids.include?(child.id)
@@ -514,7 +513,6 @@ module Plushie
           old_child, old_idx = old_by_id[child.id]
           adjusted = index_after_removals(old_idx, removed_indices)
           update_ops.concat(diff_node(old_child, child, path + [adjusted]))
-          current_stable_idx += 1
         else
           # Moved or new node: insert at the correct position
           insert_ops << {"op" => "insert_child", "path" => path, "index" => new_idx,
@@ -566,13 +564,15 @@ module Plushie
     end
     private_class_method :lis_indices
 
+    # Count how many removed indices are below old_idx using binary search.
+    # Assumes removed_indices is already sorted ascending (built from
+    # ascending iteration over old_children).
+    # @api private
     def self.index_after_removals(old_idx, removed_indices)
-      # Binary search for count of removals before old_idx
       lo, hi = 0, removed_indices.length
-      sorted = removed_indices.sort
       while lo < hi
         mid = (lo + hi) / 2
-        if sorted[mid] < old_idx
+        if removed_indices[mid] < old_idx
           lo = mid + 1
         else
           hi = mid
