@@ -24,15 +24,13 @@ module Plushie
     # - alt (string): alt text for accessibility.
     # - description (string): longer description for accessibility.
     # - decorative (boolean): mark as decorative (hidden from a11y tree).
-    # - a11y (hash): accessibility overrides.
-    class Image < BuiltIn
-      wire_type :image
-      default_a11y role: :image
+    Image = Plushie::Widget.define(:image) do
       children :none
       positional :source, default: nil
       prop :source, :width, :height, :content_fit, :rotation, :opacity,
         :border_radius, :filter_method, :expand, :scale, :crop,
-        :alt, :description, :decorative, :a11y
+        :alt, :description, :decorative
+      default_a11y role: :image
     end
   end
 end

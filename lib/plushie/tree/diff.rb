@@ -60,7 +60,7 @@ module Plushie
         end
 
         return [] if changed.empty?
-        [{"op" => "update_props", "path" => path, "props" => Tree.encode_props(changed)}]
+        [{"op" => "update_props", "path" => path, "props" => Encode.encode_props(changed)}]
       end
       private_class_method :diff_props
 

@@ -5,6 +5,7 @@ module Plushie
       attr_reader payload: Hash[Symbol, untyped]
 
       def initialize: (type: Symbol, payload: Hash[Symbol, untyped]) -> void
+      def with: (**untyped) -> Cmd
     end
 
     # Basic

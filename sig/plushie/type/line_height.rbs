@@ -1,7 +1,10 @@
 module Plushie
   module Type
     module LineHeight
-      def self.encode: (Numeric | Hash[Symbol, Numeric] | nil value) -> (Numeric | Hash[Symbol, Numeric] | nil)
+      def self.encode: (untyped value) -> (Numeric | Hash[Symbol, Numeric] | nil)
+
+      # module_function instance method form
+      def encode: (untyped value) -> (Numeric | Hash[Symbol, Numeric] | nil)
     end
   end
 end

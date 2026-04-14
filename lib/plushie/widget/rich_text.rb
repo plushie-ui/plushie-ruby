@@ -19,13 +19,11 @@ module Plushie
     # - line_height (number|hash): line height.
     # - wrapping (symbol): text wrapping mode.
     # - ellipsis (string): text ellipsis mode.
-    # - a11y (hash): accessibility overrides.
-    class RichText < BuiltIn
-      wire_type :rich_text
-      default_a11y role: :label
+    RichText = Plushie::Widget.define(:rich_text) do
       children :none
       prop :spans, :width, :height, :size, :font, :color, :line_height,
-        :wrapping, :ellipsis, :a11y
+        :wrapping, :ellipsis
+      default_a11y role: :label
     end
   end
 end

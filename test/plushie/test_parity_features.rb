@@ -218,11 +218,10 @@ class TestParityFeatures < Minitest::Test
   # WidgetSet
   # ======================================================================
 
-  class FakeButton < Plushie::Widget::BuiltIn
-    wire_type :button
+  FakeButton = Plushie::Widget.define(:button) do
     children :none
     positional :label, default: nil
-    prop :label, :style, :a11y
+    prop :label, :width, :style
   end
 
   def test_widget_set_overrides_method
@@ -699,7 +698,7 @@ class TestParityFeatures < Minitest::Test
   end
 
   # ======================================================================
-  # Widget BuiltIn: default_a11y through build
+  # Widget: default_a11y through build
   # ======================================================================
 
   def test_button_build_injects_default_a11y
@@ -707,8 +706,8 @@ class TestParityFeatures < Minitest::Test
     node = btn.build
     a11y = node.props[:a11y]
     refute_nil a11y, "button should have default a11y"
-    assert_equal "button", a11y[:role]
-    assert_equal "OK", a11y[:label]
+    assert_equal "button", a11y["role"]
+    assert_equal "OK", a11y["label"]
   end
 
   def test_text_build_injects_label_from_content
@@ -716,27 +715,27 @@ class TestParityFeatures < Minitest::Test
     node = txt.build
     a11y = node.props[:a11y]
     refute_nil a11y
-    assert_equal "label", a11y[:role]
-    assert_equal "Hello World", a11y[:label]
+    assert_equal "label", a11y["role"]
+    assert_equal "Hello World", a11y["label"]
   end
 
   def test_user_a11y_overrides_defaults
     btn = Plushie::Widget::Button.new("ok", "OK", a11y: {role: :link, description: "Go"})
     node = btn.build
     a11y = node.props[:a11y]
-    # User's role wins
-    assert_equal :link, a11y[:role]
-    # User's description preserved
-    assert_equal "Go", a11y[:description]
+    # User's role wins (stringified from symbol)
+    assert_equal :link, a11y["role"]
+    # User's description preserved (stringified key)
+    assert_equal "Go", a11y["description"]
     # Default label_from still applies (user didn't set :label)
-    assert_equal "OK", a11y[:label]
+    assert_equal "OK", a11y["label"]
   end
 
   def test_user_a11y_label_overrides_label_from
     btn = Plushie::Widget::Button.new("ok", "OK", a11y: {label: "Custom"})
     node = btn.build
     a11y = node.props[:a11y]
-    assert_equal "Custom", a11y[:label]
+    assert_equal "Custom", a11y["label"]
   end
 
   def test_widget_without_label_from_prop_skips_label
@@ -745,8 +744,8 @@ class TestParityFeatures < Minitest::Test
     node = c.build
     a11y = node.props[:a11y]
     refute_nil a11y
-    assert_equal "canvas", a11y[:role]
-    refute a11y.key?(:label), "canvas without label_from should not inject :label"
+    assert_equal "canvas", a11y["role"]
+    refute a11y.key?("label"), "canvas without label_from should not inject label"
   end
 
   def test_label_from_nil_prop_skips_label
@@ -755,34 +754,33 @@ class TestParityFeatures < Minitest::Test
     node = btn.build
     a11y = node.props[:a11y]
     refute_nil a11y
-    assert_equal "button", a11y[:role]
-    refute a11y.key?(:label), "nil label prop should not inject a11y label"
+    assert_equal "button", a11y["role"]
+    refute a11y.key?("label"), "nil label prop should not inject a11y label"
   end
 
   # ======================================================================
-  # Widget BuiltIn: richer prop declarations (type:, doc:)
+  # Widget: richer prop declarations (type:, doc:)
   # ======================================================================
 
   def test_prop_meta_rich_form
-    klass = Class.new(Plushie::Widget::BuiltIn) do
-      wire_type :test_widget
+    klass = Plushie::Widget.define(:test_widget) do
       children :none
       prop :name, type: :string, doc: "Widget name"
-      prop :count, type: :integer, doc: "Item count"
-      prop :width, :height
+      prop :count, type: :number, doc: "Item count"
+      prop :width
+      prop :height
     end
 
     meta = klass.prop_meta
     assert_equal({type: :string, doc: "Widget name"}, meta[:name])
-    assert_equal({type: :integer, doc: "Item count"}, meta[:count])
+    assert_equal({type: :number, doc: "Item count"}, meta[:count])
     # Simple form props have no metadata
     refute meta.key?(:width)
     refute meta.key?(:height)
   end
 
   def test_prop_meta_empty_for_simple_only
-    klass = Class.new(Plushie::Widget::BuiltIn) do
-      wire_type :basic
+    klass = Plushie::Widget.define(:basic) do
       children :none
       prop :a, :b, :c
     end
@@ -807,7 +805,9 @@ class TestParityFeatures < Minitest::Test
       }
       define_singleton_method(:handle_event) { |_event, state| [:ignored, state] }
     end
-    widget_mod.instance_variable_set(:@_widget_cache_key, ->(props, state) { state[:version] })
+    cache_fn = ->(props, state) { state[:version] }
+    widget_mod.instance_variable_set(:@_widget_cache_key, cache_fn)
+    widget_mod.define_singleton_method(:cache_key_fn) { cache_fn }
 
     placeholder = Plushie::CanvasWidget.build(widget_mod, "cw")
     tree = Plushie::Node.new(id: "main", type: "window", children: [placeholder])

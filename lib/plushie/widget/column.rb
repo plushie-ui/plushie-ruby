@@ -6,11 +6,10 @@ module Plushie
     #
     # Construct a Column, set properties via fluent +set_*+ methods,
     # then call {#build} to produce a {Plushie::Node} for the view tree.
-    class Column < BuiltIn
-      wire_type :column
+    Column = Plushie::Widget.define(:column) do
       children :many
       prop :spacing, :padding, :width, :height, :max_width,
-        :align_x, :clip, :wrap, :a11y
+        :align_x, :clip, :wrap
     end
   end
 end

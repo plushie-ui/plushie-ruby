@@ -13,12 +13,9 @@ module Plushie
     # - delay (integer): delay in ms before emitting events.
     # - anticipate (number): anticipation distance in pixels.
     # - on_resize (string): event tag for resize events.
-    # - event_rate (integer): max events per second.
-    # - a11y (hash): accessibility overrides.
-    class Sensor < BuiltIn
-      wire_type :sensor
+    Sensor = Plushie::Widget.define(:sensor) do
       children :single
-      prop :delay, :anticipate, :on_resize, :event_rate, :a11y
+      prop :delay, :anticipate, :on_resize
     end
   end
 end

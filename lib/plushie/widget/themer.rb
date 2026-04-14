@@ -11,12 +11,10 @@ module Plushie
     #
     # Props:
     # - theme (symbol|hash): built-in theme atom or custom palette map.
-    # - a11y (hash): accessibility overrides.
-    class Themer < BuiltIn
-      wire_type :themer
+    Themer = Plushie::Widget.define(:themer) do
       children :single
       positional :theme, default: nil
-      prop :theme, :a11y
+      prop :theme
     end
   end
 end

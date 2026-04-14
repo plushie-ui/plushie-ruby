@@ -19,14 +19,11 @@ module Plushie
     # - divider_color (string): divider color.
     # - divider_width (number): divider thickness in pixels.
     # - leeway (number): grabbable area around dividers.
-    # - event_rate (integer): max events per second.
-    # - a11y (hash): accessibility overrides.
-    class PaneGrid < BuiltIn
-      wire_type :pane_grid
-      default_a11y role: :group
+    PaneGrid = Plushie::Widget.define(:pane_grid) do
       children :many
       prop :panes, :spacing, :width, :height, :min_size, :divider_color,
-        :divider_width, :leeway, :split_axis, :event_rate, :a11y
+        :divider_width, :leeway, :split_axis
+      default_a11y role: :group
     end
   end
 end

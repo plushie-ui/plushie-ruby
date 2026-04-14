@@ -58,7 +58,9 @@ module Plushie
         open: {carrier: NONE},
         close: {carrier: NONE},
         option_hovered: {carrier: VALUE, value_type: :any},
+        # steep:ignore:start
         key_binding: {carrier: VALUE, fields: {}},
+        # steep:ignore:end
         sort: {carrier: VALUE, value_type: :string},
         scrolled: {
           carrier: VALUE,
@@ -130,8 +132,10 @@ module Plushie
             pointer: :symbol, modifiers: :any
           }
         },
+        # steep:ignore:start
         enter: {carrier: VALUE, fields: {x: :float, y: :float}, required: []},
         exit: {carrier: VALUE, fields: {x: :float, y: :float}, required: []},
+        # steep:ignore:end
         double_click: {
           carrier: VALUE,
           fields: {x: :float, y: :float, pointer: :symbol, modifiers: :any}

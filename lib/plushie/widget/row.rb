@@ -6,11 +6,10 @@ module Plushie
     #
     # Construct a Row, set properties via fluent +set_*+ methods,
     # then call {#build} to produce a {Plushie::Node} for the view tree.
-    class Row < BuiltIn
-      wire_type :row
+    Row = Plushie::Widget.define(:row) do
       children :many
       prop :spacing, :padding, :width, :height, :align_y,
-        :max_width, :clip, :wrap, :a11y
+        :max_width, :clip, :wrap
     end
   end
 end

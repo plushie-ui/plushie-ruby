@@ -14,11 +14,9 @@ module Plushie
     # - width (length): stack width.
     # - height (length): stack height.
     # - clip (boolean): clip overflowing children.
-    # - a11y (hash): accessibility overrides.
-    class Stack < BuiltIn
-      wire_type :stack
+    Stack = Plushie::Widget.define(:stack) do
       children :many
-      prop :width, :height, :clip, :a11y
+      prop :width, :height, :clip
     end
   end
 end

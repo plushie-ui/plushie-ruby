@@ -4,7 +4,7 @@ module Plushie
     def self.target: (untyped event) -> String
 
     # Remove window_id from scope tail.
-    def self.strip_window_scope: (Array[String] scope, String? window_id) -> Array[String]
+    def self.strip_window_scope: (Array[String] scope, String? window_id) -> Array[String]?
 
     class Widget
       attr_reader type: Symbol
@@ -61,6 +61,7 @@ module Plushie
       attr_reader window_id: String?
 
       def initialize: (type: Symbol, key: Symbol | String, ?modified_key: (Symbol | String)?, ?physical_key: (Symbol | String)?, ?location: Symbol, ?modifiers: Hash[Symbol, bool], ?text: String?, ?repeat: bool, ?captured: bool, ?window_id: String?) -> void
+      def with: (**untyped) -> Key
     end
 
     class Ime
@@ -73,6 +74,7 @@ module Plushie
       attr_reader window_id: String?
 
       def initialize: (type: Symbol, ?id: String?, ?scope: Array[String], ?text: String?, ?cursor: [Integer, Integer]?, ?captured: bool, ?window_id: String?) -> void
+      def with: (**untyped) -> Ime
     end
 
     class Window
@@ -86,6 +88,7 @@ module Plushie
       attr_reader path: String?
 
       def initialize: (type: Symbol, ?window_id: String?, ?x: Numeric?, ?y: Numeric?, ?width: Numeric?, ?height: Numeric?, ?scale_factor: Float?, ?path: String?) -> void
+      def with: (**untyped) -> Window
     end
 
     class Modifiers
@@ -94,13 +97,15 @@ module Plushie
       attr_reader window_id: String?
 
       def initialize: (modifiers: Hash[Symbol, bool], ?captured: bool, ?window_id: String?) -> void
+      def with: (**untyped) -> Modifiers
     end
 
     class Effect
-      attr_reader tag: Symbol?
-      attr_reader result: untyped
+      attr_reader tag: Symbol
+      attr_reader result: ([Symbol, untyped] | Symbol)
 
-      def initialize: (tag: Symbol?, result: untyped) -> void
+      def initialize: (tag: Symbol, result: ([Symbol, untyped] | Symbol)) -> void
+      def with: (**untyped) -> Effect
     end
 
     class CommandError
@@ -117,6 +122,7 @@ module Plushie
         ?widget_type: String?,
         ?message: String?
       ) -> void
+      def with: (**untyped) -> CommandError
     end
 
     class System
@@ -125,6 +131,7 @@ module Plushie
       attr_reader value: untyped
 
       def initialize: (type: Symbol, ?tag: Symbol?, ?value: untyped) -> void
+      def with: (**untyped) -> System
     end
 
     class Timer
@@ -132,6 +139,7 @@ module Plushie
       attr_reader timestamp: Integer
 
       def initialize: (tag: Symbol, timestamp: Integer) -> void
+      def with: (**untyped) -> Timer
     end
 
     class Async
@@ -139,6 +147,7 @@ module Plushie
       attr_reader result: untyped
 
       def initialize: (tag: Symbol, result: untyped) -> void
+      def with: (**untyped) -> Async
     end
 
     class Stream
@@ -146,6 +155,7 @@ module Plushie
       attr_reader value: untyped
 
       def initialize: (tag: Symbol, value: untyped) -> void
+      def with: (**untyped) -> Stream
     end
   end
 end

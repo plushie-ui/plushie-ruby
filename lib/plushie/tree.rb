@@ -95,7 +95,7 @@ module Plushie
       {
         "id" => node.id,
         "type" => node.type,
-        "props" => encode_props(node.props),
+        "props" => Encode.encode_props(node.props),
         "children" => node.children.map { |c| node_to_wire(c) }
       }
     end
@@ -149,11 +149,14 @@ module Plushie
         # the previous render, skip view entirely and reuse the cached
         # normalized output.
         widget_module = node.meta[Plushie::CanvasWidget::META_KEY]
-        cache_key_fn = widget_module&.instance_variable_get(:@_widget_cache_key)
+        # @type var cache_key_fn: Proc?
+        cache_key_fn = widget_module.respond_to?(:cache_key_fn) ? widget_module.cache_key_fn : nil
         if cache_key_fn
+          # @type var ck_fn: Proc
+          ck_fn = cache_key_fn
           widget_props = node.meta[Plushie::CanvasWidget::PROPS_KEY] || {}
           widget_state = registry[scoped_id]&.state
-          current_key = cache_key_fn.call(widget_props, widget_state || {})
+          current_key = ck_fn.call(widget_props, widget_state || {})
           wck = [:widget_cache, scoped_id, current_key]
           cached = UI::MemoCache.prev[wck]
           if cached
@@ -175,10 +178,10 @@ module Plushie
           final = normalized.with(meta: rendered_node.meta)
 
           # Store in widget cache if cache_key is declared
-          if cache_key_fn
+          if ck_fn
             widget_props = node.meta[Plushie::CanvasWidget::PROPS_KEY] || {}
             widget_state = entry&.state || {}
-            current_key = cache_key_fn.call(widget_props, widget_state)
+            current_key = ck_fn.call(widget_props, widget_state)
             UI::MemoCache.store([:widget_cache, scoped_id, current_key], final)
           end
 
@@ -186,7 +189,7 @@ module Plushie
         end
       end
 
-      props = node.props.transform_values { |v| encode_value(v) }
+      props = node.props.transform_values { |v| Encode.encode_value(v) }
 
       # Determine scope for children: window nodes set "window#" as the
       # child scope. Named non-window nodes propagate their scoped ID.
@@ -386,37 +389,5 @@ module Plushie
       end
     end
     private_class_method :validate_user_id!
-
-    # Encode a single prop value for the wire protocol.
-    # @api private
-    def self.encode_value(value)
-      case value
-      when true, false, nil, Integer, Float, String
-        value
-      when Symbol
-        value.to_s
-      when Array
-        value.map { |v| encode_value(v) }
-      when Hash
-        value.transform_keys(&:to_s).transform_values { |v| encode_value(v) }
-      else
-        if value.respond_to?(:to_wire)
-          encode_value(value.to_wire)
-        else
-          value.to_s
-        end
-      end
-    end
-
-    # Encode a props hash for the wire protocol (string keys, encoded values).
-    # Used by node_to_wire and Diff.diff_props.
-    # @api private
-    def self.encode_props(props)
-      # @type var encoded: Hash[String, untyped]
-      encoded = {}
-      props.each_with_object(encoded) do |(k, v), h|
-        h[k.to_s] = encode_value(v)
-      end
-    end
   end
 end

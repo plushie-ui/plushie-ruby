@@ -2,8 +2,16 @@
 
 module Plushie
   module Widget
-    # Typed builder for the canvas widget: vector drawing surface
-    # (Layer 2 API).
+    Canvas = Plushie::Widget.define(:canvas) do
+      children :many
+      prop :width, :height, :background,
+        :on_press, :on_release, :on_move, :on_scroll,
+        :interactive, :alt, :description,
+        :role, :arrow_mode
+      default_a11y role: :canvas
+    end
+
+    # Typed builder for the canvas widget: vector drawing surface.
     #
     # Canvas is a container widget. Its children are +__layer__+ nodes
     # (each mapping to an iced Cache for independent tessellation) or
@@ -19,15 +27,7 @@ module Plushie
     #   Canvas.new("drawing", width: 400, height: 300)
     #     .add_layer("bg", [Node.new(id: "r1", type: "rect", props: {x: 0, y: 0, w: 400, h: 300})])
     #     .build
-    class Canvas < BuiltIn
-      wire_type :canvas
-      default_a11y role: :canvas
-      children :many
-      prop :width, :height, :background,
-        :on_press, :on_release, :on_move, :on_scroll,
-        :interactive, :alt, :description,
-        :role, :arrow_mode, :event_rate, :a11y
-
+    class Canvas
       # Add a named layer of shape nodes as children.
       #
       # @param name [String] layer name (used for cache keying)

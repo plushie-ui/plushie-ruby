@@ -2,20 +2,16 @@
 
 module Plushie
   module Widget
-    # Typed builder for the button widget (Layer 2 API).
+    # Button widget.
     #
-    # @example Basic usage
+    # @example
     #   Button.new("save", "Save").set_style(:primary).build
-    #
-    # @example With padding and disabled state
-    #   Button.new("cancel", "Cancel", padding: 8, disabled: true).build
-    class Button < BuiltIn
-      wire_type :button
-      default_a11y role: :button, label_from: :label
+    Button = Plushie::Widget.define(:button) do
       children :none
       positional :label
       prop :label, :width, :height, :padding,
-        :clip, :style, :disabled, :a11y
+        :clip, :style, :disabled
+      default_a11y role: :button, label_from: :label
     end
   end
 end

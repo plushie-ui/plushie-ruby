@@ -13,11 +13,9 @@ module Plushie
     # - width (number): line thickness for vertical rules.
     # - direction (symbol): :horizontal or :vertical.
     # - style (symbol|hash): :default, :weak, or style map.
-    # - a11y (hash): accessibility overrides.
-    class Rule < BuiltIn
-      wire_type :rule
+    Rule = Plushie::Widget.define(:rule) do
       children :none
-      prop :height, :width, :direction, :style, :a11y
+      prop :height, :width, :direction, :style
     end
   end
 end

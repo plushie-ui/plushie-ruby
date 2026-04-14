@@ -26,15 +26,13 @@ module Plushie
     # - style (symbol|hash): named style or style map.
     # - on_open (boolean): emit open event.
     # - on_close (boolean): emit close event.
-    # - a11y (hash): accessibility overrides.
-    class PickList < BuiltIn
-      wire_type :pick_list
-      default_a11y role: :combo_box, label_from: :placeholder
+    PickList = Plushie::Widget.define(:pick_list) do
       children :none
       positional :options, default: []
       prop :options, :selected, :placeholder, :width, :padding, :text_size,
         :font, :line_height, :menu_height, :shaping, :handle, :ellipsis,
-        :menu_style, :style, :on_open, :on_close, :a11y
+        :menu_style, :style, :on_open, :on_close
+      default_a11y role: :combo_box, label_from: :placeholder
     end
   end
 end

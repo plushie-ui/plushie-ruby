@@ -8,6 +8,7 @@ module Plushie
       attr_reader command: bool
 
       def initialize: (ctrl: bool, shift: bool, alt: bool, logo: bool, command: bool) -> void
+      def to_h: () -> Hash[Symbol, bool]
     end
 
     @mods: Mods

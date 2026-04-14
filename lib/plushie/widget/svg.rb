@@ -20,14 +20,12 @@ module Plushie
     # - alt (string): accessible label.
     # - description (string): extended accessible description.
     # - decorative (boolean): hide from assistive technology.
-    # - a11y (hash): accessibility overrides.
-    class Svg < BuiltIn
-      wire_type :svg
-      default_a11y role: :image
+    Svg = Plushie::Widget.define(:svg) do
       children :none
       positional :source, default: nil
       prop :source, :width, :height, :content_fit, :rotation, :opacity,
-        :color, :alt, :description, :decorative, :a11y
+        :color, :alt, :description, :decorative
+      default_a11y role: :image
     end
   end
 end

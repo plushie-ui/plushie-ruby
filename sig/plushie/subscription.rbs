@@ -9,6 +9,7 @@ module Plushie
 
       def initialize: (type: Symbol, ?tag: Symbol?, ?interval: Integer?, ?max_rate: Integer?, ?window_id: String?) -> void
 
+      def with: (**untyped) -> Sub
       def key: () -> Array[untyped]
       def wire_tag: () -> String
       def with_max_rate: (Integer rate) -> Sub

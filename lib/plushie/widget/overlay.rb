@@ -19,11 +19,9 @@ module Plushie
     # - flip (boolean): auto-flip on viewport overflow.
     # - align (symbol): cross-axis alignment: :start, :center, :end.
     # - width (length): overlay node width.
-    # - a11y (hash): accessibility overrides.
-    class Overlay < BuiltIn
-      wire_type :overlay
+    Overlay = Plushie::Widget.define(:overlay) do
       children 2
-      prop :position, :gap, :offset_x, :offset_y, :flip, :align, :width, :a11y
+      prop :position, :gap, :offset_x, :offset_y, :flip, :align, :width
     end
   end
 end

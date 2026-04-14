@@ -15,11 +15,9 @@ module Plushie
     # - width (length): column width.
     # - height (length): column height.
     # - max_width (number): maximum width in pixels.
-    # - a11y (hash): accessibility overrides.
-    class KeyedColumn < BuiltIn
-      wire_type :keyed_column
+    KeyedColumn = Plushie::Widget.define(:keyed_column) do
       children :many
-      prop :spacing, :padding, :width, :height, :align_x, :max_width, :a11y
+      prop :spacing, :padding, :width, :height, :align_x, :max_width
     end
   end
 end

@@ -17,14 +17,12 @@ module Plushie
     # - error_correction (symbol): :low, :medium, :quartile, :high.
     # - alt (string): accessible label.
     # - description (string): extended accessible description.
-    # - a11y (hash): accessibility overrides.
-    class QrCode < BuiltIn
-      wire_type :qr_code
-      default_a11y role: :image
+    QrCode = Plushie::Widget.define(:qr_code) do
       children :none
       positional :data, default: nil
       prop :data, :cell_size, :total_size, :cell_color, :background,
-        :error_correction, :alt, :description, :a11y
+        :error_correction, :alt, :description
+      default_a11y role: :image
     end
   end
 end

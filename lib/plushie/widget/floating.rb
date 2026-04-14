@@ -15,11 +15,9 @@ module Plushie
     # - scale (number): scale factor.
     # - width (length): float width.
     # - height (length): float height.
-    # - a11y (hash): accessibility overrides.
-    class Floating < BuiltIn
-      wire_type :float
+    Floating = Plushie::Widget.define(:float) do
       children :single
-      prop :translate_x, :translate_y, :scale, :width, :height, :a11y
+      prop :translate_x, :translate_y, :scale, :width, :height
     end
   end
 end

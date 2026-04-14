@@ -16,7 +16,7 @@ module Plushie
   #   button("save", "Save")  # uses MaterialButton
   #
   # Override widget classes must respond to +new(id, *args, **opts)+
-  # and +#build+ (returning a Node), matching the BuiltIn widget API.
+  # and +#build+ (returning a Node), matching the Widget.define API.
   #
   module WidgetSet
     # Create a widget set module with the given overrides.

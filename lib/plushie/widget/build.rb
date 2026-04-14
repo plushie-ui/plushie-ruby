@@ -61,27 +61,31 @@ module Plushie
       # Resolve a11y defaults for a widget.
       #
       # Merges default a11y annotations (role, label) with any
-      # user-provided a11y. User overrides win per field.
+      # user-provided a11y. User overrides win per field. Returns
+      # a string-keyed hash matching the wire protocol format so
+      # downstream code (infer_radio_groups, encode_props) never
+      # sees mixed key types.
       #
       # @param props [Hash] widget props (may include :a11y)
       # @param defaults [Hash] declared a11y defaults (:role, :label_from)
-      # @return [Hash, nil] resolved a11y hash, or nil if empty
+      # @return [Hash{String => Object}, nil] resolved a11y hash, or nil if empty
       def resolve_a11y(props, defaults)
         user_a11y = props[:a11y]
 
-        # Start with defaults
-        resolved = {}
-        resolved[:role] = defaults[:role].to_s if defaults[:role]
+        # Build resolved hash with string keys (wire-ready format).
+        resolved = {} #: Hash[String, untyped]
+        resolved["role"] = defaults[:role].to_s if defaults[:role]
 
         # Derive label from another prop if declared
-        if defaults[:label_from] && !user_a11y&.key?(:label)
+        if defaults[:label_from] && !user_a11y&.key?(:label) && !user_a11y&.key?("label")
           label_val = props[defaults[:label_from]]
-          resolved[:label] = label_val.to_s if label_val
+          resolved["label"] = label_val.to_s if label_val
         end
 
-        # Merge user overrides (user wins per field)
+        # Merge user overrides (user wins per field).
+        # Normalize user keys to strings for consistency.
         if user_a11y.is_a?(Hash)
-          resolved.merge!(user_a11y)
+          user_a11y.each { |k, v| resolved[k.to_s] = v }
         end
 
         resolved.empty? ? nil : resolved

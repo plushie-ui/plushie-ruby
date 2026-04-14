@@ -12,11 +12,9 @@ module Plushie
     # Props:
     # - width (length): container width.
     # - height (length): container height.
-    # - a11y (hash): accessibility overrides.
-    class Responsive < BuiltIn
-      wire_type :responsive
+    Responsive = Plushie::Widget.define(:responsive) do
       children :single
-      prop :width, :height, :a11y
+      prop :width, :height
     end
   end
 end

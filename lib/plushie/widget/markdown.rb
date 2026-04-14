@@ -20,14 +20,12 @@ module Plushie
     # - spacing (number): spacing between elements in pixels.
     # - link_color (string): link color override.
     # - code_theme (string): syntax highlighting theme for code blocks.
-    # - a11y (hash): accessibility overrides.
-    class Markdown < BuiltIn
-      wire_type :markdown
-      default_a11y role: :document
+    Markdown = Plushie::Widget.define(:markdown) do
       children :none
       positional :content, default: nil
       prop :content, :width, :text_size, :h1_size, :h2_size, :h3_size,
-        :code_size, :spacing, :link_color, :code_theme, :a11y
+        :code_size, :spacing, :link_color, :code_theme
+      default_a11y role: :document
     end
   end
 end

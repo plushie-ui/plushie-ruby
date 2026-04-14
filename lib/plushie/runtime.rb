@@ -360,7 +360,11 @@ module Plushie
         timer&.kill
         tag = @effect_ids.delete(wire_id)
         @effect_tags.delete(tag) if tag
-        event = Event::Effect.new(tag: tag, result: event[:result])
+        if tag
+          event = Event::Effect.new(tag: tag, result: event[:result])
+        else
+          return
+        end
       end
 
       # Route through canvas widget handlers before app.update.
@@ -552,6 +556,7 @@ module Plushie
       return unless timer
       tag = @effect_ids.delete(id)
       @effect_tags.delete(tag) if tag
+      return unless tag
       dispatch_event(Event::Effect.new(tag: tag, result: [:error, :timeout]))
     end
 
@@ -873,6 +878,7 @@ module Plushie
         timer&.kill
         tag = @effect_ids.delete(id)
         @effect_tags.delete(tag) if tag
+        next unless tag
 
         event = Event::Effect.new(tag: tag, result: [:error, :renderer_exited])
         saved_model = @model

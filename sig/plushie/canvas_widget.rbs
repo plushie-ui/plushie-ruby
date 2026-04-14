@@ -6,22 +6,22 @@ module Plushie
     CW_TAG_PREFIX: String
 
     class RegistryEntry
-      attr_reader widget_module: untyped
-      attr_reader state: untyped
-      attr_reader props: Hash[Symbol | String, untyped]
+      attr_reader widget_module: Module
+      attr_reader state: Hash[Symbol, untyped]
+      attr_reader props: Hash[Symbol, untyped]
 
-      def initialize: (widget_module: untyped, state: untyped, props: Hash[Symbol | String, untyped]) -> void
+      def initialize: (widget_module: Module, state: Hash[Symbol, untyped], props: Hash[Symbol, untyped]) -> void
     end
 
     def self.widget_key: (String window_id, String local_id) -> String
-    def self.build: (untyped widget_module, String id, ?Hash[Symbol | String, untyped] props) -> Node
+    def self.build: (Module widget_module, String id, ?Hash[Symbol, untyped] props) -> Node
     def self.placeholder?: (Node node) -> bool
     def self.derive_registry: (Node? tree) -> Hash[String, RegistryEntry]
-    def self.dispatch_through_widgets: (Hash[String, RegistryEntry] registry, untyped event) -> [untyped, Hash[String, RegistryEntry]]
+    def self.dispatch_through_widgets: (Hash[String, RegistryEntry] registry, untyped event) -> [(Event::Widget | nil), Hash[String, RegistryEntry]]
     def self.collect_subscriptions: (Hash[String, RegistryEntry] registry) -> Array[Subscription::Sub]
     def self.widget_tag?: (String | Symbol tag) -> bool
     def self.parse_widget_tag: (String | Symbol tag) -> [String, String]?
-    def self.handle_widget_timer: (Hash[String, RegistryEntry] registry, String | Symbol tag) -> [untyped, Hash[String, RegistryEntry]]?
+    def self.handle_widget_timer: (Hash[String, RegistryEntry] registry, String | Symbol tag) -> [(Event::Widget | nil), Hash[String, RegistryEntry]]?
     def self.render_placeholder: (
       Node node,
       String? window_id,
@@ -38,9 +38,9 @@ module Plushie
     private
 
     def self.collect_entries: (Node node, Hash[String, RegistryEntry] acc, String? current_window_id) -> void
-    def self.build_handler_chain: (Hash[String, RegistryEntry] registry, String window_id, Array[String] scope, String event_id) -> Array[untyped]
-    def self.walk_chain: (Hash[String, RegistryEntry] registry, untyped event, Array[[String, RegistryEntry]] chain) -> [untyped, Hash[String, RegistryEntry]]
-    def self.safe_handle_event: (RegistryEntry entry, untyped event, String widget_id) -> [untyped, untyped]
+    def self.build_handler_chain: (Hash[String, RegistryEntry] registry, String window_id, Array[String] scope, String event_id) -> Array[[String, RegistryEntry]]
+    def self.walk_chain: (Hash[String, RegistryEntry] registry, untyped event, Array[[String, RegistryEntry]] chain) -> [(Event::Widget | nil), Hash[String, RegistryEntry]]
+    def self.safe_handle_event: (RegistryEntry entry, untyped event, String widget_id) -> [(:ignored | :consumed | :update_state | [:emit, Symbol, untyped]), untyped]
     def self.resolve_emit_identity: (untyped event, String widget_id) -> [String, String, Array[String]]
     def self.split_widget_id: (String widget_id) -> [String, Array[String]]
     def self.normalize_emit_data: (untyped data) -> Hash[Symbol, untyped]
@@ -50,6 +50,6 @@ module Plushie
     def self.extract_scope: (untyped event) -> Array[String]
     def self.extract_id: (untyped event) -> String
     def self.extract_window_id: (untyped event) -> String
-    def self.split_widget_key: (String widget_key) -> Array[String]
+    def self.split_widget_key: (String key) -> [String, String]
   end
 end

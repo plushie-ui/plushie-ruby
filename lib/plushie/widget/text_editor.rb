@@ -28,15 +28,13 @@ module Plushie
     # - key_bindings (array of hashes): declarative key binding rules.
     # - placeholder_color (string): placeholder text color.
     # - selection_color (string): selection highlight color.
-    # - a11y (hash): accessibility overrides.
-    class TextEditor < BuiltIn
-      wire_type :text_editor
-      default_a11y role: :multiline_text_input, label_from: :placeholder
+    TextEditor = Plushie::Widget.define(:text_editor) do
       children :none
       prop :content, :placeholder, :width, :height, :min_height, :max_height,
         :font, :size, :line_height, :padding, :wrapping, :input_purpose,
         :highlight_syntax, :highlight_theme, :style, :key_bindings,
-        :placeholder_color, :selection_color, :a11y
+        :placeholder_color, :selection_color
+      default_a11y role: :multiline_text_input, label_from: :placeholder
     end
   end
 end

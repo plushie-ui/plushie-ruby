@@ -27,14 +27,11 @@ module Plushie
     # - on_exit (boolean): enable cursor exit events.
     # - on_move (boolean): enable cursor move events.
     # - on_scroll (boolean): enable scroll events.
-    # - event_rate (integer): max events per second.
-    # - a11y (hash): accessibility overrides.
-    class PointerArea < BuiltIn
-      wire_type :mouse_area
+    PointerArea = Plushie::Widget.define(:mouse_area) do
       children :single
       prop :cursor, :on_press, :on_release, :on_right_press, :on_right_release,
         :on_middle_press, :on_middle_release, :on_double_click, :on_enter,
-        :on_exit, :on_move, :on_scroll, :event_rate, :a11y
+        :on_exit, :on_move, :on_scroll
     end
   end
 end

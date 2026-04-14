@@ -23,15 +23,13 @@ module Plushie
     # - shaping (symbol): text shaping strategy.
     # - wrapping (symbol): text wrapping mode.
     # - style (symbol|hash): named style or style map.
-    # - a11y (hash): accessibility overrides.
-    class Radio < BuiltIn
-      wire_type :radio
-      default_a11y role: :radio_button, label_from: :label
+    Radio = Plushie::Widget.define(:radio) do
       children :none
       positional :value
       positional :selected
       prop :value, :selected, :label, :group, :spacing, :width, :size,
-        :text_size, :font, :line_height, :shaping, :wrapping, :style, :a11y
+        :text_size, :font, :line_height, :shaping, :wrapping, :style
+      default_a11y role: :radio_button, label_from: :label
     end
   end
 end

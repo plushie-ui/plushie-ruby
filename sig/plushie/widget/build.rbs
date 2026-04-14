@@ -1,0 +1,18 @@
+module Plushie
+  module Widget
+    module Build
+      def self.put_if: (Hash[Symbol, untyped] props, Symbol key, untyped value) -> Hash[Symbol, untyped]
+      def self.children_to_nodes: (Array[untyped] children) -> Array[Node]
+      def self.validate_single_child!: (String id, String type, Array[untyped] children) -> void
+      def self.validate_children_count!: (String id, String type, Array[untyped] children, Integer expected) -> void
+      def self.resolve_a11y: (Hash[Symbol, untyped] props, Hash[Symbol, untyped] defaults) -> Hash[String, untyped]?
+
+      # module_function instance method forms
+      def put_if: (Hash[Symbol, untyped] props, Symbol key, untyped value) -> Hash[Symbol, untyped]
+      def children_to_nodes: (Array[untyped] children) -> Array[Node]
+      def validate_single_child!: (String id, String type, Array[untyped] children) -> void
+      def validate_children_count!: (String id, String type, Array[untyped] children, Integer expected) -> void
+      def resolve_a11y: (Hash[Symbol, untyped] props, Hash[Symbol, untyped] defaults) -> Hash[String, untyped]?
+    end
+  end
+end

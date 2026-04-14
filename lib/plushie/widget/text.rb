@@ -6,13 +6,12 @@ module Plushie
     #
     # Construct a Text, set properties via fluent +set_*+ methods,
     # then call {#build} to produce a {Plushie::Node} for the view tree.
-    class Text < BuiltIn
-      wire_type :text
-      default_a11y role: :label, label_from: :content
+    Text = Plushie::Widget.define(:text) do
       children :none
       positional :content, default: nil
       prop :content, :size, :color, :font, :width, :height, :line_height,
-        :align_x, :align_y, :wrapping, :ellipsis, :shaping, :style, :a11y
+        :align_x, :align_y, :wrapping, :ellipsis, :shaping, :style
+      default_a11y role: :label, label_from: :content
     end
   end
 end

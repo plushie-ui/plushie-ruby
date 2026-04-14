@@ -2,17 +2,18 @@
 
 module Plushie
   module Widget
-    # Typed builder for the container widget (Layer 2 API).
-    #
-    # Construct a Container, set properties via fluent +set_*+ methods,
-    # then call {#build} to produce a {Plushie::Node} for the view tree.
-    class Container < BuiltIn
-      wire_type :container
+    Container = Plushie::Widget.define(:container) do
       children :single
       prop :padding, :width, :height, :max_width, :max_height, :center,
         :clip, :align_x, :align_y, :background, :color, :border,
-        :shadow, :style, :a11y
+        :shadow, :style
+    end
 
+    # Single-child container widget with alignment and styling.
+    #
+    # @example
+    #   Container.new("box").center_x.push(Text.new("msg", "Hello")).build
+    class Container
       # Return a copy with horizontal centering enabled.
       def center_x(width = :fill)
         dup.tap do |c|

@@ -22,14 +22,12 @@ module Plushie
     # - auto_scroll (boolean): auto-scroll to end on content change.
     # - scrollbar_color (string): scrollbar track colour.
     # - scroller_color (string): scroller thumb colour.
-    # - a11y (hash): accessibility overrides.
-    class Scrollable < BuiltIn
-      wire_type :scrollable
-      default_a11y role: :scroll_view
+    Scrollable = Plushie::Widget.define(:scrollable) do
       children :single
       prop :width, :height, :direction, :spacing, :scrollbar_width,
         :scrollbar_margin, :scroller_width, :anchor, :on_scroll,
-        :auto_scroll, :scrollbar_color, :scroller_color, :a11y
+        :auto_scroll, :scrollbar_color, :scroller_color
+      default_a11y role: :scroll_view
     end
   end
 end

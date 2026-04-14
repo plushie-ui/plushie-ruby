@@ -17,14 +17,12 @@ module Plushie
     # - style (symbol|hash): :primary, :secondary, :success, :danger, :warning, or style map.
     # - vertical (boolean): render vertically.
     # - label (string): accessible label.
-    # - a11y (hash): accessibility overrides.
-    class ProgressBar < BuiltIn
-      wire_type :progress_bar
-      default_a11y role: :progress_indicator, label_from: :label
+    ProgressBar = Plushie::Widget.define(:progress_bar) do
       children :none
       positional :range
       positional :value
-      prop :range, :value, :width, :height, :style, :vertical, :label, :a11y
+      prop :range, :value, :width, :height, :style, :vertical, :label
+      default_a11y role: :progress_indicator, label_from: :label
     end
   end
 end

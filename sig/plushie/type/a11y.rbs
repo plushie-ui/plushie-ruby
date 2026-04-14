@@ -31,6 +31,7 @@ module Plushie
         attr_reader has_popup: String?
 
         def initialize: (**untyped) -> void
+        def with: (**untyped) -> Spec
         def to_wire: () -> Hash[Symbol, untyped]
       end
 

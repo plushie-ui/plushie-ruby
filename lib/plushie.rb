@@ -33,9 +33,9 @@ require_relative "plushie/type/line_height"
 require_relative "plushie/encode"
 require_relative "plushie/dsl/buildable"
 
-# Widget builder modules (Layer 2 API)
+# Widget system and builder modules
 require_relative "plushie/widget/build"
-require_relative "plushie/widget/built_in"
+require_relative "plushie/widget"
 require_relative "plushie/widget/button"
 require_relative "plushie/widget/text"
 require_relative "plushie/widget/text_input"
@@ -78,8 +78,7 @@ require_relative "plushie/widget/stack"
 # Canvas shapes
 require_relative "plushie/canvas/shape"
 
-# Custom widget system
-require_relative "plushie/widget"
+# Canvas widget extension system
 require_relative "plushie/canvas_widget"
 
 require_relative "plushie/ui"

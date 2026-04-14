@@ -17,14 +17,12 @@ module Plushie
     # - snap_within_viewport (boolean): keep tooltip in viewport.
     # - delay (integer): delay in ms before showing.
     # - style (symbol|hash): named style or style map.
-    # - a11y (hash): accessibility overrides.
-    class Tooltip < BuiltIn
-      wire_type :tooltip
-      default_a11y role: :tooltip
+    Tooltip = Plushie::Widget.define(:tooltip) do
       children :single
       positional :tip, default: nil
       prop :tip, :position, :gap, :padding, :snap_within_viewport, :delay,
-        :style, :a11y
+        :style
+      default_a11y role: :tooltip
     end
   end
 end

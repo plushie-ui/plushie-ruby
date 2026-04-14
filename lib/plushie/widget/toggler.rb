@@ -22,15 +22,13 @@ module Plushie
     # - text_alignment (symbol): horizontal label alignment: :left, :center, :right.
     # - style (symbol): named style.
     # - disabled (boolean): whether the toggler is disabled.
-    # - a11y (hash): accessibility overrides.
-    class Toggler < BuiltIn
-      wire_type :toggler
-      default_a11y role: :switch, label_from: :label
+    Toggler = Plushie::Widget.define(:toggler) do
       children :none
       positional :is_toggled, default: false
       prop :is_toggled, :label, :spacing, :width, :size, :text_size, :font,
         :line_height, :shaping, :wrapping, :text_alignment, :style,
-        :disabled, :a11y
+        :disabled
+      default_a11y role: :switch, label_from: :label
     end
   end
 end

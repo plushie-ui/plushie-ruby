@@ -11,11 +11,9 @@ module Plushie
     # Props:
     # - width (length): space width.
     # - height (length): space height.
-    # - a11y (hash): accessibility overrides.
-    class Space < BuiltIn
-      wire_type :space
+    Space = Plushie::Widget.define(:space) do
       children :none
-      prop :width, :height, :a11y
+      prop :width, :height
     end
   end
 end

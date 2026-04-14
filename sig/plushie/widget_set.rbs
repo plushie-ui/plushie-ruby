@@ -1,0 +1,5 @@
+module Plushie
+  module WidgetSet
+    def self.create: (**Class overrides) -> Module
+  end
+end

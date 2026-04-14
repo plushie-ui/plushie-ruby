@@ -118,7 +118,7 @@ class TestExtension < Minitest::Test
         include Plushie::Widget
 
         widget :bad
-        prop :thing, :unicorn
+        prop :thing, type: :unicorn
       end
     end
   end

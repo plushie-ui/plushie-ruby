@@ -1,5 +1,10 @@
 module Plushie
   module Encode
     def self.encode_value: (untyped value) -> untyped
+    def self.encode_props: (Hash[Symbol | String, untyped] props) -> Hash[String, untyped]
+
+    # module_function instance method forms
+    def encode_value: (untyped value) -> untyped
+    def encode_props: (Hash[Symbol | String, untyped] props) -> Hash[String, untyped]
   end
 end

@@ -1,9 +1,9 @@
 module Plushie
   class Route
     class State
-      attr_reader stack: Array[[untyped, Hash[Symbol, untyped]]]
+      attr_reader stack: Array[Array[untyped]]
 
-      def initialize: (stack: Array[[untyped, Hash[Symbol, untyped]]]) -> void
+      def initialize: (stack: Array[Array[untyped]]) -> void
 
       def with: (**untyped changes) -> State
     end

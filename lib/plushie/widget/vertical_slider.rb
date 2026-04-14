@@ -20,16 +20,13 @@ module Plushie
     # - rail_width (number): rail thickness in pixels.
     # - style (symbol|hash): named style or style map.
     # - label (string): accessible label.
-    # - event_rate (integer): max events per second.
-    # - a11y (hash): accessibility overrides.
-    class VerticalSlider < BuiltIn
-      wire_type :vertical_slider
-      default_a11y role: :slider, label_from: :label
+    VerticalSlider = Plushie::Widget.define(:vertical_slider) do
       children :none
       positional :range
       positional :value
       prop :range, :value, :step, :shift_step, :default, :width, :height,
-        :rail_color, :rail_width, :style, :label, :event_rate, :a11y
+        :rail_color, :rail_width, :style, :label
+      default_a11y role: :slider, label_from: :label
     end
   end
 end

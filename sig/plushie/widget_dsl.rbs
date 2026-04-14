@@ -3,13 +3,18 @@ module Plushie
     KNOWN_PROP_TYPES: Array[Symbol]
     RESERVED_PROP_NAMES: Array[Symbol]
 
+    def self.define: (Symbol type_name, **untyped opts) ?{ () -> void } -> Class
+
     module CustomDSL
       VALID_KINDS: Array[Symbol]
 
       def widget: (Symbol type_name, **untyped opts) -> void
-
-      def prop: (Symbol name, Symbol type, **untyped opts) -> void
+      def prop: (*Symbol names, ?type: Symbol?, ?doc: String?, ?default: untyped) -> void
+      def positional: (Symbol name, ?default: untyped) -> void
+      def children: (Symbol | Integer mode) -> void
+      def default_a11y: (**untyped defaults) -> void
       def state: (Symbol name, ?default: untyped) -> void
+      def cache_key: (^(Hash[Symbol, untyped], Hash[Symbol, untyped]) -> untyped fn) -> void
       def event: (Symbol name) -> void
       def command: (Symbol name, **Symbol params) -> void
 
@@ -26,7 +31,12 @@ module Plushie
       def widget_props: () -> Array[Hash[Symbol, untyped]]
       def widget_state_fields: () -> Array[Hash[Symbol, untyped]]
       def widget_events: () -> Array[Symbol]
+      def widget_positionals: () -> Array[Hash[Symbol, untyped]]
       def container?: () -> bool
+      def children_mode: () -> (Symbol | Integer | nil)
+      def cache_key_fn: () -> (^(Hash[Symbol, untyped], Hash[Symbol, untyped]) -> untyped)?
+      def prop_meta: () -> Hash[Symbol, Hash[Symbol, untyped]]
+      def a11y_defaults: () -> Hash[Symbol, untyped]?
 
       def finalize!: () -> void
     end

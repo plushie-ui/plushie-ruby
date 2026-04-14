@@ -1,42 +1,32 @@
 # frozen_string_literal: true
 
 module Plushie
-  # Module for declaring custom widgets (pure Ruby or native Rust).
+  # Unified widget system for declaring all widget types.
   #
-  # Include in a class to declare a widget with typed props and a view
-  # method that composes existing widgets. Generates:
+  # One system handles leaf widgets, containers, composite widgets,
+  # stateful widgets, and native Rust-backed widgets. Two entry points:
   #
-  # - +initialize(id, **opts)+ with defaults from prop declarations
-  # - +set_<prop>(value)+ setter methods for each prop (returns a dup)
-  # - +build+ method that calls +view+ and returns a {Plushie::Node}
-  # - +type_names+ and +prop_names+ class methods
+  # - +Widget.define+ for declarative widgets (no custom methods needed)
+  # - +include Plushie::Widget+ for behavioral widgets (with view, handle_event)
   #
-  # Three kinds of widgets are supported:
+  # Both use the same underlying DSL, finalization, and build pipeline.
   #
-  # - **Composite** (default): define an instance-level +view+
-  #   that composes existing widgets. No state, no event handling.
-  # - **Stateful widget**: declare +state+ fields and/or define class-level
-  #   +self.init+, +self.handle_event+, +self.view(id, props, state)+.
-  #   The runtime manages state via a registry and renders the widget
-  #   during tree normalization. Events in the widget's scope are
-  #   dispatched through its +handle_event+ callback.
-  # - **Native widget** (Rust-backed): +widget :name, kind: :native_widget+.
-  #   Requires +rust_crate+ and +rust_constructor+ declarations.
+  # == Widget.define (declarative, factory pattern)
   #
-  # @example Composite widget
-  #   class MyGauge
-  #     include Plushie::Widget
+  # Returns a fully-formed class. Mirrors +Data.define+ convention.
+  # Best for leaf widgets, containers, and prop-to-wire mappings.
   #
-  #     widget :gauge
-  #     prop :value, :number, default: 0
-  #     prop :max, :number, default: 100
-  #
-  #     def view(id, props)
-  #       Plushie::UI.progress_bar(id, {0, props[:max]}, props[:value])
-  #     end
+  #   Button = Plushie::Widget.define(:button) do
+  #     children :none
+  #     positional :label
+  #     prop :label, :width, :height, :style, :disabled
+  #     default_a11y role: :button, label_from: :label
   #   end
   #
-  # @example Stateful widget with events
+  # == include Plushie::Widget (behavioral, class pattern)
+  #
+  # For widgets with custom Ruby methods, view callbacks, or state.
+  #
   #   class StarRating
   #     include Plushie::Widget
   #
@@ -46,34 +36,61 @@ module Plushie
   #     event :select
   #
   #     def self.init = {hover: nil}
-  #
-  #     def self.handle_event(event, state)
-  #       case event
-  #       in Event::Widget[type: :click, data: {element_id: star}]
-  #         [:emit, :select, star.to_i + 1]
-  #       else
-  #         [:consumed, state]
-  #       end
-  #     end
-  #
-  #     def self.view(id, props, state)
-  #       # ... returns canvas shapes ...
-  #     end
+  #     def self.handle_event(event, state) = ...
+  #     def self.view(id, props, state) = ...
   #   end
   #
   module Widget
-    # Recognized property type names for custom widgets.
+    # Recognized property type names for typed props.
+    # Untyped props (bare name declarations) bypass this check.
     # @api private
     KNOWN_PROP_TYPES = %i[
       number string boolean color length padding
       alignment style font atom map any
     ].freeze
 
-    # Property names reserved by the framework.
+    # Property names reserved by the framework (auto-added to all widgets).
     # @api private
     RESERVED_PROP_NAMES = %i[id type children a11y event_rate].freeze
 
-    # Methods added to classes that include Plushie::Widget.
+    # Create a widget class from declarative block.
+    #
+    # Returns a fully-formed class with all generated methods.
+    # The block is class_eval'd, so +def+ defines instance methods
+    # and DSL methods (+prop+, +children+, etc.) are available.
+    #
+    # @param type_name [Symbol] wire protocol type name
+    # @param opts [Hash] options (passed to {CustomDSL#widget})
+    # @yield declarations block (class_eval context)
+    # @return [Class] the finalized widget class
+    #
+    # @example Leaf widget
+    #   Button = Widget.define(:button) do
+    #     positional :label
+    #     prop :label, :style, :disabled
+    #   end
+    #
+    # @example Container with custom methods
+    #   Container = Widget.define(:container) do
+    #     children :single
+    #     prop :padding, :width, :height, :align_x, :align_y
+    #
+    #     def center_x(width = :fill)
+    #       dup.tap { |c| c.instance_variable_set(:@width, width)
+    #                      c.instance_variable_set(:@align_x, :center) }
+    #     end
+    #   end
+    def self.define(type_name, **opts, &block)
+      klass = Class.new
+      klass.include(Plushie::Widget)
+      klass.widget(type_name, **opts)
+      klass.class_eval(&block) if block
+      klass.finalize!
+      klass
+    end
+
+    # DSL methods added to classes that include Plushie::Widget
+    # or are created via Widget.define.
     module CustomDSL
       # Valid widget kind values.
       # @api private
@@ -84,7 +101,6 @@ module Plushie
       # @param type_name [Symbol] the wire type name for this widget
       # @param opts [Hash] options
       # @option opts [Symbol] :kind (:widget) either +:widget+ or +:native_widget+
-      # @option opts [Boolean] :container (false) whether this widget accepts children
       # @return [void]
       def widget(type_name, **opts)
         kind = opts.fetch(:kind, :widget)
@@ -95,32 +111,96 @@ module Plushie
 
         @_widget_type = type_name
         @_widget_kind = kind
-        @_widget_container = opts.fetch(:container, false)
+
+        if opts.key?(:container)
+          mode = (opts[:container] == true) ? :many : opts[:container]
+          children(mode)
+        end
       end
 
-      # Declares a typed prop with optional default.
+      # Declare one or more props.
       #
-      # @param name [Symbol] prop name (must not conflict with reserved names)
-      # @param type [Symbol] one of {KNOWN_PROP_TYPES}
-      # @param opts [Hash] options
-      # @option opts [Object] :default default value for this prop
+      # Supports three forms:
+      # - Simple: +prop :label, :width, :height+ (names only, untyped)
+      # - Typed: +prop :value, :number, default: 0+ (name + type)
+      # - Rich: +prop :label, type: :string, doc: "Text label"+ (name + metadata)
+      #
+      # Types are informational: they document the prop for introspection
+      # and future tooling. Values pass through to the wire protocol
+      # where the renderer handles validation.
+      #
+      # @param names [Array<Symbol>] prop names
+      # @param type [Symbol, nil] type hint (rich form)
+      # @param doc [String, nil] documentation (rich form)
+      # @param default [Object] default value
       # @return [void]
-      def prop(name, type, **opts)
-        name = name.to_sym
-        type = type.to_sym
-
-        unless KNOWN_PROP_TYPES.include?(type)
-          raise ArgumentError,
-            "unsupported prop type #{type.inspect} for prop #{name.inspect}. " \
-            "Supported: #{KNOWN_PROP_TYPES.inspect}"
+      def prop(*names, type: nil, doc: nil, default: nil)
+        if names.length == 1 && (type || doc)
+          # Rich form: prop :name, type: :string, doc: "..."
+          name = names[0].to_sym
+          if type && !KNOWN_PROP_TYPES.include?(type.to_sym)
+            raise ArgumentError,
+              "unsupported prop type #{type.inspect} for #{name.inspect}. " \
+              "Known types: #{KNOWN_PROP_TYPES.inspect}"
+          end
+          _check_prop_name!(name)
+          @_widget_props << {name: name, type: type, default: default}
+          (@_prop_meta ||= {})[name] = {type: type, doc: doc}.compact
+        elsif names.length == 2 && KNOWN_PROP_TYPES.include?(names[1].to_sym)
+          # Typed form: prop :name, :string, default: 0
+          name = names[0].to_sym
+          type_val = names[1].to_sym
+          _check_prop_name!(name)
+          @_widget_props << {name: name, type: type_val, default: default}
+        else
+          # Simple form: prop :name1, :name2, ...
+          if default
+            raise ArgumentError,
+              "default: cannot be used with the multi-name prop form. " \
+              "Use `prop :#{names.first}, type: :any, default: ...` for a single prop with a default"
+          end
+          names.each do |n|
+            sym = n.to_sym
+            _check_prop_name!(sym)
+            @_widget_props << {name: sym, type: nil, default: nil}
+          end
         end
+      end
 
-        if RESERVED_PROP_NAMES.include?(name)
-          raise ArgumentError,
-            "prop name #{name.inspect} is reserved. Reserved: #{RESERVED_PROP_NAMES.inspect}"
-        end
+      # Declare a positional constructor argument.
+      #
+      # Call order determines argument order after +id+.
+      # The name must also be a declared prop.
+      #
+      # @param name [Symbol] argument name
+      # @param default [Object] default value (:_required_ means mandatory)
+      # @return [void]
+      def positional(name, default: :_required_)
+        @_widget_positionals << {name: name.to_sym, default: default}
+      end
 
-        @_widget_props << {name: name, type: type, default: opts[:default]}
+      # Declare children mode.
+      #
+      # @param mode [:none, :single, :many, Integer] child constraint
+      # @return [void]
+      def children(mode)
+        @_widget_children_mode = mode
+        @_widget_container = mode && mode != :none
+      end
+
+      # Declare default a11y annotations for this widget type.
+      #
+      # Merged into the widget's a11y prop during build when the user
+      # hasn't provided explicit overrides. User values win per field.
+      #
+      # @param defaults [Hash] default a11y fields
+      # @option defaults [Symbol] :role accessible role
+      # @option defaults [Symbol] :label_from prop name to derive label from
+      # @return [void]
+      # @example
+      #   default_a11y role: :button, label_from: :label
+      def default_a11y(**defaults)
+        @_a11y_defaults = defaults.freeze
       end
 
       # Declares a state field with a default value.
@@ -172,20 +252,26 @@ module Plushie
 
       # Declares the relative path to the Rust crate directory.
       # Required for +:native_widget+ widgets.
+      # @param path [String] path to crate
+      # @return [void]
       def rust_crate(path)
         @_widget_native_crate = path.to_s
       end
 
       # Declares the Rust constructor expression used in the generated main.rs.
       # Required for +:native_widget+ widgets.
+      # @param expr [String] Rust expression
+      # @return [void]
       def rust_constructor(expr)
         @_widget_rust_constructor = expr.to_s
       end
 
-      # @return [String, nil]
+      # -- Accessors -----------------------------------------------------------
+
+      # @return [String, nil] Rust crate path
       def native_crate = @_widget_native_crate
 
-      # @return [String, nil]
+      # @return [String, nil] Rust constructor expression
       def rust_constructor_expr = @_widget_rust_constructor
 
       # Whether this is a native (Rust-backed) widget.
@@ -205,7 +291,7 @@ module Plushie
       # @return [Array<Symbol>]
       def type_names = [@_widget_type]
 
-      # Returns all declared prop names (including auto-added :a11y, :event_rate).
+      # Returns all declared prop names (plus auto-added :a11y, :event_rate).
       # @return [Array<Symbol>]
       def prop_names
         @_widget_props.map { _1[:name] } + %i[a11y event_rate]
@@ -223,31 +309,62 @@ module Plushie
       # @return [Array<Symbol>]
       def widget_events = @_widget_events
 
-      # Whether this is a container widget.
+      # Whether this is a container widget (accepts children).
       # @return [Boolean]
       def container? = @_widget_container
 
+      # Returns the children mode (:none, :single, :many, or Integer).
+      # @return [Symbol, Integer, nil]
+      def children_mode = @_widget_children_mode
+
+      # Returns the cache key function, or nil.
+      # @return [Proc, nil]
+      def cache_key_fn = @_widget_cache_key
+
+      # Returns metadata for declared props (type, doc).
+      # @return [Hash{Symbol => Hash}]
+      def prop_meta = @_prop_meta || {}
+
+      # Returns the default a11y annotations, or nil.
+      # @return [Hash, nil]
+      def a11y_defaults = @_a11y_defaults
+
+      # @api private
+      # @return [Array<Hash>] positional argument declarations
+      def widget_positionals = @_widget_positionals
+
+      # -- Finalization --------------------------------------------------------
+
       # Finalize the widget class by generating initialize, setters, and build.
       #
-      # Called automatically on first instantiation. Can also be called
-      # explicitly after all widget/prop/command declarations are complete.
+      # Called automatically on first instantiation, or explicitly by
+      # Widget.define after the block has been evaluated.
       # @return [void]
       def finalize!
         return if @_finalized
 
         _validate!
         _set_defaults!
+        _generate_readers!
         _generate_initialize!
         _generate_setters!
+        _generate_push! if container?
         _generate_build!
         @_finalized = true
       end
 
       private
 
+      def _check_prop_name!(name)
+        if RESERVED_PROP_NAMES.include?(name)
+          raise ArgumentError,
+            "prop name #{name.inspect} is reserved. Reserved: #{RESERVED_PROP_NAMES.inspect}"
+        end
+      end
+
       def _validate!
         unless @_widget_type
-          raise ArgumentError, "missing `widget :type_name` declaration in #{name}"
+          raise ArgumentError, "missing `widget :type_name` declaration in #{name || "(anonymous)"}"
         end
 
         if @_widget_kind == :native_widget
@@ -271,7 +388,6 @@ module Plushie
       def _set_defaults!
         return unless stateful?
 
-        # Default init builds state from declared state fields.
         unless respond_to?(:init)
           fields = @_widget_state_fields
           define_singleton_method(:init) do
@@ -279,8 +395,6 @@ module Plushie
           end
         end
 
-        # Default handle_event: widgets with events are opaque (:consumed),
-        # widgets without events are transparent (:ignored).
         unless respond_to?(:handle_event)
           has_events = !@_widget_events.empty?
           define_singleton_method(:handle_event) do |_event, state|
@@ -288,28 +402,44 @@ module Plushie
           end
         end
 
-        # Default subscribe: no subscriptions.
         unless respond_to?(:subscribe)
           define_singleton_method(:subscribe) { |_props, _state| [] }
         end
       end
 
+      def _generate_readers!
+        all = [:id] + @_widget_props.map { _1[:name] } + [:a11y, :event_rate]
+        all << :children if container?
+        all.each { |name| attr_reader name }
+      end
+
       def _generate_initialize!
         props = @_widget_props
+        positionals = @_widget_positionals
+        is_container = container?
 
-        define_method(:initialize) do |id, **opts|
+        define_method(:initialize) do |id, *args, **opts|
           @id = id.to_s
+
+          # Merge positional args into opts (keyword args take precedence).
+          positionals.each_with_index do |spec, i|
+            next if opts.key?(spec[:name])
+            if i < args.length
+              opts[spec[:name]] = args[i]
+            elsif spec[:default] != :_required_
+              opts[spec[:name]] = spec[:default]
+            end
+          end
+
+          @children = opts.delete(:children) || [] if is_container
           @a11y = opts.delete(:a11y)
           @event_rate = opts.delete(:event_rate)
 
           props.each do |prop|
-            val = opts.fetch(prop[:name], prop[:default])
+            val = opts.key?(prop[:name]) ? opts[prop[:name]] : prop[:default]
             instance_variable_set(:"@#{prop[:name]}", val)
           end
         end
-
-        attr_reader :id, :a11y, :event_rate
-        props.each { |prop| attr_reader prop[:name] }
       end
 
       def _generate_setters!
@@ -329,11 +459,17 @@ module Plushie
         end
       end
 
+      def _generate_push!
+        define_method(:push) do |child|
+          dup.tap { |copy| copy.instance_variable_set(:@children, @children + [child]) }
+        end
+      end
+
       def _generate_build!
         if stateful?
           _generate_stateful_build!
         else
-          _generate_composite_build!
+          _generate_direct_build!
         end
       end
 
@@ -358,7 +494,6 @@ module Plushie
           }.freeze
           node = Plushie::Node.new(id: @id, type: "widget_placeholder", props: {}, meta: meta)
 
-          # Add to UI context when called inside a DSL block.
           parent = Plushie::UI::Context.current
           parent << node if parent
 
@@ -366,27 +501,59 @@ module Plushie
         end
       end
 
-      # Composite widgets call view immediately in build.
-      def _generate_composite_build!
-        props = @_widget_props
+      # Non-stateful widgets produce a Node directly.
+      # If a view method exists, calls it. Otherwise builds from props.
+      def _generate_direct_build!
+        props_list = @_widget_props
+        children_mode = @_widget_children_mode
+        is_container = container?
+        a11y_defaults = @_a11y_defaults
 
         define_method(:build) do
+          # Validate children constraints.
+          if is_container
+            case children_mode
+            when :single
+              Build.validate_single_child!(@id, self.class.type_names.first.to_s, @children)
+            when Integer
+              Build.validate_children_count!(@id, self.class.type_names.first.to_s, @children, children_mode)
+            end
+          end
+
+          # Build props hash, skipping nils.
           props_hash = {}
-          props.each do |prop|
+          props_list.each do |prop|
             val = instance_variable_get(:"@#{prop[:name]}")
             props_hash[prop[:name]] = val unless val.nil?
           end
-          props_hash[:a11y] = @a11y unless @a11y.nil?
+
+          # Inject a11y defaults (user overrides win per field).
+          if a11y_defaults
+            resolved = Build.resolve_a11y(props_hash.merge(a11y: @a11y), a11y_defaults)
+            props_hash[:a11y] = resolved if resolved
+          elsif @a11y
+            props_hash[:a11y] = @a11y
+          end
+
           props_hash[:event_rate] = @event_rate unless @event_rate.nil?
 
           node = if respond_to?(:view)
             view(@id, props_hash)
+          elsif is_container
+            Plushie::Node.new(
+              id: @id,
+              type: self.class.type_names.first.to_s,
+              props: props_hash,
+              children: Build.children_to_nodes(@children)
+            )
           else
-            type_str = self.class.type_names.first.to_s
-            Plushie::Node.new(id: @id, type: type_str, props: props_hash)
+            Plushie::Node.new(
+              id: @id,
+              type: self.class.type_names.first.to_s,
+              props: props_hash
+            )
           end
 
-          # Add to UI context when called inside a DSL block.
           parent = Plushie::UI::Context.current
           parent << node if parent
 
@@ -396,6 +563,7 @@ module Plushie
     end
 
     # Auto-finalize when first instantiated.
+    # @api private
     def self.finalize_on_new(base)
       base.class_eval do
         class << self
@@ -409,18 +577,23 @@ module Plushie
       end
     end
 
+    # @api private
     def self.included(base)
       base.extend(CustomDSL)
       base.instance_variable_set(:@_widget_type, nil)
       base.instance_variable_set(:@_widget_kind, :widget)
       base.instance_variable_set(:@_widget_props, [])
+      base.instance_variable_set(:@_widget_positionals, [])
       base.instance_variable_set(:@_widget_state_fields, [])
       base.instance_variable_set(:@_widget_events, [])
       base.instance_variable_set(:@_widget_commands, [])
       base.instance_variable_set(:@_widget_container, false)
+      base.instance_variable_set(:@_widget_children_mode, nil)
       base.instance_variable_set(:@_widget_native_crate, nil)
       base.instance_variable_set(:@_widget_rust_constructor, nil)
       base.instance_variable_set(:@_widget_cache_key, nil)
+      base.instance_variable_set(:@_a11y_defaults, nil)
+      base.instance_variable_set(:@_prop_meta, nil)
       base.instance_variable_set(:@_finalized, false)
       finalize_on_new(base)
     end

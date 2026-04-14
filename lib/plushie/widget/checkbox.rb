@@ -2,21 +2,21 @@
 
 module Plushie
   module Widget
-    # Typed builder for the checkbox widget (Layer 2 API).
-    #
-    # Construct a Checkbox, set properties via fluent +set_*+ methods,
-    # then call {#build} to produce a {Plushie::Node} for the view tree.
-    class Checkbox < BuiltIn
-      wire_type :checkbox
-      default_a11y role: :check_box, label_from: :label
+    Checkbox = Plushie::Widget.define(:checkbox) do
       children :none
       positional :label
       positional :is_toggled, default: false
       prop :label, :is_toggled, :spacing, :width, :size, :text_size, :font,
-        :line_height, :shaping, :wrapping, :style, :icon, :disabled, :a11y
+        :line_height, :shaping, :wrapping, :style, :icon, :disabled
+      default_a11y role: :check_box, label_from: :label
+    end
 
-      # Remap :is_toggled to :checked on the wire via prepend so
-      # the override survives lazy finalization.
+    # Checkbox widget with boolean toggle state.
+    #
+    # @example
+    #   Checkbox.new("agree", "I agree", true).build
+    class Checkbox
+      # Remap :is_toggled to :checked on the wire.
       module CheckedRemap
         # Remap :is_toggled prop to :checked on the wire.
         # @api private

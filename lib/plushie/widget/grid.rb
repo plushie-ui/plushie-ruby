@@ -18,12 +18,10 @@ module Plushie
     # - column_width (length): width of each column.
     # - row_height (length): height of each row.
     # - fluid (number): fluid mode max cell width in pixels.
-    # - a11y (hash): accessibility overrides.
-    class Grid < BuiltIn
-      wire_type :grid
+    Grid = Plushie::Widget.define(:grid) do
       children :many
       prop :columns, :spacing, :width, :height, :column_width,
-        :row_height, :fluid, :a11y
+        :row_height, :fluid
     end
   end
 end

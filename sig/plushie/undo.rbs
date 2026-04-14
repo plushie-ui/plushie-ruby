@@ -15,13 +15,13 @@ module Plushie
     end
 
     class Entry
-      attr_reader apply_fn: Proc
-      attr_reader undo_fn: Proc
+      attr_reader apply_fn: ^(untyped) -> untyped
+      attr_reader undo_fn: ^(untyped) -> untyped
       attr_reader label: String?
       attr_reader coalesce: untyped
       attr_reader timestamp: Integer
 
-      def initialize: (apply_fn: Proc, undo_fn: Proc, label: String?, coalesce: untyped, timestamp: Integer) -> void
+      def initialize: (apply_fn: ^(untyped) -> untyped, undo_fn: ^(untyped) -> untyped, label: String?, coalesce: untyped, timestamp: Integer) -> void
 
       def with: (**untyped changes) -> Entry
     end
@@ -35,5 +35,9 @@ module Plushie
     def self.can_undo?: (State u) -> bool
     def self.can_redo?: (State u) -> bool
     def self.history: (State u) -> Array[String?]
+
+    private
+
+    def self.maybe_coalesce: (State u, Hash[Symbol, untyped] command, Integer now) -> Entry?
   end
 end

@@ -13,8 +13,6 @@ module Plushie
     def self.normalize_view: (Node | Array[Node] | nil tree, ?registry: Hash[String, CanvasWidget::RegistryEntry]?) -> Node
     def self.diff: (Node? old_tree, Node? new_tree) -> Array[Hash[String, untyped]]
     def self.node_to_wire: (Node node) -> Hash[String, untyped]
-    def self.encode_value: (untyped value) -> untyped
-    def self.encode_props: (Hash[Symbol | String, untyped] props) -> Hash[String, untyped]
 
     private
 

@@ -2,40 +2,23 @@
 
 module Plushie
   module Widget
-    # Table: data table with column definitions and optional sorting.
+    Table = Plushie::Widget.define(:table) do
+      children :many
+      prop :columns, :rows, :header, :separator, :separator_color,
+        :width, :height, :padding, :sort_by, :sort_order,
+        :header_text_size, :row_text_size
+      default_a11y role: :table
+    end
+
+    # Data table with column definitions and optional sorting.
     #
     # @example
     #   table = Plushie::Widget::Table.new("users",
     #     columns: [{ key: "name", label: "Name" }, { key: "email", label: "Email" }],
     #     sort_by: "name", sort_order: :asc)
     #   node = table.build
-    #
-    # Props:
-    # - columns (array of hashes): column definitions (key, label, width, sortable, align).
-    # - rows (array of hashes): data rows with keys matching column key values.
-    #   Each map should include an "id" key for stable row identity.
-    # - header (boolean): show header row. Default: true.
-    # - separator (number): divider line thickness in pixels. Set to 0.0 to hide.
-    # - separator_color (string): divider line color.
-    # - width (length): table width. Default: fill.
-    # - height (length): table height. Wraps in a scrollable when set.
-    # - padding (number|hash): cell internal padding.
-    # - sort_by (string): column key to sort by.
-    # - sort_order (symbol): :asc or :desc.
-    # - header_text_size (number): header row text size in pixels.
-    # - row_text_size (number): body row text size in pixels.
-    # - event_rate (integer): max events per second for coalescable events.
-    # - a11y (hash): accessibility overrides.
-    class Table < BuiltIn
-      wire_type :table
-      default_a11y role: :table
-      children :many
-      prop :columns, :rows, :header, :separator, :separator_color,
-        :width, :height, :padding, :sort_by, :sort_order,
-        :header_text_size, :row_text_size, :event_rate, :a11y
-
-      # Validation and override hooks applied via prepend so they
-      # wrap the generated methods rather than being overwritten.
+    class Table
+      # Row validation hooks applied via prepend.
       module RowValidation
         # Validate rows on construction and set_rows.
         # @api private
@@ -55,13 +38,9 @@ module Plushie
       private
 
       # Validate row data key types are consistent.
-      # Both symbol and string keys are accepted in row data, but they
-      # must match the column key value types. Column definitions always
-      # use the :key field to declare which data key to look up.
       def validate_rows!(rows, columns)
         return unless rows.is_a?(Array) && !rows.empty?
 
-        # Determine expected key type from column :key values
         col_key_type = nil
         if columns.is_a?(Array) && !columns.empty?
           first_col = columns[0]
@@ -82,7 +61,6 @@ module Plushie
               "All keys must be the same type across columns and rows."
           end
 
-          # Check consistency within the row
           mixed = row.keys.any? { |k| (k.is_a?(Symbol) ? :symbol : :string) != row_key_type }
           if mixed
             raise ArgumentError,

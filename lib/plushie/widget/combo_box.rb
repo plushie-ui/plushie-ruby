@@ -27,15 +27,13 @@ module Plushie
     # - ellipsis (string): text ellipsis strategy.
     # - menu_style (hash): dropdown menu style overrides.
     # - style (symbol|hash): named style or style map.
-    # - a11y (hash): accessibility overrides.
-    class ComboBox < BuiltIn
-      wire_type :combo_box
-      default_a11y role: :combo_box, label_from: :placeholder
+    ComboBox = Plushie::Widget.define(:combo_box) do
       children :none
       positional :options, default: []
       prop :options, :selected, :placeholder, :width, :padding, :size, :font,
         :line_height, :menu_height, :icon, :on_option_hovered, :on_open,
-        :on_close, :shaping, :ellipsis, :menu_style, :style, :a11y
+        :on_close, :shaping, :ellipsis, :menu_style, :style
+      default_a11y role: :combo_box, label_from: :placeholder
     end
   end
 end

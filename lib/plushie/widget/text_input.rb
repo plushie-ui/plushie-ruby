@@ -11,14 +11,13 @@ module Plushie
     #   TextInput.new("email", "", placeholder: "you@example.com")
     #     .set_size(16)
     #     .build
-    class TextInput < BuiltIn
-      wire_type :text_input
-      default_a11y role: :text_input, label_from: :placeholder
+    TextInput = Plushie::Widget.define(:text_input) do
       children :none
       positional :value, default: ""
       prop :value, :placeholder, :padding, :width, :size, :font, :line_height,
         :align_x, :icon, :on_submit, :on_paste, :secure, :input_purpose,
-        :style, :placeholder_color, :selection_color, :a11y
+        :style, :placeholder_color, :selection_color
+      default_a11y role: :text_input, label_from: :placeholder
     end
   end
 end

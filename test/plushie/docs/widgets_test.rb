@@ -138,7 +138,7 @@ class DocsWidgetsTest < Minitest::Test
         include Plushie::Widget
 
         widget :bad
-        prop :value, :unknown_type
+        prop :value, type: :unknown_type
       end
     end
   end

@@ -14,11 +14,9 @@ module Plushie
     # - y (number): y position in pixels.
     # - width (length): pin container width.
     # - height (length): pin container height.
-    # - a11y (hash): accessibility overrides.
-    class Pin < BuiltIn
-      wire_type :pin
+    Pin = Plushie::Widget.define(:pin) do
       children :single
-      prop :x, :y, :width, :height, :a11y
+      prop :x, :y, :width, :height
     end
   end
 end

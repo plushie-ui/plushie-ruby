@@ -111,7 +111,7 @@ module Plushie
       end
 
       lo, hi = [anchor_idx, id_idx].sort
-      range_ids = sel.order[lo..hi]
+      range_ids = sel.order[lo..hi] #: Array[untyped]
       sel.with(selected: Set.new(range_ids))
     end
 
