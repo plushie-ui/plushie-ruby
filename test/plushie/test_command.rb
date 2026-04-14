@@ -156,8 +156,8 @@ class TestCommand < Minitest::Test
     assert_equal :toggle_decorations, C.toggle_decorations("main").payload[:op]
   end
 
-  def test_gain_focus
-    assert_equal :gain_focus, C.gain_focus("main").payload[:op]
+  def test_focus_window
+    assert_equal :gain_focus, C.focus_window("main").payload[:op]
   end
 
   def test_set_window_level

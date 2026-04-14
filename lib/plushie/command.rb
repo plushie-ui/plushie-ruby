@@ -208,9 +208,10 @@ module Plushie
     # @return [Cmd]
     def self.toggle_decorations(window_id) = Cmd.new(type: :window_op, payload: {op: :toggle_decorations, window_id:})
 
+    # Bring window to front and give it focus.
     # @param window_id [String]
     # @return [Cmd]
-    def self.gain_focus(window_id) = Cmd.new(type: :window_op, payload: {op: :gain_focus, window_id:})
+    def self.focus_window(window_id) = Cmd.new(type: :window_op, payload: {op: :gain_focus, window_id:})
 
     # @param window_id [String]
     # @param level [Symbol] :normal, :always_on_top, :always_on_bottom

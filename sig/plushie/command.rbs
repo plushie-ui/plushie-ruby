@@ -44,7 +44,7 @@ module Plushie
     def self.set_window_mode: (String window_id, Symbol mode) -> Cmd
     def self.toggle_maximize: (String window_id) -> Cmd
     def self.toggle_decorations: (String window_id) -> Cmd
-    def self.gain_focus: (String window_id) -> Cmd
+    def self.focus_window: (String window_id) -> Cmd
     def self.set_window_level: (String window_id, Symbol level) -> Cmd
     def self.drag_window: (String window_id) -> Cmd
     def self.drag_resize_window: (String window_id, Symbol direction) -> Cmd

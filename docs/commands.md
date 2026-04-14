@@ -202,7 +202,7 @@ Command.minimize_window(window_id, false)              # Restore from minimized
 Command.set_window_mode(window_id, mode)               # :fullscreen, :windowed, etc.
 Command.toggle_maximize(window_id)                     # Toggle maximize state
 Command.toggle_decorations(window_id)                  # Toggle title bar/borders
-Command.gain_focus(window_id)                          # Bring window to front
+Command.focus_window(window_id)                        # Bring window to front
 Command.set_window_level(window_id, level)             # :normal, :always_on_top, etc.
 Command.drag_window(window_id)                         # Initiate OS window drag
 Command.drag_resize_window(window_id, direction)       # Initiate OS resize from edge
