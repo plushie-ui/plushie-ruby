@@ -276,24 +276,29 @@ module Plushie
         @pool.send_message(msg, @session_id)
 
         # Read responses: handle interact_step (headless) or interact_response (mock)
-        loop do
-          response = @pool.read_message(@session_id, timeout: 30)
-          response_type = (response[:type] || response["type"])&.to_sym
+        begin
+          loop do
+            response = @pool.read_message(@session_id, timeout: 30)
+            response_type = (response[:type] || response["type"])&.to_sym
 
-          case response_type
-          when :interact_step
-            events = extract_events(response)
-            process_events_batch(events)
-            send_snapshot
-          when :interact_response
-            events = extract_events(response)
-            process_events_individually(events)
-            break
-          else
-            # Subscription events or other messages that arrive during interact
-            # are silently consumed: test sessions don't fire subscriptions
-            # in mock mode, and headless mode delivers them via interact_step.
+            case response_type
+            when :interact_step
+              events = extract_events(response)
+              process_events_batch(events)
+              send_snapshot
+            when :interact_response
+              events = extract_events(response)
+              process_events_individually(events)
+              break
+            else
+              # Subscription events or other messages that arrive during interact
+              # are silently consumed: test sessions don't fire subscriptions
+              # in mock mode, and headless mode delivers them via interact_step.
+            end
           end
+        rescue Timeout::Error
+          sel_desc = selector ? " on #{selector.inspect}" : ""
+          raise Timeout::Error, "interact timed out: action=#{action.inspect}#{sel_desc}"
         end
       end
 
