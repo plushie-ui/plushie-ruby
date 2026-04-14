@@ -95,7 +95,7 @@ module Plushie
     # @param node [Node] the node to check
     # @return [Boolean]
     def self.placeholder?(node)
-      node.meta.key?(META_KEY)
+      node.meta&.key?(META_KEY) || false
     end
 
     # -- Registry --------------------------------------------------------------

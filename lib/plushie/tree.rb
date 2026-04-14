@@ -224,8 +224,10 @@ module Plushie
         return normalize_memo(node, scope, registry, window_id, depth)
       end
 
-      # Validate user-provided IDs (non-auto)
-      validate_user_id!(node.id) unless node.id.start_with?("auto:")
+      # Validate user-provided IDs (non-auto, non-prescoped).
+      # IDs containing "#" are already scoped (from render_placeholder)
+      # and should not be validated as user-provided IDs.
+      validate_user_id!(node.id) unless node.id.start_with?("auto:") || node.id.include?("#")
 
       # Compute scoped ID. Window nodes keep bare IDs. Children of windows
       # get "window#id". Deeper descendants get "window#parent/id".
@@ -252,10 +254,11 @@ module Plushie
         )
         if result
           rendered_node, _entry = result
-          # Normalize the rendered output. Pass empty scope because the
-          # rendered node's ID is already fully scoped (set by
-          # render_placeholder). Passing the parent scope would double-scope.
-          normalized = normalize_node(rendered_node, "", registry, current_window_id, depth + 1)
+          # Strip the placeholder meta before normalizing so the
+          # recursive normalize_node call doesn't re-trigger rendering.
+          # Re-attach the meta after normalization for registry derivation.
+          stripped = rendered_node.with(meta: nil)
+          normalized = normalize_node(stripped, "", registry, current_window_id, depth + 1)
           return normalized.with(meta: rendered_node.meta)
         end
       end
