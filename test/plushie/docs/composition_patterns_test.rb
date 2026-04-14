@@ -88,9 +88,9 @@ class DocsCompositionPatternsTest < Minitest::Test
     assert_equal "row", row_node.type
 
     tab_ids = row_node.children.map(&:id)
-    assert_includes tab_ids, "tab:overview"
-    assert_includes tab_ids, "tab:details"
-    assert_includes tab_ids, "tab:settings"
+    assert_includes tab_ids, "main#tab:overview"
+    assert_includes tab_ids, "main#tab:details"
+    assert_includes tab_ids, "main#tab:settings"
   end
 
   def test_tab_bar_active_style_has_border

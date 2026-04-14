@@ -125,8 +125,8 @@ class DocsTestingDocTest < Minitest::Test
 
     all_ids = Plushie::Tree.ids(tree)
     assert_includes all_ids, "main"
-    assert_includes all_ids, "app/add_todo"
-    assert_includes all_ids, "app/todo_count"
+    assert_includes all_ids, "main#app/add_todo"
+    assert_includes all_ids, "main#app/todo_count"
   end
 
   def test_tree_find_all_by_predicate

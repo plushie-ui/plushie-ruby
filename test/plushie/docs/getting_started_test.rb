@@ -87,9 +87,9 @@ class DocsGettingStartedTest < Minitest::Test
 
     assert_equal "row", row_node.type
     inc, dec = row_node.children
-    assert_equal "increment", inc.id
+    assert_equal "main#increment", inc.id
     assert_equal "+", inc.props[:label]
-    assert_equal "decrement", dec.id
+    assert_equal "main#decrement", dec.id
     assert_equal "-", dec.props[:label]
   end
 

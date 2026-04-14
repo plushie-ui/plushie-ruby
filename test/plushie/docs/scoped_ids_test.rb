@@ -65,7 +65,7 @@ class DocsScopedIdsTest < Minitest::Test
     end
     tree = Plushie::Tree.normalize(node).first
     assert_equal "main", tree.id
-    assert_equal "save", tree.children.first.id
+    assert_equal "main#save", tree.children.first.id
   end
 
   # -- Event scope pattern matching --

@@ -52,7 +52,7 @@ class TestIntegration < Minitest::Test
       assert_equal 1, session.model.count
 
       # Query the tree via renderer
-      count_node = session.find("#count")
+      count_node = session.find("#main#count")
       refute_nil count_node, "count node should be found via renderer query"
 
       session.stop

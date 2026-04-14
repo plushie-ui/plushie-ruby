@@ -195,8 +195,8 @@ class DocsTutorialTest < Minitest::Test
     assert_equal "column", list_col.type
     assert_equal 4, list_col.props[:spacing]
     assert_equal 2, list_col.children.length
-    assert_equal "app/list/todo_1", list_col.children[0].id
-    assert_equal "app/list/todo_2", list_col.children[1].id
+    assert_equal "main#app/list/todo_1", list_col.children[0].id
+    assert_equal "main#app/list/todo_2", list_col.children[1].id
   end
 
   # -- Step 4: toggle and delete with scope --

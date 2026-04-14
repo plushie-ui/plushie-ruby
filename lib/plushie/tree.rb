@@ -15,6 +15,11 @@ module Plushie
 
     # Find a node by ID (depth-first).
     #
+    # Supports both fully-qualified IDs ("main#form/email") and local
+    # names ("email"). Local names match by suffix: a search for "email"
+    # matches "main#form/email". The "#" or "/" before the local segment
+    # is required for suffix matching (prevents "remail" from matching).
+    #
     # @param tree [Node, Array<Node>, nil]
     # @param id [String] node ID to find
     # @return [Node, nil]
@@ -22,14 +27,34 @@ module Plushie
       return nil if tree.nil?
       trees = tree.is_a?(Array) ? tree : [tree]
 
+      # If the search ID contains "#", it includes the window qualifier and
+      # requires an exact match. Otherwise, match by suffix: the node.id
+      # must equal the search ID or end with "#id" or "/id" at a boundary.
+      # This allows "email" to match "main#form/email" and "form/email"
+      # to match "main#form/email".
+      exact = id.include?("#")
+
       trees.each do |node|
-        return node if node.id == id
+        if exact
+          return node if node.id == id
+        elsif id_matches?(node.id, id)
+          return node
+        end
         found = find(node.children, id)
         return found if found
       end
 
       nil
     end
+
+    # Check if a node ID matches a search string.
+    # Matches exact, or at a "#" or "/" boundary.
+    # @api private
+    def self.id_matches?(node_id, search)
+      return true if node_id == search
+      node_id.end_with?("##{search}", "/#{search}")
+    end
+    private_class_method :id_matches?
 
     # Check if a node with the given ID exists.
     #
@@ -197,9 +222,15 @@ module Plushie
       # Validate user-provided IDs (non-auto)
       validate_user_id!(node.id) unless node.id.start_with?("auto:")
 
-      # Compute scoped ID
-      scoped_id = if scope.empty? || node.type == "window" || node.id.start_with?("auto:")
+      # Compute scoped ID. Window nodes keep bare IDs. Children of windows
+      # get "window#id". Deeper descendants get "window#parent/id".
+      # The # only appears at the window boundary; / separates deeper scope.
+      scoped_id = if node.id.start_with?("auto:")
         node.id
+      elsif scope.empty?
+        node.id
+      elsif scope.end_with?("#")
+        "#{scope}#{node.id}"
       else
         "#{scope}/#{node.id}"
       end
@@ -226,8 +257,12 @@ module Plushie
 
       props = node.props.transform_values { |v| encode_value(v) }
 
-      # Propagate scope: named (non-auto, non-window) containers create scope
-      child_scope = if node.type == "window" || node.id.start_with?("auto:")
+      # Determine scope for children: window nodes set "window#" as the
+      # child scope. Named non-window nodes propagate their scoped ID.
+      # Auto-ID nodes are transparent (don't create scope boundaries).
+      child_scope = if node.type == "window"
+        "#{scoped_id}#"
+      elsif node.id.start_with?("auto:")
         scope
       else
         scoped_id
