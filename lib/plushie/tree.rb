@@ -257,9 +257,55 @@ module Plushie
 
       children = node.children.map { |c| normalize_node(c, child_scope, registry, current_window_id, depth + 1) }
       check_duplicate_ids!(children)
+      children = infer_radio_groups(children)
       Node.new(id: scoped_id, type: node.type, props: props, children: children)
     end
     private_class_method :normalize_node
+
+    # Scan normalized children for radio widgets sharing a group prop and
+    # inject position_in_set / size_of_set into their a11y props. Respects
+    # manual overrides: if position_in_set is already set, the node is left
+    # untouched (but still counted toward size_of_set for siblings).
+    def self.infer_radio_groups(children)
+      # Group radio nodes by their group prop
+      groups = {}
+      children.each_with_index do |node, idx|
+        group = node.type == "radio" && node.props[:group]
+        next unless group.is_a?(String)
+        (groups[group] ||= []) << [node, idx]
+      end
+
+      return children if groups.empty?
+
+      patches = {}
+      groups.each_value do |members|
+        size = members.length
+        members.each_with_index do |(node, child_idx), pos|
+          a11y = node.props[:a11y] || node.props["a11y"] || {}
+          a11y = a11y.dup if a11y.frozen?
+
+          has_position = a11y[:position_in_set] || a11y["position_in_set"]
+          has_size = a11y[:size_of_set] || a11y["size_of_set"]
+
+          next if has_position && has_size
+
+          a11y[:size_of_set] = size unless has_size
+          a11y[:position_in_set] = pos + 1 unless has_position
+          patches[child_idx] = a11y
+        end
+      end
+
+      return children if patches.empty?
+
+      children.each_with_index.map do |node, idx|
+        if (a11y = patches[idx])
+          node.with(props: node.props.merge(a11y: a11y))
+        else
+          node
+        end
+      end
+    end
+    private_class_method :infer_radio_groups
 
     def self.check_duplicate_ids!(children)
       # @type var seen: Hash[String, bool]
