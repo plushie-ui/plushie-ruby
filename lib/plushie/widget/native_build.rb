@@ -257,7 +257,7 @@ module Plushie
           registrations = widgets.map { |mod|
             constructor = mod.rust_constructor_expr
             validate_rust_constructor!(mod, constructor)
-            "        .extension(#{constructor})"
+            "        .widget(#{constructor})"
           }.join("\n")
           "PlushieAppBuilder::new()\n#{registrations}"
         end

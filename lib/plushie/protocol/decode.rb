@@ -7,7 +7,7 @@ module Plushie
     # Inbound message decoding from the wire protocol.
     #
     # Handles all response types and event families as defined in
-    # the wire protocol (~/projects/plushie-renderer/docs/protocol.md).
+    # the wire protocol (~/projects/plushie-rust/docs/protocol.md).
     module Decode
       module_function
 
@@ -665,7 +665,7 @@ module Plushie
       # Decode the hello handshake message.
       #
       # @param msg [Hash]
-      # @return [Hash] with :type, :protocol, :version, :name, :mode, :backend, :extensions, :transport
+      # @return [Hash] with :type, :protocol, :version, :name, :mode, :backend, :transport, :native_widgets, :widgets
       def decode_hello(msg)
         {
           type: :hello,

@@ -338,8 +338,7 @@ module Plushie
           .map { |w| w.type_names.first.to_s }
           .uniq
 
-      # Wire protocol uses "extensions" for the widget list in hello
-      available = Array(hello[:extensions]) + Array(hello[:widgets])
+      available = Array(hello[:native_widgets]) + Array(hello[:widgets])
       missing = expected - available
       return if missing.empty?
 

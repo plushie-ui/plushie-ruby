@@ -204,7 +204,7 @@ module Plushie
         {}
       end
       wc = Plushie.configuration.widget_config
-      settings = settings.merge(extension_config: wc) if wc && !wc.empty?
+      settings = settings.merge(widget_config: wc) if wc && !wc.empty?
       settings
     end
 

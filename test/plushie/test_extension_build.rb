@@ -203,13 +203,13 @@ class TestExtensionBuild < Minitest::Test
     rs = Build.generate_main_rs([FakeSparkline])
     assert_includes rs, "PlushieAppBuilder::new()"
     assert_includes rs, "plushie_renderer::run(builder)"
-    assert_includes rs, ".extension(sparkline::SparklineExt::new())"
+    assert_includes rs, ".widget(sparkline::SparklineExt::new())"
   end
 
   def test_generate_main_rs_with_multiple_extensions
     rs = Build.generate_main_rs([FakeSparkline, FakeChart])
-    assert_includes rs, ".extension(sparkline::SparklineExt::new())"
-    assert_includes rs, ".extension(chart::ChartExt::new())"
+    assert_includes rs, ".widget(sparkline::SparklineExt::new())"
+    assert_includes rs, ".widget(chart::ChartExt::new())"
   end
 
   def test_generate_main_rs_includes_comment
@@ -343,7 +343,7 @@ class TestExtensionBuild < Minitest::Test
     rs = Build.generate_main_rs([])
     assert_includes rs, "PlushieAppBuilder::new();"
     assert_includes rs, "plushie_renderer::run(builder)"
-    refute_includes rs, ".extension("
+    refute_includes rs, ".widget("
   end
 
   # -- Version compatibility --
