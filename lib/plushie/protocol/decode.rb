@@ -110,6 +110,7 @@ module Plushie
         # value is a string/number. We extract the Hash form into `data`
         # for field access, and keep `wire_value` for the raw value.
         wire_value = msg["value"]
+        # @type var data: Hash[String, untyped]
         data = wire_value.is_a?(Hash) ? wire_value : {}
         window_id_fn = require_window_id ? method(:require_window_id!) : method(:optional_window_id)
 

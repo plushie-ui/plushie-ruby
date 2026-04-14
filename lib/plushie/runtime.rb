@@ -48,7 +48,7 @@ module Plushie
       @pending_effects = {}    # wire_id -> timer_thread
       @effect_tags = {}        # tag -> wire_id
       @effect_ids = {}         # wire_id -> tag
-      @pending_timers = {}     # event_key -> timer_thread
+      @pending_timers = {}     # event_key -> {thread:, nonce:}
       @subscriptions = {}      # sub_key -> {sub_type:, ...}
       @subscription_keys = []  # sorted keys for short-circuit
       @canvas_widgets = {}     # "#{window_id}\0#{scoped_id}" -> CanvasWidget::RegistryEntry
