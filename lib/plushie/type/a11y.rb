@@ -61,6 +61,7 @@ module Plushie
       # @param opts [Hash] any combination of A11y fields
       # @return [Spec]
       def from_opts(opts)
+        validate_mnemonic!(opts[:mnemonic]) if opts[:mnemonic]
         Spec.new(**opts.slice(*FIELD_KEYS))
       end
 
@@ -81,6 +82,17 @@ module Plushie
       # @return [Hash, nil]
       def encode(value)
         cast(value)
+      end
+
+      # Validate that a mnemonic is a single character.
+      # @param char [String]
+      # @raise [ArgumentError] if not a single character
+      def validate_mnemonic!(char)
+        return unless char.is_a?(String)
+        if char.length != 1
+          raise ArgumentError,
+            "mnemonic must be a single character, got: #{char.inspect}"
+        end
       end
     end
   end
