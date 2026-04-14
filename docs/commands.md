@@ -437,19 +437,19 @@ Push data directly to a native Rust extension widget without triggering the
 view/diff/patch cycle. Used for high-frequency data like terminal output or
 streaming log lines.
 
-<!-- test: commands_extension_command_construct -- keep this code block in sync with the test -->
+<!-- test: commands_widget_command_construct -- keep this code block in sync with the test -->
 ```ruby
 # Single command
-Command.extension_command("term-1", "write", {data: output})
+Command.widget_command("term-1", "write", {data: output})
 
 # Batch (all processed before next view cycle)
-Command.extension_commands([
-  ["term-1", "write", {data: line1}],
-  ["log-1", "append", {line: entry}]
+Command.widget_commands([
+  {id: "term-1", family: "write", value: {data: line1}},
+  {id: "log-1", family: "append", value: {line: entry}}
 ])
 ```
 
-Extension commands are only meaningful for widgets backed by a
+Widget commands are only meaningful for widgets backed by a
 `WidgetExtension` Rust implementation. They are silently ignored for
 widgets without an extension handler.
 

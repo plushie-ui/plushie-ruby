@@ -748,7 +748,7 @@ class MyGaugeTest < Minitest::Test
 
   def test_push_command
     cmd = MyGauge.push("g1", 42.0)
-    assert_equal :extension_command, cmd.type
+    assert_equal :command, cmd.type
   end
 end
 ```

@@ -842,15 +842,15 @@ class TemperatureMonitor
     in Event::Widget[type: :click, id: "high"]
       [
         model.with(target_temp: 90.0),
-        Command.extension_command("temp", "set_value", {value: 90.0})
+        Command.widget_command("temp", "set_value", {value: 90.0})
       ]
 
     # Slider sends animate_to (target only, no confirmation)
     in Event::Widget[type: :slide, id: "target"]
-      target = event.data["value"]
+      target = event.value
       [
         model.with(target_temp: target),
-        Command.extension_command("temp", "animate_to", {value: target})
+        Command.widget_command("temp", "animate_to", {value: target})
       ]
 
     else

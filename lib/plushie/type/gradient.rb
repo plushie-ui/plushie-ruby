@@ -50,10 +50,16 @@ module Plushie
       # @return [Hash] wire-ready gradient map
       def linear_from_angle(angle, stops)
         rad = angle * Math::PI / 180.0
-        dx = Math.sin(rad)
-        dy = -Math.cos(rad)
-        from = [0.5 - dx * 0.5, 0.5 - dy * 0.5]
-        to = [0.5 + dx * 0.5, 0.5 + dy * 0.5]
+        dx = Math.cos(rad)
+        dy = Math.sin(rad)
+
+        # Extend to unit square edges so the gradient covers the full box
+        half_len = dx.abs / 2.0 + dy.abs / 2.0
+        cx = 0.5
+        cy = 0.5
+
+        from = [cx - dx * half_len, cy - dy * half_len]
+        to = [cx + dx * half_len, cy + dy * half_len]
         linear(from, to, stops)
       end
 

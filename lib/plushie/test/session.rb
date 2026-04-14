@@ -450,7 +450,7 @@ module Plushie
 
         resolved = if target.start_with?(":")
           # State pseudo-selector (:focused)
-          {by: target.delete_prefix(":"), value: ""}
+          {by: target.delete_prefix(":")}
         elsif target.start_with?("[") && target.end_with?("]")
           # Attribute selector [text=Save]
           inner = target[1..-2]

@@ -140,6 +140,7 @@ module Plushie
     end
 
     def start_forwarder(conn_queue)
+      @conn_queue = conn_queue
       reset_heartbeat_timer
       Thread.new do
         while (msg = conn_queue.pop)
@@ -203,13 +204,17 @@ module Plushie
       cancel_heartbeat_timer
       return unless @heartbeat_interval
 
+      conn_queue = @conn_queue
       @heartbeat_timer = Thread.new do
         sleep(@heartbeat_interval)
         @logger.warn(
           "plushie: renderer unresponsive " \
           "(no message in #{@heartbeat_interval}s), triggering restart"
         )
-        @event_queue.push([:renderer_exited, {type: :heartbeat_timeout}])
+        # Push a synthetic close to the forwarder's connection queue so
+        # it goes through the normal restart path (not directly to the
+        # runtime, which would bypass the forwarder).
+        conn_queue&.push({type: :connection_closed, reason: :heartbeat_timeout})
       end
       @heartbeat_timer.name = "plushie-heartbeat"
     end

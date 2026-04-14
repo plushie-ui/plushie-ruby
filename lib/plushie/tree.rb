@@ -268,14 +268,17 @@ module Plushie
         scoped_id
       end
 
-      # Resolve a11y ID references relative to current scope
+      # Resolve a11y ID references relative to current scope.
+      # Uses the same separator logic as scoped_id: "#" at window
+      # boundary, "/" for deeper scope.
       if props.key?("a11y") || props.key?(:a11y)
         a11y = props["a11y"] || props[:a11y]
         if a11y.is_a?(Hash)
           %w[labelled_by described_by error_message].each do |ref_key|
             ref = a11y[ref_key] || a11y[ref_key.to_sym]
-            if ref.is_a?(String) && !ref.include?("/") && !scope.empty?
-              a11y = a11y.merge(ref_key => "#{scope}/#{ref}")
+            if ref.is_a?(String) && !ref.include?("/") && !ref.include?("#") && !scope.empty?
+              separator = scope.end_with?("#") ? "" : "/"
+              a11y = a11y.merge(ref_key => "#{scope}#{separator}#{ref}")
             end
           end
           props = props.merge("a11y" => a11y)

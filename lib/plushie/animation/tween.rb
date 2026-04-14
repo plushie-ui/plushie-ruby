@@ -49,7 +49,7 @@ module Plushie
         def initialize(from:, to:, duration:, started_at: nil, easing: :linear,
           value: nil, repeat: nil, auto_reverse: false)
           super(from: from, to: to, duration: duration, started_at: started_at,
-                easing: easing, value: value || from, repeat: repeat, auto_reverse: auto_reverse)
+                easing: easing, value: value.nil? ? from : value, repeat: repeat, auto_reverse: auto_reverse)
         end
       end
 
