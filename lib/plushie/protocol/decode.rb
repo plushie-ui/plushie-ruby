@@ -105,10 +105,12 @@ module Plushie
       def decode_event_inner(msg, require_window_id: true)
         family = msg["family"]
         # The renderer uses "value" as the canonical event data field.
-        # Fall back to "data" for backwards compatibility with older renderers.
-        data = msg["value"] || msg["data"] || {}
-        data = {} unless data.is_a?(Hash) # scalar values stay in msg["value"]
+        # For structured payloads (pointer coords, key data, etc.), value
+        # is a Hash. For scalar payloads (input text, slider position),
+        # value is a string/number. We extract the Hash form into `data`
+        # for field access, and keep `wire_value` for the raw value.
         wire_value = msg["value"]
+        data = wire_value.is_a?(Hash) ? wire_value : {}
         window_id_fn = require_window_id ? method(:require_window_id!) : method(:optional_window_id)
 
         case family
@@ -696,14 +698,7 @@ module Plushie
         when "error" then [:error, msg["error"]]
         when "unsupported" then [:error, :unsupported]
         else
-          # Legacy fallback for older renderers
-          if msg["error"]
-            [:error, msg["error"]]
-          elsif msg["cancelled"]
-            :cancelled
-          else
-            [:ok, msg["result"] || msg["data"]]
-          end
+          raise ArgumentError, "unknown effect_response status: #{msg["status"].inspect}"
         end
         {type: :effect_response, wire_id: msg["id"], result: result}
       end
