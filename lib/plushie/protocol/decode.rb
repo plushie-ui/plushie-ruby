@@ -815,16 +815,43 @@ module Plushie
       # -------------------------------------------------------------------
 
       # Split a scoped wire ID into local ID and scope array.
-      # Wire sends "sidebar/form/save"; we split to id: "save",
-      # scope: ["form", "sidebar"] (reversed, immediate parent first).
+      #
+      # Handles the canonical "window#scope/path/id" format:
+      # "main#form/save" -> id: "save", scope: ["form", "main"]
+      # "main#save" -> id: "save", scope: ["main"]
+      # "save" -> id: "save", scope: []
+      #
+      # The window portion (before #) is extracted and placed at the end
+      # of the reversed scope array (outermost ancestor). Falls back to
+      # the separate window_id field for compatibility.
       #
       # @param full_id [String, nil]
       # @return [Array(String, Array<String>)]
       def split_scoped_id(full_id)
-        return [full_id.to_s, []] unless full_id&.include?("/")
-        parts = full_id.split("/")
-        id = parts.pop.to_s
-        [id, parts.reverse]
+        return [full_id.to_s, []] if full_id.nil?
+
+        # Split window from path on #
+        window, path = if full_id.include?("#")
+          parts = full_id.split("#", 2)
+          (parts[0] && !parts[0].empty?) ? parts : [nil, full_id]
+        else
+          [nil, full_id]
+        end
+
+        # Split path into scope chain
+        if path.include?("/")
+          parts = path.split("/")
+          local = parts.pop.to_s
+          scope = parts.reverse
+        else
+          local = path
+          scope = []
+        end
+
+        # Append window to scope if extracted from the ID
+        scope << window if window && !window.empty?
+
+        [local, scope]
       end
 
       # Split scoped ID and append window_id to the scope chain
