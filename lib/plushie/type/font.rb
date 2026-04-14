@@ -68,19 +68,15 @@ module Plushie
       end
 
       # Convert a Spec to a wire-ready hash.
+      # Weight/style/stretch encode as snake_case strings, matching
+      # every other enum in the system.
       def encode_spec(spec)
         h = {}
         h[:family] = spec.family if spec.family
-        h[:weight] = pascal_case(spec.weight) if spec.weight
-        h[:style] = pascal_case(spec.style) if spec.style
-        h[:stretch] = pascal_case(spec.stretch) if spec.stretch
+        h[:weight] = spec.weight.to_s if spec.weight
+        h[:style] = spec.style.to_s if spec.style
+        h[:stretch] = spec.stretch.to_s if spec.stretch
         h
-      end
-
-      # Convert a snake_case symbol to PascalCase string.
-      # :extra_bold -> "ExtraBold"
-      def pascal_case(sym)
-        sym.to_s.split("_").map(&:capitalize).join
       end
     end
   end

@@ -157,13 +157,15 @@ class TestTypes < Minitest::Test
     spec = Plushie::Type::Font.from_opts(family: "Inter", weight: :bold, style: :italic)
     result = Plushie::Type::Font.encode(spec)
     assert_equal "Inter", result[:family]
-    assert_equal "Bold", result[:weight]
-    assert_equal "Italic", result[:style]
+    assert_equal "bold", result[:weight]
+    assert_equal "italic", result[:style]
   end
 
-  def test_font_pascal_case
-    assert_equal "ExtraBold", Plushie::Type::Font.pascal_case(:extra_bold)
-    assert_equal "SemiCondensed", Plushie::Type::Font.pascal_case(:semi_condensed)
+  def test_font_snake_case_encoding
+    spec = Plushie::Type::Font.from_opts(weight: :extra_bold, stretch: :semi_condensed)
+    result = Plushie::Type::Font.encode(spec)
+    assert_equal "extra_bold", result[:weight]
+    assert_equal "semi_condensed", result[:stretch]
   end
 
   # -- Theme ----------------------------------------------------------------
@@ -185,11 +187,19 @@ class TestTypes < Minitest::Test
   # -- Gradient -------------------------------------------------------------
 
   def test_gradient_linear
-    g = Plushie::Type::Gradient.linear(90, [[0.0, :red], [1.0, :blue]])
+    g = Plushie::Type::Gradient.linear([0, 0], [100, 100], [[0.0, :red], [1.0, :blue]])
     assert_equal "linear", g[:type]
-    assert_equal 90, g[:angle]
-    assert_equal "#ff0000", g[:stops][0][:color]
-    assert_equal "#0000ff", g[:stops][1][:color]
+    assert_equal [0, 0], g[:start]
+    assert_equal [100, 100], g[:end]
+    assert_equal "#ff0000", g[:stops][0][1]
+    assert_equal "#0000ff", g[:stops][1][1]
+  end
+
+  def test_gradient_linear_from_angle
+    g = Plushie::Type::Gradient.linear_from_angle(90, [[0.0, :red], [1.0, :blue]])
+    assert_equal "linear", g[:type]
+    assert_equal 2, g[:start].length
+    assert_equal 2, g[:stops].length
   end
 
   # -- A11y -----------------------------------------------------------------
