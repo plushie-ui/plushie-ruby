@@ -208,14 +208,20 @@ module Plushie
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :enter, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            value: {captured: data["captured"] || msg["captured"] || false}
+            value: {
+              x: data["x"], y: data["y"],
+              captured: data["captured"] || msg["captured"] || false
+            }
           )
 
         when "exit"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
             type: :exit, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
-            value: {captured: data["captured"] || msg["captured"] || false}
+            value: {
+              x: data["x"], y: data["y"],
+              captured: data["captured"] || msg["captured"] || false
+            }
           )
 
         when "double_click"
@@ -326,7 +332,12 @@ module Plushie
               type: :key_press, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
               value: {
                 key: Keys.parse_key(data["key"]),
-                modifiers: parse_modifiers(data["modifiers"])
+                modified_key: Keys.parse_key(data["modified_key"]),
+                physical_key: Keys.parse_physical_key(data["physical_key"]),
+                location: Keys.parse_location(data["location"]),
+                modifiers: parse_modifiers(data["modifiers"]),
+                text: data["text"],
+                repeat: data["repeat"] || false
               }
             )
           else
@@ -352,6 +363,9 @@ module Plushie
               type: :key_release, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
               value: {
                 key: Keys.parse_key(data["key"]),
+                modified_key: Keys.parse_key(data["modified_key"]),
+                physical_key: Keys.parse_physical_key(data["physical_key"]),
+                location: Keys.parse_location(data["location"]),
                 modifiers: parse_modifiers(data["modifiers"])
               }
             )

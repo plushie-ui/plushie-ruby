@@ -256,6 +256,8 @@ module Plushie
           end
         in [:effect_timeout, id]
           handle_effect_timeout(id)
+        in [:interact_timeout, id]
+          handle_interact_timeout(id)
         in [:register_effect_stub, kind, response, ack_queue]
           if @pending_stub_acks.key?(kind)
             ack_queue.push({error: "stub ack already pending for #{kind}"})
@@ -332,9 +334,17 @@ module Plushie
         return
       end
 
-      # Intercept prop validation diagnostics (never delivered to update)
+      # Intercept prop validation diagnostics (never delivered to update).
+      # Log at the severity level specified by the renderer.
       if event.is_a?(Event::System) && event.type == :diagnostic
-        @logger.warn("plushie: prop validation diagnostic: #{event.value.inspect}")
+        diag = event.value
+        level = diag.is_a?(Hash) ? (diag["level"] || diag[:level] || "warning") : "warning"
+        msg = diag.is_a?(Hash) ? (diag["message"] || diag[:message] || diag.inspect) : diag.inspect
+        case level.to_s
+        when "error" then @logger.error("plushie: diagnostic: #{msg}")
+        when "info" then @logger.info("plushie: diagnostic: #{msg}")
+        else @logger.warn("plushie: diagnostic: #{msg}")
+        end
         @diagnostics_mutex.synchronize { @diagnostics << event }
         return
       end
@@ -546,12 +556,23 @@ module Plushie
       @canvas_widgets = {}
       @widget_statuses = {}
       @focused_widget_id = nil
+      recovery_error = nil
       begin
         @model = @app.handle_renderer_exit(@model, reason)
       rescue => e
         @logger.error("plushie: handle_renderer_exit error: #{e.class}: #{e.message}")
-        # Preserve model on callback failure
+        recovery_error = e
       end
+
+      # If the recovery callback failed, dispatch a recovery_failed event
+      # so the app can react (show an error banner, reset to safe state).
+      if recovery_error
+        dispatch_event(Event::System.new(
+          type: :recovery_failed,
+          value: {error: recovery_error.message, renderer_exit: reason.inspect}
+        ))
+      end
+
       @previous_tree = nil
       @running = false unless @daemon
     end
@@ -660,9 +681,19 @@ module Plushie
 
     # -- Interact ------------------------------------------------------------
 
+    # Internal timeout for pending_interact. If the renderer drops or
+    # never responds, this prevents permanent blocking.
+    INTERACT_TIMEOUT_S = 15
+
     def handle_interact_request(action, selector, payload, result_queue)
       id = SecureRandom.hex(4)
-      @pending_interact = {id: id, result_queue: result_queue}
+      queue = @event_queue
+      timer = Thread.new do
+        sleep(INTERACT_TIMEOUT_S)
+        queue.push([:interact_timeout, id])
+      end
+      timer.name = "plushie-interact-timeout"
+      @pending_interact = {id: id, result_queue: result_queue, timeout_timer: timer}
       bridge = @bridge or raise Plushie::Error, "bridge not started"
       bridge.send_encoded(
         Protocol::Encode.encode_interact(id, action, selector, payload, @format)
@@ -686,7 +717,17 @@ module Plushie
       @pending_interact = nil
       return unless pending
 
+      pending[:timeout_timer]&.kill
       pending[:result_queue]&.push({events: events})
+    end
+
+    def handle_interact_timeout(id)
+      pending = @pending_interact
+      return unless pending && pending[:id] == id
+
+      @logger.warn("plushie: interact #{id} timed out")
+      @pending_interact = nil
+      pending[:result_queue]&.push({error: "interact timed out"})
     end
 
     # Process an event through update + commands WITHOUT rendering.
@@ -730,6 +771,7 @@ module Plushie
       @pending_interact = nil
       return unless pending
 
+      pending[:timeout_timer]&.kill
       pending[:result_queue]&.push({error: reason})
     end
 
@@ -743,12 +785,18 @@ module Plushie
     end
 
     # Flush pending effect requests: the renderer that would have
-    # responded is gone. Deliver timeout errors so callers don't hang.
+    # responded is gone. Deliver error events so callers don't hang.
+    # Each effect is removed individually before dispatching so that
+    # new effects started during the flush survive.
     def flush_pending_effects_on_exit
-      @pending_effects.each_value(&:kill)
-      @pending_effects.clear
-      @effect_tags.clear
-      @effect_ids.clear
+      ids = @pending_effects.keys
+      ids.each do |id|
+        timer = @pending_effects.delete(id)
+        timer&.kill
+        tag = @effect_ids.delete(id)
+        @effect_tags.delete(tag) if tag
+        dispatch_event(Event::Effect.new(tag: tag, result: [:error, :renderer_exited]))
+      end
     end
 
     # Flush pending stub ack queues with an error so callers know the old

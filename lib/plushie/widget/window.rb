@@ -6,6 +6,11 @@ module Plushie
     #
     # Construct a Window, set properties via fluent +set_*+ methods,
     # then call {#build} to produce a {Plushie::Node} for the view tree.
+    #
+    # Props:
+    # - width (length): content width layout ("fill", "shrink", number, or {fill_portion: n}).
+    # - height (length): content height layout ("fill", "shrink", number, or {fill_portion: n}).
+    # - theme (symbol|hash): built-in theme name, :system, or Theme.custom result.
     class Window < BuiltIn
       wire_type :window
       children :single

@@ -372,11 +372,15 @@ module Plushie
     end
     private_class_method :check_duplicate_ids!
 
+    # Printable ASCII range (0x21-0x7E), excludes space and control characters.
+    VALID_ID_PATTERN = /\A[\x21-\x7e]+\z/
+
     # Validate a user-provided widget ID.
     # - Must not be empty
     # - Must not contain "/" (scope separators are built automatically)
     # - Must not contain "#" (reserved for window-qualified paths)
     # - Must not exceed 1024 bytes
+    # - Must contain only printable ASCII (0x21-0x7E)
     def self.validate_user_id!(id)
       return if id.nil? || id.empty?
 
@@ -395,6 +399,12 @@ module Plushie
       if id.bytesize > 1024
         raise ArgumentError,
           "widget ID #{id.inspect} exceeds maximum length of 1024 bytes"
+      end
+
+      unless VALID_ID_PATTERN.match?(id)
+        raise ArgumentError,
+          "widget ID #{id.inspect} contains invalid characters, " \
+          "IDs must contain only printable ASCII (0x21-0x7E)"
       end
     end
     private_class_method :validate_user_id!

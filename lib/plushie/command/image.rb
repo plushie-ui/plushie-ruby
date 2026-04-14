@@ -20,6 +20,7 @@ module Plushie
       # @return [Cmd]
       def create_image(handle, data = nil, width: nil, height: nil, pixels: nil)
         if pixels
+          validate_pixel_buffer!(pixels, width, height)
           Cmd.new(type: :image_op, payload: {op: "create_image", handle:, pixels:, width:, height:})
         else
           Cmd.new(type: :image_op, payload: {op: "create_image", handle:, data:})
@@ -35,6 +36,7 @@ module Plushie
       # @return [Cmd]
       def update_image(handle, data = nil, width: nil, height: nil, pixels: nil)
         if pixels
+          validate_pixel_buffer!(pixels, width, height)
           Cmd.new(type: :image_op, payload: {op: "update_image", handle:, pixels:, width:, height:})
         else
           Cmd.new(type: :image_op, payload: {op: "update_image", handle:, data:})
@@ -54,6 +56,18 @@ module Plushie
       # Remove all image handles.
       # @return [Cmd]
       def clear_images = Cmd.new(type: :widget_op, payload: {op: "clear_images"})
+
+      # Validate pixel buffer size matches dimensions.
+      # @api private
+      def validate_pixel_buffer!(pixels, width, height)
+        return unless pixels && width && height
+        expected = width * height * 4
+        return if pixels.bytesize == expected
+
+        raise ArgumentError,
+          "pixel buffer size mismatch: expected #{expected} bytes " \
+          "(#{width}x#{height}x4 RGBA) but got #{pixels.bytesize}"
+      end
     end
   end
 end
