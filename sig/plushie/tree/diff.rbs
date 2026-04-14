@@ -1,0 +1,13 @@
+module Plushie
+  module Tree
+    module Diff
+      def self.diff: (Node? old_tree, Node? new_tree) -> Array[Hash[String, untyped]]
+      def self.diff_node: (Node old, Node new_node, Array[Integer] path) -> Array[Hash[String, untyped]]
+      def self.diff_props: (Hash[Symbol | String, untyped] old_props, Hash[Symbol | String, untyped] new_props, Array[Integer] path) -> Array[Hash[String, untyped]]
+      def self.diff_children: (Array[Node] old_children, Array[Node] new_children, Array[Integer] path) -> Array[Hash[String, untyped]]
+      def self.lis_indices: (Array[Integer] arr) -> Set[Integer]
+      def self.index_after_removals: (Integer old_idx, Array[Integer] removed_indices) -> Integer
+      def self.id_keyed_lists_equal?: (untyped old_val, untyped new_val) -> bool
+    end
+  end
+end

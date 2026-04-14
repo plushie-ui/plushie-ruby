@@ -26,6 +26,7 @@ module Plushie
     # - a11y (hash): accessibility overrides.
     class Radio < BuiltIn
       wire_type :radio
+      default_a11y role: :radio_button, label_from: :label
       children :none
       positional :value
       positional :selected

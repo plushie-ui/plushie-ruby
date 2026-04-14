@@ -25,6 +25,7 @@ module Plushie
     # - a11y (hash): accessibility overrides.
     class Toggler < BuiltIn
       wire_type :toggler
+      default_a11y role: :switch, label_from: :label
       children :none
       positional :is_toggled, default: false
       prop :is_toggled, :label, :spacing, :width, :size, :text_size, :font,

@@ -20,6 +20,7 @@ module Plushie
     # - a11y (hash): accessibility overrides.
     class ProgressBar < BuiltIn
       wire_type :progress_bar
+      default_a11y role: :progress_indicator, label_from: :label
       children :none
       positional :range
       positional :value

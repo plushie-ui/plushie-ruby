@@ -11,6 +11,7 @@ module Plushie
     #   Button.new("cancel", "Cancel", padding: 8, disabled: true).build
     class Button < BuiltIn
       wire_type :button
+      default_a11y role: :button, label_from: :label
       children :none
       positional :label
       prop :label, :width, :height, :padding,

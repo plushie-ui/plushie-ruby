@@ -27,6 +27,7 @@ require_relative "plushie/type/shadow"
 require_relative "plushie/type/font"
 require_relative "plushie/type/style_map"
 require_relative "plushie/type/a11y"
+require_relative "plushie/type/line_height"
 
 # Encoding and DSL
 require_relative "plushie/encode"

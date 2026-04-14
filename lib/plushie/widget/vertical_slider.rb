@@ -24,6 +24,7 @@ module Plushie
     # - a11y (hash): accessibility overrides.
     class VerticalSlider < BuiltIn
       wire_type :vertical_slider
+      default_a11y role: :slider, label_from: :label
       children :none
       positional :range
       positional :value

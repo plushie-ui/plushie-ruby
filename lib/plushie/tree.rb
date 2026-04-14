@@ -1,131 +1,41 @@
 # frozen_string_literal: true
 
+require_relative "tree/search"
+require_relative "tree/diff"
+
 module Plushie
   # Utilities for working with UI trees.
   #
-  # Provides normalization, search, and diffing for Node trees.
-  # The diff algorithm produces patch operations per the wire protocol
-  # spec (replace_node, update_props, insert_child, remove_child).
+  # Provides normalization (Tree), search (Tree::Search), and diffing
+  # (Tree::Diff) for Node trees. Search and diff are also available
+  # directly on Tree via delegation.
   #
   # @see ~/projects/plushie-rust/docs/protocol.md "Patch"
   module Tree
     # -------------------------------------------------------------------
-    # Search
+    # Search (delegated to Tree::Search)
     # -------------------------------------------------------------------
 
-    # Find a node by ID (depth-first).
-    #
-    # Supports both fully-qualified IDs ("main#form/email") and local
-    # names ("email"). Local names match by suffix: a search for "email"
-    # matches "main#form/email". The "#" or "/" before the local segment
-    # is required for suffix matching (prevents "remail" from matching).
-    #
-    # @param tree [Node, Array<Node>, nil]
-    # @param id [String] node ID to find
-    # @return [Node, nil]
-    def self.find(tree, id)
-      return nil if tree.nil?
-      trees = tree.is_a?(Array) ? tree : [tree]
-
-      # If the search ID contains "#", it includes the window qualifier and
-      # requires an exact match. Otherwise, match by suffix: the node.id
-      # must equal the search ID or end with "#id" or "/id" at a boundary.
-      # This allows "email" to match "main#form/email" and "form/email"
-      # to match "main#form/email".
-      exact = id.include?("#")
-
-      trees.each do |node|
-        if exact
-          return node if node.id == id
-        elsif id_matches?(node.id, id)
-          return node
-        end
-        found = find(node.children, id)
-        return found if found
-      end
-
-      nil
-    end
-
-    # Check if a node ID matches a search string.
-    # Matches exact, or at a "#" or "/" boundary.
-    # @api private
-    def self.id_matches?(node_id, search)
-      return true if node_id == search
-      node_id.end_with?("##{search}", "/#{search}")
-    end
-    private_class_method :id_matches?
-
-    # Check if a node with the given ID exists.
-    #
-    # @param tree [Node, Array<Node>, nil]
-    # @param id [String]
-    # @return [Boolean]
-    def self.exists?(tree, id)
-      !find(tree, id).nil?
-    end
-
-    # Return all node IDs in depth-first order.
-    #
-    # @param tree [Node, Array<Node>]
-    # @return [Array<String>]
-    def self.ids(tree)
-      return [] if tree.nil?
-
-      # @type var result: Array[String]
-      result = []
-      trees = (tree.is_a?(Array) ? tree : [tree]).compact
-
-      trees.each do |node|
-        result << node.id
-        result.concat(ids(node.children))
-      end
-
-      result
-    end
-
-    # Find the first node matching a predicate (depth-first).
-    # Returns immediately on the first match.
-    #
-    # @param tree [Node, Array<Node>]
-    # @yield [Node] predicate block
-    # @return [Node, nil]
-    def self.find_first(tree, &predicate)
-      return nil if tree.nil?
-      trees = (tree.is_a?(Array) ? tree : [tree]).compact
-
-      trees.each do |node|
-        return node if predicate.call(node)
-        found = find_first(node.children, &predicate)
-        return found if found
-      end
-
-      nil
-    end
-
-    # Find all nodes matching a predicate (depth-first).
-    #
-    # @param tree [Node, Array<Node>]
-    # @yield [Node] predicate block
-    # @return [Array<Node>]
-    def self.find_all(tree, &predicate)
-      return [] if tree.nil?
-
-      # @type var result: Array[Node]
-      result = []
-      trees = (tree.is_a?(Array) ? tree : [tree]).compact
-
-      trees.each do |node|
-        result << node if predicate.call(node)
-        result.concat(find_all(node.children, &predicate))
-      end
-
-      result
-    end
+    # @see Tree::Search#find
+    def self.find(tree, id) = Search.find(tree, id)
+    # @see Tree::Search#exists?
+    def self.exists?(tree, id) = Search.exists?(tree, id)
+    # @see Tree::Search#ids
+    def self.ids(tree) = Search.ids(tree)
+    # @see Tree::Search#find_first
+    def self.find_first(tree, &predicate) = Search.find_first(tree, &predicate)
+    # @see Tree::Search#find_all
+    def self.find_all(tree, &predicate) = Search.find_all(tree, &predicate)
 
     # -------------------------------------------------------------------
     # Normalization
     # -------------------------------------------------------------------
+
+    # Maximum tree depth before raising. Protects against infinite
+    # recursion from circular widget compositions.
+    MAX_DEPTH = 256
+    # Depth at which a warning is emitted (approaching MAX_DEPTH).
+    DEPTH_WARNING = 200
 
     # Normalize a tree for wire transport.
     # Converts symbol prop values to strings via Encode, resolves
@@ -137,15 +47,10 @@ module Plushie
     # @param tree [Node, Array<Node>]
     # @param registry [Hash, nil] canvas widget registry for state lookup
     # @return [Array<Node>] normalized tree (always an array)
-    # Maximum tree depth before raising. Protects against infinite
-    # recursion from circular widget compositions.
-    MAX_DEPTH = 256
-    DEPTH_WARNING = 200
-
     def self.normalize(tree, registry: nil)
       return [Node.new(id: "root", type: "container")] if tree.nil?
       trees = (tree.is_a?(Array) ? tree : [tree]).compact
-      normalized = trees.compact.map { |node| normalize_node(node, "", registry, nil, 0) }
+      normalized = trees.map { |node| normalize_node(node, "", registry, nil, 0) }
       check_duplicate_ids!(normalized)
       normalized
     end
@@ -180,16 +85,7 @@ module Plushie
     # @param old_tree [Node, nil] previous normalized tree
     # @param new_tree [Node, nil] current normalized tree
     # @return [Array<Hash>] patch operations
-    def self.diff(old_tree, new_tree)
-      return [] if old_tree.nil? && new_tree.nil?
-      return [{"op" => "replace_node", "path" => [], "node" => node_to_wire(new_tree)}] if old_tree.nil? && !new_tree.nil?
-      return [{"op" => "replace_node", "path" => [], "node" => node_to_wire(Node.new(id: "root", type: "container"))}] if new_tree.nil?
-      old_node = old_tree or raise ArgumentError, "old_tree cannot be nil here"
-      new_node = new_tree or raise ArgumentError, "new_tree cannot be nil here"
-      return [{"op" => "replace_node", "path" => [], "node" => node_to_wire(new_node)}] if old_node.id != new_node.id
-
-      diff_node(old_node, new_node, [])
-    end
+    def self.diff(old_tree, new_tree) = Diff.diff(old_tree, new_tree)
 
     # Convert a Node to a plain wire-ready Hash (recursive).
     #
@@ -248,18 +144,45 @@ module Plushie
       # normalize the output. The rendered canvas node does NOT have the
       # placeholder meta, so normalization of the output won't re-trigger
       # rendering (no recursion possible).
-      if registry && defined?(Plushie::CanvasWidget) && Plushie::CanvasWidget.placeholder?(node)
+      if registry && current_window_id && defined?(Plushie::CanvasWidget) && Plushie::CanvasWidget.placeholder?(node)
+        # Check widget cache_key before rendering. If the key matches
+        # the previous render, skip view entirely and reuse the cached
+        # normalized output.
+        widget_module = node.meta[Plushie::CanvasWidget::META_KEY]
+        cache_key_fn = widget_module&.instance_variable_get(:@_widget_cache_key)
+        if cache_key_fn
+          widget_props = node.meta[Plushie::CanvasWidget::PROPS_KEY] || {}
+          widget_state = registry[scoped_id]&.state
+          current_key = cache_key_fn.call(widget_props, widget_state || {})
+          wck = [:widget_cache, scoped_id, current_key]
+          cached = UI::MemoCache.prev[wck]
+          if cached
+            UI::MemoCache.store(wck, cached)
+            return cached
+          end
+        end
+
         result = Plushie::CanvasWidget.render_placeholder(
           node, current_window_id, scoped_id, node.id, registry
         )
         if result
-          rendered_node, _entry = result
+          rendered_node, entry = result
           # Strip the placeholder meta before normalizing so the
           # recursive normalize_node call doesn't re-trigger rendering.
           # Re-attach the meta after normalization for registry derivation.
           stripped = rendered_node.with(meta: nil)
           normalized = normalize_node(stripped, "", registry, current_window_id, depth + 1)
-          return normalized.with(meta: rendered_node.meta)
+          final = normalized.with(meta: rendered_node.meta)
+
+          # Store in widget cache if cache_key is declared
+          if cache_key_fn
+            widget_props = node.meta[Plushie::CanvasWidget::PROPS_KEY] || {}
+            widget_state = entry&.state || {}
+            current_key = cache_key_fn.call(widget_props, widget_state)
+            UI::MemoCache.store([:widget_cache, scoped_id, current_key], final)
+          end
+
+          return final
         end
       end
 
@@ -333,13 +256,15 @@ module Plushie
           a11y = node.props[:a11y] || node.props["a11y"] || {}
           a11y = a11y.dup if a11y.frozen?
 
-          has_position = a11y[:position_in_set] || a11y["position_in_set"]
-          has_size = a11y[:size_of_set] || a11y["size_of_set"]
+          has_position = a11y["position_in_set"] || a11y[:position_in_set]
+          has_size = a11y["size_of_set"] || a11y[:size_of_set]
 
           next if has_position && has_size
 
-          a11y[:size_of_set] = size unless has_size
-          a11y[:position_in_set] = pos + 1 unless has_position
+          # Use string keys to match encode_value output (which
+          # stringifies inner hash keys during normalization).
+          a11y["size_of_set"] = size unless has_size
+          a11y["position_in_set"] = pos + 1 unless has_position
           patches[child_idx] = a11y
         end
       end
@@ -462,6 +387,8 @@ module Plushie
     end
     private_class_method :validate_user_id!
 
+    # Encode a single prop value for the wire protocol.
+    # @api private
     def self.encode_value(value)
       case value
       when true, false, nil, Integer, Float, String
@@ -480,8 +407,10 @@ module Plushie
         end
       end
     end
-    private_class_method :encode_value
 
+    # Encode a props hash for the wire protocol (string keys, encoded values).
+    # Used by node_to_wire and Diff.diff_props.
+    # @api private
     def self.encode_props(props)
       # @type var encoded: Hash[String, untyped]
       encoded = {}
@@ -489,202 +418,5 @@ module Plushie
         h[k.to_s] = encode_value(v)
       end
     end
-    private_class_method :encode_props
-
-    # Compare two list-valued props by element ID instead of structural equality.
-    # Returns true if both are Arrays, all elements have an :id or "id" key,
-    # and the ID-keyed content is equivalent.
-    # @api private
-    def self.id_keyed_lists_equal?(old_val, new_val)
-      return false unless old_val.is_a?(Array) && new_val.is_a?(Array)
-      return false if old_val.length != new_val.length
-      return false if old_val.empty?
-
-      # Check that all elements are Hashes with an :id key
-      return false unless old_val.all? { |e| e.is_a?(Hash) && (e.key?(:id) || e.key?("id")) }
-      return false unless new_val.all? { |e| e.is_a?(Hash) && (e.key?(:id) || e.key?("id")) }
-
-      # Build ID-keyed lookup and compare
-      # @type var old_by_id: Hash[untyped, untyped]
-      old_by_id = {}
-      old_val.each { |e| old_by_id[e[:id] || e["id"]] = e }
-      new_val.all? { |e| old_by_id[e[:id] || e["id"]] == e }
-    end
-    private_class_method :id_keyed_lists_equal?
-
-    # -- Diff internals ----------------------------------------------------
-
-    def self.diff_node(old, new, path)
-      # Different type -> replace entire node
-      if old.type != new.type
-        return [{"op" => "replace_node", "path" => path, "node" => node_to_wire(new)}]
-      end
-
-      child_ops = diff_children(old.children, new.children, path)
-      prop_ops = diff_props(old.props, new.props, path)
-      prop_ops + child_ops
-    end
-    private_class_method :diff_node
-
-    def self.diff_props(old_props, new_props, path)
-      return [] if old_props == new_props
-
-      # @type var changed: Hash[String, untyped]
-      changed = {}
-
-      # Changed or added keys.
-      # For list-valued props where every element has an :id, compare
-      # by ID to avoid sending the full list when content is unchanged
-      # (common for canvas shape lists that are rebuilt each render).
-      new_props.each do |k, v|
-        if old_props.key?(k)
-          old_v = old_props[k]
-          next if old_v == v
-          next if id_keyed_lists_equal?(old_v, v)
-        end
-        changed[k.to_s] = v
-      end
-
-      # Removed keys -> nil
-      old_props.each_key do |k|
-        changed[k.to_s] = nil unless new_props.key?(k)
-      end
-
-      return [] if changed.empty?
-      [{"op" => "update_props", "path" => path, "props" => encode_props(changed)}]
-    end
-    private_class_method :diff_props
-
-    def self.diff_children(old_children, new_children, path)
-      old_ids = old_children.map(&:id)
-      new_ids = new_children.map(&:id)
-
-      # Fast path: identical ID sequence -> pairwise prop diff only
-      if old_ids == new_ids
-        return old_children.each_with_index.flat_map { |old_child, idx|
-          diff_node(old_child, new_children[idx], path + [idx])
-        }
-      end
-
-      # Build lookup maps
-      # @type var old_by_id: Hash[String, [Node, Integer]]
-      old_by_id = {}
-      old_children.each_with_index { |c, i| old_by_id[c.id] = [c, i] }
-      # @type var new_by_id: Hash[String, [Node, Integer]]
-      new_by_id = {}
-      new_children.each_with_index { |c, i| new_by_id[c.id] = [c, i] }
-
-      # Map old positions of surviving nodes to their new positions
-      # for LIS computation
-      surviving_old_indices = new_ids.filter_map { |id|
-        old_by_id[id]&.last
-      }
-
-      # Compute LIS: elements in the longest increasing subsequence of
-      # old indices maintain their relative order and don't need to move.
-      lis_set = lis_indices(surviving_old_indices)
-
-      # Build the set of old IDs that are in the LIS (don't need to move)
-      stable_old_ids = Set.new
-      surviving_idx = 0
-      new_ids.each do |id|
-        next unless old_by_id.key?(id)
-        stable_old_ids.add(id) if lis_set.include?(surviving_idx)
-        surviving_idx += 1
-      end
-
-      # Remove nodes not in new, and nodes not in the LIS (they'll be re-inserted)
-      # @type var removed_indices: Array[Integer]
-      removed_indices = []
-      old_children.each_with_index do |child, idx|
-        removed_indices << idx unless new_by_id.key?(child.id) && stable_old_ids.include?(child.id)
-      end
-
-      remove_ops = removed_indices
-        .sort.reverse
-        .map { |idx| {"op" => "remove_child", "path" => path, "index" => idx} }
-
-      # Walk new children: update stable nodes in place, insert moved/new nodes
-      # @type var update_ops: Array[Hash[String, untyped]]
-      update_ops = []
-      # @type var insert_ops: Array[Hash[String, untyped]]
-      insert_ops = []
-
-      new_children.each_with_index do |child, new_idx|
-        if stable_old_ids.include?(child.id)
-          # Stable node: diff in place
-          old_child, old_idx = old_by_id[child.id]
-          adjusted = index_after_removals(old_idx, removed_indices)
-          update_ops.concat(diff_node(old_child, child, path + [adjusted]))
-        else
-          # Moved or new node: insert at the correct position
-          insert_ops << {"op" => "insert_child", "path" => path, "index" => new_idx,
-                         "node" => node_to_wire(child)}
-        end
-      end
-
-      remove_ops + update_ops + insert_ops
-    end
-    private_class_method :diff_children
-
-    # Compute the indices of the Longest Increasing Subsequence.
-    # Returns a Set of indices into the input array.
-    # O(n log n) using patience sorting.
-    def self.lis_indices(arr)
-      return Set.new if arr.empty?
-
-      # tails[i] = smallest tail element for IS of length i+1
-      # @type var tails: Array[Integer]
-      tails = []
-      # predecessors and positions for backtracking
-      # @type var positions: Array[Integer]
-      positions = []
-      predecessors = Array.new(arr.length, -1)
-
-      arr.each_with_index do |val, i|
-        # Binary search for the leftmost tail >= val
-        lo, hi = 0, tails.length
-        while lo < hi
-          mid = (lo + hi) / 2
-          if arr[positions[mid]] < val
-            lo = mid + 1
-          else
-            hi = mid
-          end
-        end
-
-        positions[lo] = i
-        tails[lo] = val
-        predecessors[i] = (lo > 0) ? positions[lo - 1] : -1
-      end
-
-      # Backtrack to recover the LIS indices
-      result = Set.new
-      k = positions[tails.length - 1]
-      while k >= 0
-        result.add(k)
-        k = predecessors[k]
-      end
-      result
-    end
-    private_class_method :lis_indices
-
-    # Count how many removed indices are below old_idx using binary search.
-    # Assumes removed_indices is already sorted ascending (built from
-    # ascending iteration over old_children).
-    # @api private
-    def self.index_after_removals(old_idx, removed_indices)
-      lo, hi = 0, removed_indices.length
-      while lo < hi
-        mid = (lo + hi) / 2
-        if removed_indices[mid] < old_idx
-          lo = mid + 1
-        else
-          hi = mid
-        end
-      end
-      old_idx - lo
-    end
-    private_class_method :index_after_removals
   end
 end

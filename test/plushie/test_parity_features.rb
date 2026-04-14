@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "plushie/widget/native_build"
+require "tmpdir"
 
 # Tests for features added during the Elixir SDK parity work.
 # Covers: tree safety, type validation, canvas architecture,
@@ -89,6 +91,9 @@ class TestParityFeatures < Minitest::Test
     a11y1 = r1.props[:a11y] || r1.props["a11y"] || {}
     assert_equal 1, a11y1["position_in_set"] || a11y1[:position_in_set]
     assert_equal 3, a11y1["size_of_set"] || a11y1[:size_of_set]
+
+    a11y2 = r2.props[:a11y] || r2.props["a11y"] || {}
+    assert_equal 2, a11y2["position_in_set"] || a11y2[:position_in_set]
 
     a11y3 = r3.props[:a11y] || r3.props["a11y"] || {}
     assert_equal 3, a11y3["position_in_set"] || a11y3[:position_in_set]
@@ -561,5 +566,518 @@ class TestParityFeatures < Minitest::Test
     })
     assert_equal :status, event.type
     assert_equal "focused", event.value
+  end
+
+  # ======================================================================
+  # Event::Specs: built-in event catalog
+  # ======================================================================
+
+  def test_specs_for_returns_spec
+    spec = Plushie::Event::Specs.for(:click)
+    assert_equal :none, spec[:carrier]
+
+    spec = Plushie::Event::Specs.for(:input)
+    assert_equal :value, spec[:carrier]
+    assert_equal :string, spec[:value_type]
+  end
+
+  def test_specs_for_structured_event
+    spec = Plushie::Event::Specs.for(:press)
+    assert_equal :value, spec[:carrier]
+    assert_includes spec[:fields].keys, :x
+    assert_includes spec[:fields].keys, :y
+    assert_includes spec[:fields].keys, :button
+  end
+
+  def test_specs_for_unknown_returns_nil
+    assert_nil Plushie::Event::Specs.for(:nonexistent)
+  end
+
+  def test_specs_builtin_predicate
+    assert Plushie::Event::Specs.builtin?(:click)
+    assert Plushie::Event::Specs.builtin?(:press)
+    refute Plushie::Event::Specs.builtin?(:made_up)
+  end
+
+  def test_specs_fields_returns_keys
+    fields = Plushie::Event::Specs.fields(:scrolled)
+    assert_includes fields, :absolute_x
+    assert_includes fields, :bounds_width
+    assert_includes fields, :content_height
+    assert_nil Plushie::Event::Specs.fields(:click)
+  end
+
+  def test_specs_required_fields
+    required = Plushie::Event::Specs.required_fields(:key_press)
+    assert_includes required, :key
+    assert_includes required, :modifiers
+  end
+
+  # ======================================================================
+  # Event::Widget category predicates
+  # ======================================================================
+
+  def test_widget_pointer_predicate
+    %i[press release move scroll enter exit double_click].each do |type|
+      e = Plushie::Event::Widget.new(type: type, id: "c1")
+      assert e.pointer?, "#{type} should be pointer?"
+    end
+    refute Plushie::Event::Widget.new(type: :click, id: "btn").pointer?
+  end
+
+  def test_widget_keyboard_predicate
+    %i[key_press key_release].each do |type|
+      e = Plushie::Event::Widget.new(type: type, id: "input")
+      assert e.keyboard?, "#{type} should be keyboard?"
+    end
+    refute Plushie::Event::Widget.new(type: :click, id: "btn").keyboard?
+  end
+
+  def test_widget_pane_predicate
+    %i[pane_resized pane_dragged pane_clicked pane_focus_cycle].each do |type|
+      e = Plushie::Event::Widget.new(type: type, id: "grid")
+      assert e.pane?, "#{type} should be pane?"
+    end
+  end
+
+  def test_widget_focus_predicate
+    assert Plushie::Event::Widget.new(type: :focused, id: "x").focus?
+    assert Plushie::Event::Widget.new(type: :blurred, id: "x").focus?
+    refute Plushie::Event::Widget.new(type: :click, id: "x").focus?
+  end
+
+  def test_widget_drag_predicate
+    assert Plushie::Event::Widget.new(type: :drag, id: "x").drag?
+    assert Plushie::Event::Widget.new(type: :drag_end, id: "x").drag?
+    refute Plushie::Event::Widget.new(type: :click, id: "x").drag?
+  end
+
+  def test_widget_spec_accessor
+    e = Plushie::Event::Widget.new(type: :press, id: "c1")
+    spec = e.spec
+    assert_equal :value, spec[:carrier]
+    assert_includes spec[:fields].keys, :x
+  end
+
+  # ======================================================================
+  # Canvas widget: registry key uses scoped ID format
+  # ======================================================================
+
+  def test_canvas_widget_key_uses_hash_separator
+    key = Plushie::CanvasWidget.widget_key("main", "rating")
+    assert_equal "main#rating", key
+  end
+
+  def test_canvas_widget_key_round_trips_via_split
+    key = Plushie::CanvasWidget.widget_key("main", "form/email")
+    assert_equal "main#form/email", key
+
+    # split_widget_key is private, test via derive_registry round-trip
+    # by verifying registry keys match scoped ID format
+    widget_mod = Module.new do
+      extend Plushie::CanvasWidget::ClassMethods
+
+      canvas_widget :test_widget
+      define_singleton_method(:init) { {} }
+      define_singleton_method(:view) { |id, _props, _state|
+        Plushie::Node.new(id: id, type: "canvas")
+      }
+      define_singleton_method(:handle_event) { |_event, state| [:ignored, state] }
+    end
+
+    placeholder = Plushie::CanvasWidget.build(widget_mod, "rating")
+    tree = Plushie::Node.new(
+      id: "main", type: "window",
+      children: [placeholder]
+    )
+    # Pass an empty registry so canvas widgets get rendered during normalization
+    normalized = Plushie::Tree.normalize([tree], registry: {})
+    registry = Plushie::CanvasWidget.derive_registry(normalized.first)
+
+    # Registry key should be the scoped ID directly
+    assert registry.key?("main#rating"), "registry should use scoped ID as key, got: #{registry.keys}"
+  end
+
+  # ======================================================================
+  # Widget BuiltIn: default_a11y through build
+  # ======================================================================
+
+  def test_button_build_injects_default_a11y
+    btn = Plushie::Widget::Button.new("ok", "OK")
+    node = btn.build
+    a11y = node.props[:a11y]
+    refute_nil a11y, "button should have default a11y"
+    assert_equal "button", a11y[:role]
+    assert_equal "OK", a11y[:label]
+  end
+
+  def test_text_build_injects_label_from_content
+    txt = Plushie::Widget::Text.new("msg", "Hello World")
+    node = txt.build
+    a11y = node.props[:a11y]
+    refute_nil a11y
+    assert_equal "label", a11y[:role]
+    assert_equal "Hello World", a11y[:label]
+  end
+
+  def test_user_a11y_overrides_defaults
+    btn = Plushie::Widget::Button.new("ok", "OK", a11y: {role: :link, description: "Go"})
+    node = btn.build
+    a11y = node.props[:a11y]
+    # User's role wins
+    assert_equal :link, a11y[:role]
+    # User's description preserved
+    assert_equal "Go", a11y[:description]
+    # Default label_from still applies (user didn't set :label)
+    assert_equal "OK", a11y[:label]
+  end
+
+  def test_user_a11y_label_overrides_label_from
+    btn = Plushie::Widget::Button.new("ok", "OK", a11y: {label: "Custom"})
+    node = btn.build
+    a11y = node.props[:a11y]
+    assert_equal "Custom", a11y[:label]
+  end
+
+  def test_widget_without_label_from_prop_skips_label
+    # Canvas widget has role: :canvas but no label_from
+    c = Plushie::Widget::Canvas.new("c1", width: 100, height: 100)
+    node = c.build
+    a11y = node.props[:a11y]
+    refute_nil a11y
+    assert_equal "canvas", a11y[:role]
+    refute a11y.key?(:label), "canvas without label_from should not inject :label"
+  end
+
+  def test_label_from_nil_prop_skips_label
+    # Button with nil label should not inject a11y label
+    btn = Plushie::Widget::Button.new("ok")
+    node = btn.build
+    a11y = node.props[:a11y]
+    refute_nil a11y
+    assert_equal "button", a11y[:role]
+    refute a11y.key?(:label), "nil label prop should not inject a11y label"
+  end
+
+  # ======================================================================
+  # Widget BuiltIn: richer prop declarations (type:, doc:)
+  # ======================================================================
+
+  def test_prop_meta_rich_form
+    klass = Class.new(Plushie::Widget::BuiltIn) do
+      wire_type :test_widget
+      children :none
+      prop :name, type: :string, doc: "Widget name"
+      prop :count, type: :integer, doc: "Item count"
+      prop :width, :height
+    end
+
+    meta = klass.prop_meta
+    assert_equal({type: :string, doc: "Widget name"}, meta[:name])
+    assert_equal({type: :integer, doc: "Item count"}, meta[:count])
+    # Simple form props have no metadata
+    refute meta.key?(:width)
+    refute meta.key?(:height)
+  end
+
+  def test_prop_meta_empty_for_simple_only
+    klass = Class.new(Plushie::Widget::BuiltIn) do
+      wire_type :basic
+      children :none
+      prop :a, :b, :c
+    end
+
+    assert_equal({}, klass.prop_meta)
+  end
+
+  # ======================================================================
+  # Widget cache_key: normalization caching
+  # ======================================================================
+
+  def test_cache_key_skips_view_on_hit
+    view_count = 0
+    widget_mod = Module.new do
+      extend Plushie::CanvasWidget::ClassMethods
+
+      canvas_widget :cached_widget
+      define_singleton_method(:init) { {version: 1} }
+      define_singleton_method(:view) { |id, _props, _state|
+        view_count += 1
+        Plushie::Node.new(id: id, type: "canvas", props: {width: 100, height: 100})
+      }
+      define_singleton_method(:handle_event) { |_event, state| [:ignored, state] }
+    end
+    widget_mod.instance_variable_set(:@_widget_cache_key, ->(props, state) { state[:version] })
+
+    placeholder = Plushie::CanvasWidget.build(widget_mod, "cw")
+    tree = Plushie::Node.new(id: "main", type: "window", children: [placeholder])
+
+    # First normalize: view called, result cached
+    Plushie::UI::MemoCache.seed({})
+    normalized1 = Plushie::Tree.normalize([tree], registry: {})
+    cache_after_first = Plushie::UI::MemoCache.capture
+    assert_equal 1, view_count
+
+    # Derive registry from rendered tree (contains widget state)
+    registry = Plushie::CanvasWidget.derive_registry(normalized1.first)
+
+    # Second normalize with same state and registry: cache hit
+    Plushie::UI::MemoCache.seed(cache_after_first)
+    _normalized2 = Plushie::Tree.normalize([tree], registry: registry)
+    Plushie::UI::MemoCache.capture
+    assert_equal 1, view_count, "view should not be called on cache hit"
+
+    # Third normalize with changed state: cache miss, view called
+    changed_entry = Plushie::CanvasWidget::RegistryEntry.new(
+      widget_module: widget_mod,
+      state: {version: 2},
+      props: {}
+    )
+    changed_registry = {"main#cw" => changed_entry}
+    Plushie::UI::MemoCache.seed(cache_after_first)
+    _normalized3 = Plushie::Tree.normalize([tree], registry: changed_registry)
+    Plushie::UI::MemoCache.capture
+    assert_equal 2, view_count, "view should be called when cache key changes"
+  end
+
+  # ======================================================================
+  # Canvas widget: parse_widget_tag round-trip
+  # ======================================================================
+
+  def test_parse_widget_tag_round_trip
+    key = "main#form/rating"
+    sub = Plushie::Subscription::Sub.new(type: :every, tag: "tick", interval: 1000)
+    namespaced = Plushie::CanvasWidget.send(:namespace_tag, sub, key)
+
+    assert namespaced.tag.start_with?("__cw:")
+
+    parsed = Plushie::CanvasWidget.parse_widget_tag(namespaced.tag)
+    refute_nil parsed
+    assert_equal key, parsed[0]
+    assert_equal "tick", parsed[1]
+  end
+
+  def test_parse_widget_tag_non_widget_returns_nil
+    assert_nil Plushie::CanvasWidget.parse_widget_tag("regular_tag")
+    assert_nil Plushie::CanvasWidget.parse_widget_tag(:some_symbol)
+  end
+
+  def test_parse_widget_tag_malformed_returns_nil
+    # Missing second colon
+    assert_nil Plushie::CanvasWidget.parse_widget_tag("__cw:main")
+    # Empty after prefix
+    assert_nil Plushie::CanvasWidget.parse_widget_tag("__cw:")
+  end
+
+  # ======================================================================
+  # Canvas widget: dispatch_through_widgets
+  # ======================================================================
+
+  def test_dispatch_ignores_event_without_matching_widget
+    registry = {}
+    event = Plushie::Event::Widget.new(
+      type: :click, id: "btn", window_id: "main", scope: []
+    )
+    result_event, result_registry = Plushie::CanvasWidget.dispatch_through_widgets(registry, event)
+    assert_equal event, result_event
+    assert_equal registry, result_registry
+  end
+
+  def test_dispatch_consumed_event_returns_nil
+    widget_mod = Module.new do
+      extend Plushie::CanvasWidget::ClassMethods
+
+      canvas_widget :consumer
+      define_singleton_method(:init) { {clicks: 0} }
+      define_singleton_method(:view) { |id, _p, _s|
+        Plushie::Node.new(id: id, type: "canvas")
+      }
+      define_singleton_method(:handle_event) { |_event, state|
+        [:consumed, state.merge(clicks: state[:clicks] + 1)]
+      }
+    end
+
+    entry = Plushie::CanvasWidget::RegistryEntry.new(
+      widget_module: widget_mod, state: {clicks: 0}, props: {}
+    )
+    registry = {"main#consumer" => entry}
+    event = Plushie::Event::Widget.new(
+      type: :click, id: "consumer", window_id: "main", scope: ["main"]
+    )
+
+    result_event, new_registry = Plushie::CanvasWidget.dispatch_through_widgets(registry, event)
+    assert_nil result_event, "consumed event should return nil"
+    assert_equal 1, new_registry["main#consumer"].state[:clicks]
+  end
+
+  def test_dispatch_ignored_event_passes_through
+    widget_mod = Module.new do
+      extend Plushie::CanvasWidget::ClassMethods
+
+      canvas_widget :passthrough
+      define_singleton_method(:init) { {} }
+      define_singleton_method(:view) { |id, _p, _s|
+        Plushie::Node.new(id: id, type: "canvas")
+      }
+      define_singleton_method(:handle_event) { |_event, state|
+        [:ignored, state]
+      }
+    end
+
+    entry = Plushie::CanvasWidget::RegistryEntry.new(
+      widget_module: widget_mod, state: {}, props: {}
+    )
+    registry = {"main#passthrough" => entry}
+    event = Plushie::Event::Widget.new(
+      type: :click, id: "passthrough", window_id: "main", scope: ["main"]
+    )
+
+    result_event, _reg = Plushie::CanvasWidget.dispatch_through_widgets(registry, event)
+    assert_equal event, result_event
+  end
+
+  # ======================================================================
+  # Canvas widget: collect_subscriptions
+  # ======================================================================
+
+  def test_collect_subscriptions_empty_registry
+    subs = Plushie::CanvasWidget.collect_subscriptions({})
+    assert_equal [], subs
+  end
+
+  def test_collect_subscriptions_namespaces_tags
+    widget_mod = Module.new do
+      extend Plushie::CanvasWidget::ClassMethods
+
+      canvas_widget :ticker
+      define_singleton_method(:init) { {} }
+      define_singleton_method(:subscribe) { |_props, _state|
+        [Plushie::Subscription::Sub.new(type: :every, tag: "tick", interval: 1000)]
+      }
+    end
+
+    entry = Plushie::CanvasWidget::RegistryEntry.new(
+      widget_module: widget_mod, state: {}, props: {}
+    )
+    registry = {"main#ticker" => entry}
+    subs = Plushie::CanvasWidget.collect_subscriptions(registry)
+
+    assert_equal 1, subs.length
+    assert subs[0].tag.start_with?("__cw:"), "tag should be namespaced"
+    assert_includes subs[0].tag, "ticker"
+  end
+
+  # ======================================================================
+  # NativeBuild: write_if_changed
+  # ======================================================================
+
+  def test_write_if_changed_creates_new_file
+    require "tempfile"
+    dir = Dir.mktmpdir("plushie_test")
+    path = File.join(dir, "test.txt")
+
+    refute File.exist?(path)
+    Plushie::Widget::NativeBuild.send(:write_if_changed, path, "hello")
+    assert_equal "hello", File.read(path)
+  ensure
+    FileUtils.rm_rf(dir)
+  end
+
+  def test_write_if_changed_skips_identical
+    dir = Dir.mktmpdir("plushie_test")
+    path = File.join(dir, "test.txt")
+    File.write(path, "hello")
+    mtime_before = File.mtime(path)
+
+    sleep 0.01 # ensure mtime would differ if written
+    Plushie::Widget::NativeBuild.send(:write_if_changed, path, "hello")
+    assert_equal mtime_before, File.mtime(path), "file should not be rewritten"
+  ensure
+    FileUtils.rm_rf(dir)
+  end
+
+  def test_write_if_changed_writes_on_diff
+    dir = Dir.mktmpdir("plushie_test")
+    path = File.join(dir, "test.txt")
+    File.write(path, "old content")
+
+    Plushie::Widget::NativeBuild.send(:write_if_changed, path, "new content")
+    assert_equal "new content", File.read(path)
+  ensure
+    FileUtils.rm_rf(dir)
+  end
+
+  # ======================================================================
+  # NativeBuild: parse_renderer_patches
+  # ======================================================================
+
+  def test_parse_renderer_patches_extracts_third_party
+    dir = Dir.mktmpdir("plushie_test")
+    File.write(File.join(dir, "Cargo.toml"), <<~TOML)
+      [workspace]
+      members = ["plushie-renderer"]
+
+      [patch.crates-io]
+      plushie-ext = { path = "../plushie-ext" }
+      plushie-renderer = { path = "plushie-renderer" }
+      iced = { path = "../plushie-iced/iced" }
+      iced_core = { path = "../plushie-iced/core" }
+
+      [profile.release]
+      opt-level = 3
+    TOML
+
+    patches = Plushie::Widget::NativeBuild.send(:parse_renderer_patches, dir)
+    # Should include iced patches but exclude plushie-ext and plushie-renderer
+    assert_equal 2, patches.length
+    assert patches.any? { |p| p.include?("iced =") }
+    assert patches.any? { |p| p.include?("iced_core") }
+    refute patches.any? { |p| p.include?("plushie-ext") }
+    refute patches.any? { |p| p.include?("plushie-renderer") }
+  ensure
+    FileUtils.rm_rf(dir)
+  end
+
+  def test_parse_renderer_patches_no_cargo_returns_empty
+    patches = Plushie::Widget::NativeBuild.send(:parse_renderer_patches, "/nonexistent")
+    assert_equal [], patches
+  end
+
+  def test_parse_renderer_patches_no_patch_section
+    dir = Dir.mktmpdir("plushie_test")
+    File.write(File.join(dir, "Cargo.toml"), <<~TOML)
+      [workspace]
+      members = ["plushie-renderer"]
+    TOML
+
+    patches = Plushie::Widget::NativeBuild.send(:parse_renderer_patches, dir)
+    assert_equal [], patches
+  ensure
+    FileUtils.rm_rf(dir)
+  end
+
+  # ======================================================================
+  # NativeBuild: check_builtin_collisions!
+  # ======================================================================
+
+  def test_check_builtin_collisions_raises_on_conflict
+    fake_widget = Module.new do
+      define_singleton_method(:type_names) { [:button] }
+      define_singleton_method(:name) { "FakeButton" }
+    end
+
+    assert_raises(Plushie::Error) do
+      Plushie::Widget::NativeBuild.send(:check_builtin_collisions!, [fake_widget])
+    end
+  end
+
+  def test_check_builtin_collisions_allows_unique_names
+    fake_widget = Module.new do
+      define_singleton_method(:type_names) { [:sparkline] }
+      define_singleton_method(:name) { "Sparkline" }
+    end
+
+    # Should not raise
+    Plushie::Widget::NativeBuild.send(:check_builtin_collisions!, [fake_widget])
   end
 end

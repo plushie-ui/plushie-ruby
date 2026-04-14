@@ -1,0 +1,12 @@
+module Plushie
+  module Tree
+    module Search
+      def self.find: (Node | Array[Node] | nil tree, String id) -> Node?
+      def self.exists?: (Node | Array[Node] | nil tree, String id) -> bool
+      def self.ids: (Node | Array[Node] | nil tree) -> Array[String]
+      def self.find_first: (Node | Array[Node] | nil tree) { (Node) -> boolish } -> Node?
+      def self.find_all: (Node | Array[Node] | nil tree) { (Node) -> boolish } -> Array[Node]
+      def self.id_matches?: (String node_id, String search) -> bool
+    end
+  end
+end

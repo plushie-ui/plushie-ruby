@@ -25,6 +25,7 @@ module Plushie
     # - a11y (hash): accessibility overrides.
     class Scrollable < BuiltIn
       wire_type :scrollable
+      default_a11y role: :scroll_view
       children :single
       prop :width, :height, :direction, :spacing, :scrollbar_width,
         :scrollbar_margin, :scroller_width, :anchor, :on_scroll,

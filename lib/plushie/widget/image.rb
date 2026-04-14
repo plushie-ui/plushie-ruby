@@ -27,6 +27,7 @@ module Plushie
     # - a11y (hash): accessibility overrides.
     class Image < BuiltIn
       wire_type :image
+      default_a11y role: :image
       children :none
       positional :source, default: nil
       prop :source, :width, :height, :content_fit, :rotation, :opacity,

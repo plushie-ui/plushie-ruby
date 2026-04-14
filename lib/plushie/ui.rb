@@ -908,18 +908,14 @@ module Plushie
       "auto:#{loc&.label}:#{loc&.lineno}"
     end
 
-    # Append a shape to the current canvas shape target.
-    #
-    # Shapes are added to the innermost layer's shape list if inside a
-    # {#layer} block, or to the canvas's top-level shapes list otherwise.
-    #
-    # @api private
-    # @param shape [Hash] shape descriptor
-    # @return [void]
     # Build a canvas shape as a leaf Node and add it to the current context.
     # Shapes get auto-generated IDs since they don't need stable identity
     # for user-facing purposes (the parent group/interactive handles that).
+    #
     # @api private
+    # @param type [String] shape wire type
+    # @param props [Hash] shape properties
+    # @return [void]
     def _plushie_canvas_shape(type, props)
       id = "auto:shape_#{_plushie_canvas_counter}"
       _plushie_leaf(type, id, props)

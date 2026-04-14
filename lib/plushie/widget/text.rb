@@ -8,6 +8,7 @@ module Plushie
     # then call {#build} to produce a {Plushie::Node} for the view tree.
     class Text < BuiltIn
       wire_type :text
+      default_a11y role: :label, label_from: :content
       children :none
       positional :content, default: nil
       prop :content, :size, :color, :font, :width, :height, :line_height,

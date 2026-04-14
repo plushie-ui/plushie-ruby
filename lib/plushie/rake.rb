@@ -207,6 +207,13 @@ namespace :plushie do
   task :preflight do
     sh "bundle exec rake standard"
     sh "bundle exec rake test"
+    # Run headless backend tests to catch renderer integration bugs
+    # that mock mode misses. Requires the renderer binary.
+    if Plushie::Binary.resolve
+      sh "PLUSHIE_TEST_BACKEND=headless bundle exec rake test"
+    else
+      puts "Skipping headless tests (renderer binary not found)"
+    end
     sh "bundle exec steep check"
     sh "bundle exec yard doc"
     puts "\nAll checks passed."

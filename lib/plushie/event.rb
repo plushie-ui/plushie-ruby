@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "event/specs"
+
 module Plushie
   # Event types delivered to update/2.
   #
@@ -55,6 +57,27 @@ module Plushie
       def initialize(type:, id:, value: nil, window_id: nil, scope: [])
         super
       end
+
+      # Category predicates for event type families.
+
+      # Pointer events (press, release, move, scroll, enter, exit, double_click).
+      def pointer? = Specs::POINTER_TYPES.include?(type)
+
+      # Widget-scoped keyboard events (key_press, key_release).
+      def keyboard? = Specs::KEYBOARD_TYPES.include?(type)
+
+      # Pane grid events (pane_resized, pane_dragged, pane_clicked, pane_focus_cycle).
+      def pane? = Specs::PANE_TYPES.include?(type)
+
+      # Focus lifecycle events (focused, blurred).
+      def focus? = Specs::FOCUS_TYPES.include?(type)
+
+      # Drag events (drag, drag_end).
+      def drag? = Specs::DRAG_TYPES.include?(type)
+
+      # Look up the spec for this event's type.
+      # @return [Hash, nil]
+      def spec = Specs.for(type)
     end
 
     # Keyboard events delivered when keys are pressed or released.

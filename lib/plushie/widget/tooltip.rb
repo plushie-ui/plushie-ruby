@@ -20,6 +20,7 @@ module Plushie
     # - a11y (hash): accessibility overrides.
     class Tooltip < BuiltIn
       wire_type :tooltip
+      default_a11y role: :tooltip
       children :single
       positional :tip, default: nil
       prop :tip, :position, :gap, :padding, :snap_within_viewport, :delay,

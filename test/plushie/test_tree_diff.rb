@@ -225,6 +225,111 @@ class TestTreeDiff < Minitest::Test
     assert_equal "txt", wire["children"][0]["id"]
   end
 
+  # -- LIS edge cases -------------------------------------------------------
+
+  def test_diff_reverse_order
+    old = node("root", "column", children: [
+      node("a"), node("b"), node("c"), node("d")
+    ])
+    new_tree = node("root", "column", children: [
+      node("d"), node("c"), node("b"), node("a")
+    ])
+    ops = Plushie::Tree.diff(old, new_tree)
+    # All 4 nodes should appear in the result. LIS of [3,2,1,0] has
+    # length 1, so 3 nodes get removed and re-inserted.
+    remove_ops = ops.select { |o| o["op"] == "remove_child" }
+    insert_ops = ops.select { |o| o["op"] == "insert_child" }
+    assert_equal 3, remove_ops.length
+    assert_equal 3, insert_ops.length
+
+    # The diff should produce a valid patch sequence
+    refute_empty ops
+  end
+
+  def test_diff_single_child_reorder
+    old = node("root", "column", children: [node("a")])
+    new_tree = node("root", "column", children: [node("a")])
+    ops = Plushie::Tree.diff(old, new_tree)
+    assert_equal [], ops
+  end
+
+  def test_diff_all_children_replaced
+    old = node("root", "column", children: [
+      node("a"), node("b")
+    ])
+    new_tree = node("root", "column", children: [
+      node("x"), node("y")
+    ])
+    ops = Plushie::Tree.diff(old, new_tree)
+    remove_ops = ops.select { |o| o["op"] == "remove_child" }
+    insert_ops = ops.select { |o| o["op"] == "insert_child" }
+    assert_equal 2, remove_ops.length
+    assert_equal 2, insert_ops.length
+  end
+
+  def test_diff_all_children_removed
+    old = node("root", "column", children: [
+      node("a"), node("b"), node("c")
+    ])
+    new_tree = node("root", "column", children: [])
+    ops = Plushie::Tree.diff(old, new_tree)
+    remove_ops = ops.select { |o| o["op"] == "remove_child" }
+    assert_equal 3, remove_ops.length
+    assert_empty ops.select { |o| o["op"] == "insert_child" }
+  end
+
+  def test_diff_interleaved_insert_and_keep
+    # Old: a, c, e.  New: a, b, c, d, e
+    old = node("root", "column", children: [
+      node("a"), node("c"), node("e")
+    ])
+    new_tree = node("root", "column", children: [
+      node("a"), node("b"), node("c"), node("d"), node("e")
+    ])
+    ops = Plushie::Tree.diff(old, new_tree)
+    insert_ops = ops.select { |o| o["op"] == "insert_child" }
+    assert_equal 2, insert_ops.length
+    assert_equal %w[b d], insert_ops.map { |o| o["node"]["id"] }
+    assert_empty ops.select { |o| o["op"] == "remove_child" }
+  end
+
+  # -- id_keyed_lists_equal? (tested via diff_props) -------------------------
+
+  def test_diff_id_keyed_list_same_content_different_order
+    # When prop arrays contain id-keyed hashes with same content but
+    # different order, diff should detect no change (id-keyed comparison).
+    old = node("root", "table", props: {
+      rows: [{id: "r1", name: "Alice"}, {id: "r2", name: "Bob"}]
+    })
+    new_tree = node("root", "table", props: {
+      rows: [{id: "r2", name: "Bob"}, {id: "r1", name: "Alice"}]
+    })
+    ops = Plushie::Tree.diff(old, new_tree)
+    prop_ops = ops.select { |o| o["op"] == "update_props" }
+    assert_empty prop_ops, "id-keyed lists with same content should not produce updates"
+  end
+
+  def test_diff_id_keyed_list_changed_value
+    old = node("root", "table", props: {
+      rows: [{id: "r1", name: "Alice"}]
+    })
+    new_tree = node("root", "table", props: {
+      rows: [{id: "r1", name: "Alicia"}]
+    })
+    ops = Plushie::Tree.diff(old, new_tree)
+    prop_ops = ops.select { |o| o["op"] == "update_props" }
+    assert_equal 1, prop_ops.length, "changed id-keyed list value should produce update"
+  end
+
+  def test_diff_non_id_keyed_list_not_special
+    # Regular arrays without :id keys use normal equality
+    old = node("root", "text", props: {items: [1, 2, 3]})
+    new_tree = node("root", "text", props: {items: [3, 2, 1]})
+    ops = Plushie::Tree.diff(old, new_tree)
+    assert_equal 1, ops.length
+    assert_equal "update_props", ops[0]["op"]
+  end
+
   # -- Index adjustment -----------------------------------------------------
 
   def test_index_after_removals

@@ -31,6 +31,7 @@ module Plushie
     # - a11y (hash): accessibility overrides.
     class TextEditor < BuiltIn
       wire_type :text_editor
+      default_a11y role: :multiline_text_input, label_from: :placeholder
       children :none
       prop :content, :placeholder, :width, :height, :min_height, :max_height,
         :font, :size, :line_height, :padding, :wrapping, :input_purpose,

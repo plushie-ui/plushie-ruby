@@ -13,6 +13,7 @@ module Plushie
     # - theme (symbol|hash): built-in theme name, :system, or Theme.custom result.
     class Window < BuiltIn
       wire_type :window
+      default_a11y role: :window
       children :single
       prop :title, :size, :width, :height, :position, :min_size, :max_size,
         :maximized, :fullscreen, :visible, :resizable, :closeable,

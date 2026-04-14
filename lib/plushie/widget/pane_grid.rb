@@ -23,6 +23,7 @@ module Plushie
     # - a11y (hash): accessibility overrides.
     class PaneGrid < BuiltIn
       wire_type :pane_grid
+      default_a11y role: :group
       children :many
       prop :panes, :spacing, :width, :height, :min_size, :divider_color,
         :divider_width, :leeway, :split_axis, :event_rate, :a11y

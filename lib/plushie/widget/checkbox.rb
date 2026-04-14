@@ -8,6 +8,7 @@ module Plushie
     # then call {#build} to produce a {Plushie::Node} for the view tree.
     class Checkbox < BuiltIn
       wire_type :checkbox
+      default_a11y role: :check_box, label_from: :label
       children :none
       positional :label
       positional :is_toggled, default: false
@@ -17,6 +18,8 @@ module Plushie
       # Remap :is_toggled to :checked on the wire via prepend so
       # the override survives lazy finalization.
       module CheckedRemap
+        # Remap :is_toggled prop to :checked on the wire.
+        # @api private
         def build
           node = super
           props = node.props.dup

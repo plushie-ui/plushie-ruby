@@ -22,6 +22,30 @@ module Plushie
       ) -> void
 
       def with: (**untyped) -> Widget
+
+      def pointer?: () -> bool
+      def keyboard?: () -> bool
+      def pane?: () -> bool
+      def focus?: () -> bool
+      def drag?: () -> bool
+      def spec: () -> Hash[Symbol, untyped]?
+    end
+
+    module Specs
+      NONE: Symbol
+      VALUE: Symbol
+      POINTER_TYPES: Set[Symbol]
+      KEYBOARD_TYPES: Set[Symbol]
+      PANE_TYPES: Set[Symbol]
+      FOCUS_TYPES: Set[Symbol]
+      DRAG_TYPES: Set[Symbol]
+      BUILTIN: Hash[Symbol, Hash[Symbol, untyped]]
+
+      def self.for: (Symbol type) -> Hash[Symbol, untyped]?
+      def self.all: () -> Hash[Symbol, Hash[Symbol, untyped]]
+      def self.builtin?: (Symbol type) -> bool
+      def self.fields: (Symbol type) -> Array[Symbol]?
+      def self.required_fields: (Symbol type) -> Array[Symbol]?
     end
 
     class Key

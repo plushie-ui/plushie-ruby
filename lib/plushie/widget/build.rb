@@ -57,6 +57,35 @@ module Plushie
         raise ArgumentError,
           "#{type} #{id.inspect} requires exactly #{expected} children, got #{children.length}"
       end
+
+      # Resolve a11y defaults for a widget.
+      #
+      # Merges default a11y annotations (role, label) with any
+      # user-provided a11y. User overrides win per field.
+      #
+      # @param props [Hash] widget props (may include :a11y)
+      # @param defaults [Hash] declared a11y defaults (:role, :label_from)
+      # @return [Hash, nil] resolved a11y hash, or nil if empty
+      def resolve_a11y(props, defaults)
+        user_a11y = props[:a11y]
+
+        # Start with defaults
+        resolved = {}
+        resolved[:role] = defaults[:role].to_s if defaults[:role]
+
+        # Derive label from another prop if declared
+        if defaults[:label_from] && !user_a11y&.key?(:label)
+          label_val = props[defaults[:label_from]]
+          resolved[:label] = label_val.to_s if label_val
+        end
+
+        # Merge user overrides (user wins per field)
+        if user_a11y.is_a?(Hash)
+          resolved.merge!(user_a11y)
+        end
+
+        resolved.empty? ? nil : resolved
+      end
     end
   end
 end

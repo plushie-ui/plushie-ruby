@@ -13,6 +13,7 @@ module Plushie
     #     .build
     class TextInput < BuiltIn
       wire_type :text_input
+      default_a11y role: :text_input, label_from: :placeholder
       children :none
       positional :value, default: ""
       prop :value, :placeholder, :padding, :width, :size, :font, :line_height,

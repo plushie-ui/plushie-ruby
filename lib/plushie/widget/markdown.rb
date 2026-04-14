@@ -23,6 +23,7 @@ module Plushie
     # - a11y (hash): accessibility overrides.
     class Markdown < BuiltIn
       wire_type :markdown
+      default_a11y role: :document
       children :none
       positional :content, default: nil
       prop :content, :width, :text_size, :h1_size, :h2_size, :h3_size,

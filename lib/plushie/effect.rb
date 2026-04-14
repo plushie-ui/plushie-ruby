@@ -26,9 +26,11 @@ module Plushie
   #     end
   #   end
   module Effect
-    # Default timeouts per effect kind (milliseconds).
+    # Default timeout for file dialog effects (milliseconds).
     TIMEOUT_FILE = 120_000
+    # Default timeout for clipboard effects (milliseconds).
     TIMEOUT_CLIPBOARD = 5_000
+    # Default timeout for notification effects (milliseconds).
     TIMEOUT_NOTIFICATION = 5_000
 
     module_function

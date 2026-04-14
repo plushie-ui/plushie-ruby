@@ -21,6 +21,7 @@ module Plushie
     #     .build
     class Canvas < BuiltIn
       wire_type :canvas
+      default_a11y role: :canvas
       children :many
       prop :width, :height, :background,
         :on_press, :on_release, :on_move, :on_scroll,

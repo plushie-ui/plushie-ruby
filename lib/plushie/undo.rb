@@ -30,6 +30,7 @@ module Plushie
   #   Plushie::Undo.current(u)  #=> 0
   #
   class Undo
+    # Default maximum undo stack entries before oldest are dropped.
     DEFAULT_MAX_SIZE = 100
 
     # Immutable undo state.

@@ -220,6 +220,36 @@ class TestTypes < Minitest::Test
     refute wire.key?(:hidden)
   end
 
+  # -- LineHeight -----------------------------------------------------------
+
+  def test_line_height_numeric
+    assert_equal 1.5, Plushie::Type::LineHeight.encode(1.5)
+    assert_equal 2, Plushie::Type::LineHeight.encode(2)
+    assert_equal 0, Plushie::Type::LineHeight.encode(0)
+  end
+
+  def test_line_height_relative_hash
+    result = Plushie::Type::LineHeight.encode({relative: 1.2})
+    assert_equal({relative: 1.2}, result)
+  end
+
+  def test_line_height_absolute_hash
+    result = Plushie::Type::LineHeight.encode({absolute: 24})
+    assert_equal({absolute: 24}, result)
+  end
+
+  def test_line_height_nil
+    assert_nil Plushie::Type::LineHeight.encode(nil)
+  end
+
+  def test_line_height_rejects_invalid_hash
+    assert_raises(ArgumentError) { Plushie::Type::LineHeight.encode({bogus: 1}) }
+  end
+
+  def test_line_height_rejects_string
+    assert_raises(ArgumentError) { Plushie::Type::LineHeight.encode("1.5") }
+  end
+
   # -- StyleMap -------------------------------------------------------------
 
   def test_style_map_encode_symbol

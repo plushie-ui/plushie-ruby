@@ -28,6 +28,7 @@ module Plushie
     # - a11y (hash): accessibility overrides.
     class Table < BuiltIn
       wire_type :table
+      default_a11y role: :table
       children :many
       prop :columns, :rows, :header, :separator, :separator_color,
         :width, :height, :padding, :sort_by, :sort_order,
@@ -36,6 +37,8 @@ module Plushie
       # Validation and override hooks applied via prepend so they
       # wrap the generated methods rather than being overwritten.
       module RowValidation
+        # Validate rows on construction and set_rows.
+        # @api private
         def initialize(id, **opts)
           super
           validate_rows!(@rows, @columns) if @rows

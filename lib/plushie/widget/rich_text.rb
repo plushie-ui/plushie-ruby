@@ -22,6 +22,7 @@ module Plushie
     # - a11y (hash): accessibility overrides.
     class RichText < BuiltIn
       wire_type :rich_text
+      default_a11y role: :label
       children :none
       prop :spans, :width, :height, :size, :font, :color, :line_height,
         :wrapping, :ellipsis, :a11y

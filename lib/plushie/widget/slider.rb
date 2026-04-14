@@ -25,6 +25,7 @@ module Plushie
     # - a11y (hash): accessibility overrides.
     class Slider < BuiltIn
       wire_type :slider
+      default_a11y role: :slider, label_from: :label
       children :none
       positional :range
       positional :value

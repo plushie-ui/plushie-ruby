@@ -57,19 +57,63 @@ module Plushie
         end
 
         # Declare one or more props (keyword arguments on the constructor).
-        # @param names [Array<Symbol>] prop names
-        def prop(*names)
-          names.each { |n| @_props << n.to_sym }
+        #
+        # Supports two forms:
+        # - Simple: +prop :label, :width, :height+ (names only)
+        # - Rich: +prop :label, type: :string, doc: "Text label"+
+        #
+        # Rich declarations are informational: they document the prop's
+        # type and purpose for introspection and YARD doc generation.
+        # The type is not enforced at runtime (values pass through to
+        # the wire protocol, where the renderer handles validation).
+        #
+        # @param names [Array<Symbol>] prop names (simple form)
+        # @param type [Symbol, nil] prop type hint (rich form, informational)
+        # @param doc [String, nil] prop documentation (rich form)
+        def prop(*names, type: nil, doc: nil)
+          if names.length == 1 && (type || doc)
+            # Rich form: prop :name, type: :string, doc: "..."
+            name = names[0].to_sym
+            @_props << name
+            (@_prop_meta ||= {})[name] = {type: type, doc: doc}.compact
+          else
+            # Simple form: prop :name1, :name2, ...
+            names.each { |n| @_props << n.to_sym }
+          end
+        end
+
+        # Returns metadata for declared props (type, doc).
+        # @return [Hash{Symbol => Hash}]
+        def prop_meta = @_prop_meta || {}
+
+        # Declare default a11y annotations for this widget type.
+        # Merged into the widget's a11y prop during build when the user
+        # hasn't provided explicit a11y. User overrides win per field.
+        #
+        # @param defaults [Hash] default a11y fields
+        # @option defaults [Symbol] :role accessible role
+        # @option defaults [Symbol] :label_from prop name to derive label from
+        # @example
+        #   default_a11y role: :button, label_from: :label
+        def default_a11y(**defaults)
+          @_a11y_defaults = defaults.freeze
         end
 
         # @api private
+        # @return [String, nil] wire protocol type name
         attr_reader :_wire_type
         # @api private
+        # @return [Symbol, Integer] children constraint (:none, :single, :many, Integer)
         attr_reader :_children_mode
         # @api private
+        # @return [Array<Hash>] positional argument declarations
         attr_reader :_positionals
         # @api private
+        # @return [Array<Symbol>] declared prop names
         attr_reader :_props
+        # @api private
+        # @return [Hash, nil] default a11y annotations
+        attr_reader :_a11y_defaults
 
         # Whether instances of this widget have children.
         def _container? = @_children_mode && @_children_mode != :none
@@ -81,6 +125,7 @@ module Plushie
           subclass.instance_variable_set(:@_children_mode, :none)
           subclass.instance_variable_set(:@_positionals, [])
           subclass.instance_variable_set(:@_props, [])
+          subclass.instance_variable_set(:@_a11y_defaults, nil)
           subclass.instance_variable_set(:@_finalized, false)
         end
 
@@ -157,6 +202,7 @@ module Plushie
           props_list = @_props
           children_mode = @_children_mode
           container = _container?
+          a11y_defaults = @_a11y_defaults
 
           define_method(:build) do
             # Validate children constraints.
@@ -172,6 +218,13 @@ module Plushie
             props_list.each do |name|
               val = instance_variable_get(:"@#{name}")
               props[name] = val unless val.nil?
+            end
+
+            # Inject default a11y if the widget declares defaults and
+            # the user hasn't provided explicit a11y.
+            if a11y_defaults
+              resolved = Build.resolve_a11y(props, a11y_defaults)
+              props[:a11y] = resolved if resolved
             end
 
             if container

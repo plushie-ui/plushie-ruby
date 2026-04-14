@@ -36,16 +36,28 @@ module Plushie
   # continues. The runtime fills in `id`, `scope`, and `window_id`
   # automatically from the widget's position in the tree.
   module CanvasWidget
-    # Metadata keys used internally. Stored in Node#meta, never on the wire.
+    # Metadata key for the widget module reference in Node#meta.
     META_KEY = :__canvas_widget__
+    # Metadata key for widget input props in Node#meta.
     PROPS_KEY = :__canvas_widget_props__
+    # Metadata key for widget state snapshot in Node#meta.
     STATE_KEY = :__canvas_widget_state__
 
     # Subscription tag namespace prefix for canvas widgets.
     CW_TAG_PREFIX = "__cw:"
 
-    def self.widget_key(window_id, widget_id)
-      "#{window_id}\0#{widget_id}"
+    # Build a registry key from a window ID and a local widget path.
+    #
+    # Produces the same format as normalized scoped IDs (window#path).
+    # Use this when you have the window and local ID as separate values.
+    # When you already have a full scoped ID (e.g., from node.id after
+    # normalization), use it directly as the registry key.
+    #
+    # @param window_id [String] window that contains the widget
+    # @param local_id [String] widget path within the window
+    # @return [String] registry key
+    def self.widget_key(window_id, local_id)
+      "#{window_id}##{local_id}"
     end
 
     # Methods added to classes that include Plushie::CanvasWidget.
@@ -224,7 +236,7 @@ module Plushie
           id: id,
           window_id: window_id,
           scope: scope,
-          data: normalize_emit_data(data)
+          value: normalize_emit_data(data)
         )
         dispatch_through_widgets(registry, emitted)
       end
@@ -249,9 +261,9 @@ module Plushie
       return nil unless widget_module
       raise ArgumentError, "canvas widget #{local_id.inspect} must be rendered inside a window" if window_id.nil? || window_id.empty?
 
-      # Look up existing state or create initial
-      key = widget_key(window_id, scoped_id)
-      existing = registry[key]
+      # Look up existing state or create initial.
+      # scoped_id is already in "window#path" format from normalization.
+      existing = registry[scoped_id]
       state = if existing
         existing.state
       else
@@ -293,16 +305,20 @@ module Plushie
           widget_module = meta[META_KEY]
           state = meta[STATE_KEY]
           props = meta[PROPS_KEY] || {}
-          key = widget_key(current_window_id, node.id)
-          acc[key] = RegistryEntry.new(widget_module: widget_module, state: state, props: props)
+          # node.id is the full scoped ID (e.g., "main#rating") from normalization
+          acc[node.id] = RegistryEntry.new(widget_module: widget_module, state: state, props: props)
         end
 
         node.children.each { |child| collect_entries(child, acc, current_window_id) }
       end
 
       def build_handler_chain(registry, window_id, scope, event_id)
-        chain = scope_to_widget_ids(scope).filter_map do |id|
-          key = widget_key(window_id, id)
+        # Strip the window_id from the scope tail (it's the outermost
+        # ancestor, not a container in the path).
+        scope = scope[0...-1] if !scope.empty? && scope.last == window_id
+
+        chain = scope_to_widget_ids(scope).filter_map do |local_id|
+          key = widget_key(window_id, local_id)
           entry = registry[key]
           entry ? [key, entry] : nil
         end
@@ -339,7 +355,7 @@ module Plushie
             id: id,
             window_id: window_id,
             scope: scope,
-            data: normalize_emit_data(data)
+            value: normalize_emit_data(data)
           )
           walk_chain(registry, emitted, rest)
         end
@@ -436,8 +452,8 @@ module Plushie
         event.respond_to?(:window_id) ? event.window_id.to_s : ""
       end
 
-      def split_widget_key(widget_key)
-        widget_key.split("\0", 2)
+      def split_widget_key(key)
+        key.split("#", 2)
       end
     end
   end

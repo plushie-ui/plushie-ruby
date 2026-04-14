@@ -205,12 +205,15 @@ module Plushie
           ext_abs = File.expand_path(File.join(source_path, "plushie-ext"))
           renderer_abs = File.expand_path(File.join(source_path, "plushie-renderer"))
 
-          patch = <<~TOML
+          # Forward patches from the renderer workspace (e.g. vendored iced)
+          renderer_patches = parse_renderer_patches(source_path)
 
-            [patch.crates-io]
-            plushie-ext = { path = "#{ext_abs}" }
-            plushie-renderer = { path = "#{renderer_abs}" }
-          TOML
+          patch_lines = [
+            %(plushie-ext = { path = "#{ext_abs}" }),
+            %(plushie-renderer = { path = "#{renderer_abs}" })
+          ] + renderer_patches
+
+          patch = "\n[patch.crates-io]\n#{patch_lines.join("\n")}\n"
 
           [%(plushie-ext = { path = "#{core_rel}" }),
             %(plushie-renderer = { path = "#{bin_rel}" }),
@@ -390,12 +393,19 @@ module Plushie
       # @api private
       def generate_workspace(build_dir, bin_name, widgets, crate_paths)
         cargo = generate_cargo_toml(build_dir, bin_name, widgets, crate_paths)
-        File.write(File.join(build_dir, "Cargo.toml"), cargo)
+        write_if_changed(File.join(build_dir, "Cargo.toml"), cargo)
 
         src_dir = File.join(build_dir, "src")
         FileUtils.mkdir_p(src_dir)
         main = generate_main_rs(widgets)
-        File.write(File.join(src_dir, "main.rs"), main)
+        write_if_changed(File.join(src_dir, "main.rs"), main)
+      end
+
+      # Write content to a file only if it has changed.
+      # Avoids mtime changes that trigger unnecessary Cargo recompilation.
+      def write_if_changed(path, content)
+        return if File.exist?(path) && File.read(path) == content
+        File.write(path, content)
       end
 
       # Install the built binary.
@@ -425,6 +435,38 @@ module Plushie
       end
 
       # Extract plushie-ext version from a Cargo.toml content string.
+      # @api private
+      # Parse [patch.crates-io] entries from the renderer workspace's
+      # Cargo.toml to forward vendored crate patches (e.g. iced fork).
+      def parse_renderer_patches(source_path)
+        cargo_path = File.join(source_path, "Cargo.toml")
+        return [] unless File.exist?(cargo_path)
+
+        content = File.read(cargo_path)
+        in_patch = false
+        patches = []
+
+        content.each_line do |line|
+          if line.strip == "[patch.crates-io]"
+            in_patch = true
+            next
+          elsif line.strip.start_with?("[")
+            in_patch = false
+            next
+          end
+
+          if in_patch && line.include?("=") && !line.strip.start_with?("#")
+            # Skip our own crates (already included)
+            name = line.split("=").first.strip
+            next if name == "plushie-ext" || name == "plushie-renderer"
+            patches << line.strip
+          end
+        end
+
+        patches
+      end
+
+      # Extract the plushie-ext dependency version from a Cargo.toml string.
       # @api private
       def extract_plushie_ext_version(content, crate_path)
         # Inline: plushie-ext = "0.5.0"

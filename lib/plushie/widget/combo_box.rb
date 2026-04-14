@@ -30,6 +30,7 @@ module Plushie
     # - a11y (hash): accessibility overrides.
     class ComboBox < BuiltIn
       wire_type :combo_box
+      default_a11y role: :combo_box, label_from: :placeholder
       children :none
       positional :options, default: []
       prop :options, :selected, :placeholder, :width, :padding, :size, :font,

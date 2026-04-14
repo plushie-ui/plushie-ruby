@@ -20,6 +20,7 @@ module Plushie
     # - a11y (hash): accessibility overrides.
     class QrCode < BuiltIn
       wire_type :qr_code
+      default_a11y role: :image
       children :none
       positional :data, default: nil
       prop :data, :cell_size, :total_size, :cell_color, :background,

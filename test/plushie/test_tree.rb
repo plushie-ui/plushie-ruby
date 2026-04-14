@@ -78,6 +78,103 @@ class TestTree < Minitest::Test
     assert_equal "form/label_node", a11y["labelled_by"] || a11y[:labelled_by]
   end
 
+  # -- Search: exact vs suffix matching --------------------------------------
+
+  def test_find_exact_with_window_qualifier
+    tree = window("main") do
+      column("form") do
+        button("save", "Save")
+      end
+    end
+    normalized = Plushie::Tree.normalize_view(tree)
+
+    # Exact match with window#scope/id
+    found = Plushie::Tree.find(normalized, "main#form/save")
+    refute_nil found
+    assert_equal "button", found.type
+
+    # Exact match that doesn't exist
+    assert_nil Plushie::Tree.find(normalized, "other#form/save")
+  end
+
+  def test_find_suffix_matches_at_boundary
+    tree = window("main") do
+      button("email", "Email")
+      button("remail", "Remail")
+    end
+    normalized = Plushie::Tree.normalize_view(tree)
+
+    # "email" matches "main#email" (at # boundary)
+    found = Plushie::Tree.find(normalized, "email")
+    refute_nil found
+    assert found.id.end_with?("#email")
+
+    # "remail" should NOT match when searching for "email"
+    # because id_matches? requires a # or / boundary
+    all = Plushie::Tree.find_all(normalized) { |n| n.id.end_with?("email") }
+    emails = all.select { |n| Plushie::Tree.send(:find, [n], "email") }
+    assert_equal 1, emails.length
+  end
+
+  def test_find_first_returns_first_match
+    tree = column("root") do
+      button("a", "First")
+      button("b", "Second")
+    end
+
+    found = Plushie::Tree.find_first(tree) { |n| n.type == "button" }
+    refute_nil found
+    assert_equal "a", found.id
+  end
+
+  def test_find_first_nil_tree
+    assert_nil Plushie::Tree.find_first(nil) { |n| n.type == "button" }
+  end
+
+  def test_find_all_nil_tree
+    assert_equal [], Plushie::Tree.find_all(nil) { |n| n.type == "button" }
+  end
+
+  def test_ids_nil_tree
+    assert_equal [], Plushie::Tree.ids(nil)
+  end
+
+  # -- Normalization: encode_value edge cases --------------------------------
+
+  def test_encode_value_nested_symbols
+    tree = Plushie::Node.new(
+      id: "test", type: "container",
+      props: {style: {base: :primary, hover: {bg: :red}}}
+    )
+    normalized = Plushie::Tree.normalize(tree).first
+    style = normalized.props[:style]
+    assert_equal "primary", style["base"]
+    assert_equal "red", style["hover"]["bg"]
+  end
+
+  def test_encode_value_array_of_symbols
+    tree = Plushie::Node.new(
+      id: "test", type: "container",
+      props: {items: [:one, :two, :three]}
+    )
+    normalized = Plushie::Tree.normalize(tree).first
+    assert_equal %w[one two three], normalized.props[:items]
+  end
+
+  def test_encode_value_to_wire_custom_type
+    custom = Object.new
+    def custom.to_wire = {kind: :custom, data: 42}
+
+    tree = Plushie::Node.new(
+      id: "test", type: "container",
+      props: {thing: custom}
+    )
+    normalized = Plushie::Tree.normalize(tree).first
+    assert_equal({"kind" => "custom", "data" => 42}, normalized.props[:thing])
+  end
+
+  # -- Original tests --------------------------------------------------------
+
   def test_normalize_detects_canvas_shapes_in_widget_tree
     shape = Plushie::Canvas::Shape.rect(0, 0, 10, 10)
     tree = Plushie::Node.new(id: "root", type: "column", children: [shape])

@@ -136,6 +136,19 @@ module Plushie
         @_widget_state_fields << {name: name.to_sym, default: default}
       end
 
+      # Declares a cache key function for view-level caching.
+      #
+      # When the cache key proc returns the same value as the previous
+      # render, the widget's view is skipped and the cached normalized
+      # output is reused. Complementary to memo (subtree-level caching).
+      #
+      # @param fn [Proc] receives (props, state), returns a cache key
+      # @example
+      #   cache_key ->(props, state) { [props[:version], state[:zoom]] }
+      def cache_key(fn)
+        @_widget_cache_key = fn
+      end
+
       # Declares an event that this widget can emit.
       #
       # Event declarations are informational: they document the widget's
@@ -407,6 +420,7 @@ module Plushie
       base.instance_variable_set(:@_widget_container, false)
       base.instance_variable_set(:@_widget_native_crate, nil)
       base.instance_variable_set(:@_widget_rust_constructor, nil)
+      base.instance_variable_set(:@_widget_cache_key, nil)
       base.instance_variable_set(:@_finalized, false)
       finalize_on_new(base)
     end

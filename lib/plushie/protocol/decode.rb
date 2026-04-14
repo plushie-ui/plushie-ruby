@@ -102,6 +102,8 @@ module Plushie
         event
       end
 
+      # Dispatch a wire event message to the matching Event struct.
+      # @api private
       def decode_event_inner(msg, require_window_id: true)
         family = msg["family"]
         # The renderer uses "value" as the canonical event data field.

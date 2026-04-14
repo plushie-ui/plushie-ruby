@@ -13,7 +13,7 @@ module Plushie
       def initialize: (widget_module: untyped, state: untyped, props: Hash[Symbol | String, untyped]) -> void
     end
 
-    def self.widget_key: (String window_id, String widget_id) -> String
+    def self.widget_key: (String window_id, String local_id) -> String
     def self.build: (untyped widget_module, String id, ?Hash[Symbol | String, untyped] props) -> Node
     def self.placeholder?: (Node node) -> bool
     def self.derive_registry: (Node? tree) -> Hash[String, RegistryEntry]
