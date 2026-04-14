@@ -71,7 +71,10 @@ module Plushie
       def cast(value)
         case value
         when Spec then value.to_wire
-        when Hash then value.compact
+        when Hash
+          mnemonic = value[:mnemonic] || value["mnemonic"]
+          validate_mnemonic!(mnemonic) if mnemonic
+          value.compact
         when nil then nil
         else raise ArgumentError, "invalid a11y: #{value.inspect}"
         end

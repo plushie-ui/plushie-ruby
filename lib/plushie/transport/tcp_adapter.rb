@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require "socket"
+
 module Plushie
   module Transport
     # Example iostream adapter for TCP sockets.
