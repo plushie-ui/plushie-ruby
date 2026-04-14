@@ -77,21 +77,21 @@ module Plushie
       end
 
       # Press a key (key down).
-      # @param key [String] key name, supports modifiers: "ctrl+s"
+      # @param key [String] key combo string, e.g. "ctrl+s", "Enter", "a"
       def press(key)
-        interact("press", nil, key: normalize_key(key))
+        interact("press", nil, combo: key)
       end
 
       # Release a key (key up).
-      # @param key [String]
+      # @param key [String] key combo string
       def release(key)
-        interact("release", nil, key: normalize_key(key))
+        interact("release", nil, combo: key)
       end
 
       # Type a key (press + release).
-      # @param key [String]
+      # @param key [String] key combo string
       def type_key(key)
-        interact("type_key", nil, key: normalize_key(key))
+        interact("type_key", nil, combo: key)
       end
 
       # Move cursor to coordinates.
@@ -537,62 +537,10 @@ module Plushie
         props[key.to_sym] || props[key.to_s]
       end
 
-      # Valid modifier prefixes for key combos (case-insensitive).
-      VALID_MODIFIERS = {
-        "shift" => "Shift",
-        "ctrl" => "Ctrl",
-        "alt" => "Alt",
-        "logo" => "Logo",
-        "command" => "Command"
-      }.freeze
-
-      # Case-insensitive lookup for named keys. Maps downcased input
-      # to PascalCase wire format (matching what the renderer sends in events).
-      NAMED_KEY_LOOKUP = Protocol::Keys::NAMED_KEYS.keys
-        .each_with_object({}) { |name, h| h[name.downcase] = name }
-        .freeze
-
-      # Parse and validate a key string. Handles modifier prefixes
-      # (e.g. "ctrl+s", "Shift+ArrowRight") and resolves key names
-      # case-insensitively.
-      #
-      # @param key [String] raw key input
-      # @return [String] normalized key string for the interact protocol
-      # @raise [ArgumentError] on unknown modifier or key name
-      def normalize_key(key)
-        parts = key.split("+")
-        key_name = parts.pop
-        mod_parts = parts
-
-        normalized_mods = mod_parts.map do |mod|
-          wire = VALID_MODIFIERS[mod.downcase]
-          unless wire
-            raise ArgumentError,
-              "unknown modifier #{mod.inspect} in key #{key.inspect}. " \
-              "Valid: Shift, Ctrl, Alt, Logo, Command"
-          end
-          wire
-        end
-
-        # Single characters pass through (lowercased for iced).
-        # Named keys are resolved case-insensitively to PascalCase.
-        normalized_key = if key_name.length == 1
-          key_name.downcase
-        elsif (resolved = NAMED_KEY_LOOKUP[key_name.downcase])
-          resolved
-        else
-          raise ArgumentError,
-            "unknown key #{key_name.inspect} in #{key.inspect}. " \
-            "Examples: Tab, ArrowRight, PageUp, Escape, Enter. " \
-            "See Plushie::Protocol::Keys::NAMED_KEYS for the full list"
-        end
-
-        if normalized_mods.empty?
-          normalized_key
-        else
-          (normalized_mods + [normalized_key]).join("+")
-        end
-      end
+      # Key handling is delegated to the renderer. The combo string is
+      # passed through directly. The renderer's plushie-core Key module
+      # handles case normalization, underscore/hyphen stripping, and
+      # modifier alias resolution (e.g. command -> ctrl, super -> logo).
 
       # Intercept diagnostic events, accumulate them instead of dispatching.
       # Returns true if the event was intercepted.
