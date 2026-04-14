@@ -422,15 +422,59 @@ module Plushie
         end
       end
 
+      # Parse a unified selector string into a wire-ready selector hash.
+      #
+      # Supports all selector types in a single string grammar:
+      #   "form/email" or "#form/email" - ID path selector
+      #   "main#form/email" - window-qualified ID selector
+      #   ":focused" - state pseudo-selector
+      #   "main#:focused" - window-qualified state selector
+      #   "[text=Save]" - attribute selector (text, role, label)
+      #   "main#[text=Save]" - window-qualified attribute selector
+      def parse_selector(selector)
+        # Split window qualifier on #, but only if it looks like "window#rest"
+        # (not "#id" which starts with #)
+        window_id = nil
+        target = selector
+
+        if selector.include?("#") && !selector.start_with?("#")
+          parts = selector.split("#", 2)
+          if !parts[0].empty?
+            window_id = parts[0]
+            target = parts[1]
+          end
+        end
+
+        # Strip leading # from ID selectors
+        target = target.delete_prefix("#") if target.start_with?("#")
+
+        resolved = if target.start_with?(":")
+          # State pseudo-selector (:focused)
+          {by: target.delete_prefix(":"), value: ""}
+        elsif target.start_with?("[") && target.end_with?("]")
+          # Attribute selector [text=Save]
+          inner = target[1..-2]
+          attr, value = inner.split("=", 2)
+          {by: attr, value: value || ""}
+        else
+          # ID selector
+          {by: "id", value: target}
+        end
+
+        resolved[:window] = window_id if window_id
+        resolved
+      end
+
       def build_selector(selector)
         case selector
         when String
           if selector.start_with?("#")
             resolve_id_selector(selector)
+          elsif selector.start_with?(":", "[") || (selector.include?("#") && !selector.start_with?("#"))
+            parse_selector(selector)
           else
-            raise ArgumentError,
-              "bare strings are not valid selectors. " \
-              "Use \"##{selector}\" for ID selectors or {text: #{selector.inspect}} for text content matching."
+            # Bare string: treat as ID
+            resolve_id_selector("##{selector}")
           end
         when Hash then selector
         when :focused then {by: "focused"}
