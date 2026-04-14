@@ -2,6 +2,7 @@ module Plushie
   module Tree
     MAX_DEPTH: Integer
     DEPTH_WARNING: Integer
+    VALID_ID_PATTERN: Regexp
 
     def self.find: (Node | Array[Node] | nil tree, String id) -> Node?
     def self.exists?: (Node | Array[Node] | nil tree, String id) -> bool

@@ -556,6 +556,7 @@ module Plushie
       @canvas_widgets = {}
       @widget_statuses = {}
       @focused_widget_id = nil
+      # @type var recovery_error: Exception?
       recovery_error = nil
       begin
         @model = @app.handle_renderer_exit(@model, reason)
@@ -569,7 +570,7 @@ module Plushie
       if recovery_error
         dispatch_event(Event::System.new(
           type: :recovery_failed,
-          value: {error: recovery_error.message, renderer_exit: reason.inspect}
+          value: {error: recovery_error.message, renderer_exit: reason.inspect} #: Hash[Symbol, untyped]
         ))
       end
 
