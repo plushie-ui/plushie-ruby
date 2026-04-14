@@ -29,8 +29,8 @@ module Plushie
       positional :range
       positional :value
       prop :range, :value, :step, :shift_step, :default, :width, :height,
-        :circular_handle, :rail_color, :rail_width, :style, :label,
-        :event_rate, :a11y
+        :circular_handle, :handle_radius, :rail_color, :rail_width, :style,
+        :label, :event_rate, :a11y
     end
   end
 end

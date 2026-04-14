@@ -25,7 +25,7 @@ module Plushie
       wire_type :pane_grid
       children :many
       prop :panes, :spacing, :width, :height, :min_size, :divider_color,
-        :divider_width, :leeway, :event_rate, :a11y
+        :divider_width, :leeway, :split_axis, :event_rate, :a11y
     end
   end
 end

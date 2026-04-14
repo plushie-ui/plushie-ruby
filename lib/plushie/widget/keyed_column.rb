@@ -19,7 +19,7 @@ module Plushie
     class KeyedColumn < BuiltIn
       wire_type :keyed_column
       children :many
-      prop :spacing, :padding, :width, :height, :max_width, :a11y
+      prop :spacing, :padding, :width, :height, :align_x, :max_width, :a11y
     end
   end
 end

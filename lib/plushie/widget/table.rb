@@ -11,28 +11,27 @@ module Plushie
     #   node = table.build
     #
     # Props:
-    # - columns (array of hashes): column definitions (key, label, width).
-    # - rows (array): row data.
-    # - header (boolean): show header row.
-    # - separator (boolean): show row separators.
-    # - width (length): table width.
-    # - padding (number|hash): cell padding.
+    # - columns (array of hashes): column definitions (key, label, width, sortable, align).
+    # - rows (array of hashes): data rows with keys matching column key values.
+    #   Each map should include an "id" key for stable row identity.
+    # - header (boolean): show header row. Default: true.
+    # - separator (number): divider line thickness in pixels. Set to 0.0 to hide.
+    # - separator_color (string): divider line color.
+    # - width (length): table width. Default: fill.
+    # - height (length): table height. Wraps in a scrollable when set.
+    # - padding (number|hash): cell internal padding.
     # - sort_by (string): column key to sort by.
     # - sort_order (symbol): :asc or :desc.
-    # - header_text_size (number): header font size.
-    # - row_text_size (number): row font size.
-    # - cell_spacing (number): horizontal spacing between cells.
-    # - row_spacing (number): vertical spacing between rows.
-    # - separator_thickness (number): separator line thickness.
-    # - separator_color (string): separator colour.
+    # - header_text_size (number): header row text size in pixels.
+    # - row_text_size (number): body row text size in pixels.
+    # - event_rate (integer): max events per second for coalescable events.
     # - a11y (hash): accessibility overrides.
     class Table < BuiltIn
       wire_type :table
       children :many
-      prop :columns, :rows, :header, :separator, :width, :padding,
-        :sort_by, :sort_order, :header_text_size, :row_text_size,
-        :cell_spacing, :row_spacing, :separator_thickness,
-        :separator_color, :a11y
+      prop :columns, :rows, :header, :separator, :separator_color,
+        :width, :height, :padding, :sort_by, :sort_order,
+        :header_text_size, :row_text_size, :event_rate, :a11y
 
       # Validation and override hooks applied via prepend so they
       # wrap the generated methods rather than being overwritten.

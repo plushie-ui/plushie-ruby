@@ -22,8 +22,8 @@ module Plushie
       wire_type :qr_code
       children :none
       positional :data, default: nil
-      prop :data, :cell_size, :cell_color, :background, :error_correction,
-        :alt, :description, :a11y
+      prop :data, :cell_size, :total_size, :cell_color, :background,
+        :error_correction, :alt, :description, :a11y
     end
   end
 end
