@@ -54,6 +54,8 @@ module Plushie
       @canvas_widgets = {}     # "#{window_id}\0#{scoped_id}" -> CanvasWidget::RegistryEntry
       @consecutive_errors = 0
       @consecutive_view_errors = 0
+      @widget_statuses = {}    # id -> status string
+      @focused_widget_id = nil # currently focused widget ID
       @diagnostics = []        # accumulated prop validation diagnostics
       @diagnostics_mutex = Mutex.new
       @pending_stub_acks = {}  # kind -> Queue (for sync ack round-trip)
@@ -129,6 +131,14 @@ module Plushie
         @diagnostics.clear
         result
       end
+    end
+
+    # Returns the ID of the currently focused widget, or nil.
+    # Focus is tracked automatically from renderer status events.
+    #
+    # @return [String, nil]
+    def get_focused
+      @focused_widget_id
     end
 
     # Simulate a user interaction with a widget.
@@ -308,6 +318,13 @@ module Plushie
           end
           return
         end
+      end
+
+      # Intercept status events for focus tracking. The raw :status event
+      # is absorbed; derived :focused/:blurred events are dispatched.
+      if event.is_a?(Event::Widget) && event.type == :status
+        handle_status_event(event)
+        return
       end
 
       # Intercept prop validation diagnostics (never delivered to update)
@@ -556,6 +573,37 @@ module Plushie
       # re-sends subscribe messages to the fresh renderer.
       reset_renderer_subscriptions
       sync_subscriptions
+    end
+
+    # -- Status-based focus tracking -----------------------------------------
+
+    # Handle a status event from the renderer. Updates internal focus
+    # tracking state and dispatches derived :focused/:blurred events
+    # through update. The raw :status event is not passed to user code.
+    def handle_status_event(event)
+      status = event.value
+      return unless status.is_a?(String)
+
+      id = event.id
+      prev_status = @widget_statuses[id]
+      @widget_statuses[id] = status
+
+      if status == "focused"
+        @focused_widget_id = id
+      elsif prev_status == "focused" && @focused_widget_id == id
+        @focused_widget_id = nil
+      end
+
+      # Derive focused/blurred events from status transitions
+      if prev_status != "focused" && status == "focused"
+        dispatch_event(Event::Widget.new(
+          type: :focused, id: id, window_id: event.window_id, scope: event.scope
+        ))
+      elsif prev_status == "focused" && status != "focused"
+        dispatch_event(Event::Widget.new(
+          type: :blurred, id: id, window_id: event.window_id, scope: event.scope
+        ))
+      end
     end
 
     # -- Error handling ------------------------------------------------------

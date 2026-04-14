@@ -247,6 +247,13 @@ module Plushie
             type: :blurred, id: id, window_id: window_id_fn.call(msg, family), scope: scope
           )
 
+        when "status"
+          id, scope = split_scoped_id(msg["id"])
+          Event::Widget.new(
+            type: :status, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
+            value: wire_value
+          )
+
         when "drag"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(
