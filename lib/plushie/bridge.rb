@@ -121,6 +121,7 @@ module Plushie
       end
 
       @hello = @connection.hello
+      check_renderer_version(@hello)
       @retry_count = 0
 
       # Forward messages from connection queue to event queue
@@ -171,6 +172,22 @@ module Plushie
     rescue => e
       @logger.error("plushie: restart failed: #{e.class}: #{e.message}")
       @event_queue.push([:renderer_exited, e]) if @retry_count >= MAX_RETRIES
+    end
+
+    def check_renderer_version(hello)
+      return unless hello.is_a?(Hash) && hello[:version]
+
+      expected = Plushie::BINARY_VERSION
+      actual = hello[:version]
+
+      if actual != expected
+        @logger.warn(
+          "plushie: renderer version mismatch, " \
+          "got #{actual}, expected #{expected}. " \
+          "The renderer binary may be stale. " \
+          "Run `rake plushie:download` or `rake plushie:build` to update."
+        )
+      end
     end
 
     def handle_connect_failure(error)

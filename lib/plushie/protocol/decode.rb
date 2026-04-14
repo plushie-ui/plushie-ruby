@@ -665,10 +665,11 @@ module Plushie
           protocol: msg["protocol"],
           version: msg["version"],
           name: msg["name"],
-          mode: msg["mode"]&.to_sym,
+          mode: msg["mode"],
           backend: msg["backend"],
-          extensions: msg["extensions"] || [],
-          transport: msg["transport"]
+          transport: msg["transport"],
+          native_widgets: msg["native_widgets"] || [],
+          widgets: msg["widgets"] || []
         }
       end
 

@@ -579,11 +579,17 @@ class TestProtocolDecode < Minitest::Test
   # -- Response decoders ---------------------------------------------------
 
   def test_decode_hello
-    msg = {"type" => "hello", "protocol" => 1, "version" => "0.4.0", "name" => "plushie", "mode" => "mock", "backend" => "none", "extensions" => [], "transport" => "stdio"}
+    msg = {
+      "type" => "hello", "protocol" => 1, "version" => "0.4.0",
+      "name" => "plushie", "mode" => "mock", "backend" => "none",
+      "transport" => "stdio", "native_widgets" => [], "widgets" => ["button", "text"]
+    }
     result = D.decode_hello(msg)
     assert_equal :hello, result[:type]
     assert_equal 1, result[:protocol]
-    assert_equal :mock, result[:mode]
+    assert_equal "mock", result[:mode]
+    assert_equal ["button", "text"], result[:widgets]
+    assert_equal [], result[:native_widgets]
   end
 
   def test_decode_effect_response_ok
