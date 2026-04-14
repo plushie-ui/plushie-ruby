@@ -55,7 +55,8 @@ module Plushie
           h[:show_focus_ring] = show_focus_ring unless show_focus_ring.nil?
           h[:focus_ring_radius] = focus_ring_radius unless focus_ring_radius.nil?
           h[:focusable] = focusable unless focusable.nil?
-          h[:a11y] = resolve_a11y if resolve_a11y
+          resolved_a11y = resolve_a11y
+          h[:a11y] = resolved_a11y if resolved_a11y
           h
         end
 

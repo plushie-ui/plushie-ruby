@@ -42,15 +42,17 @@ module Plushie
         overrides.each do |name, widget_class|
           define_method(name) do |id, *args, **opts, &block|
             builder = widget_class.new(id, *args, **opts)
-            if block
+            if block && builder.respond_to?(:push)
+              # Collect children via the thread-local context stack
+              # (same pattern as built-in container widgets)
               children = []
               UI::Context.push(children)
               begin
-                block.call(builder)
+                block.call
               ensure
                 UI::Context.pop
               end
-              children.each { |c| builder.push(c) } if builder.respond_to?(:push)
+              children.each { |c| builder.push(c) }
             end
             node = builder.build
             ctx = UI::Context.current

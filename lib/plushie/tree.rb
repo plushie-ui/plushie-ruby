@@ -405,14 +405,15 @@ module Plushie
 
         # Normalize the memo body. If the block produced a single child,
         # normalize it directly. If multiple, wrap in a transparent container.
+        # Use auto: prefix for wrapper IDs to bypass user ID validation.
         result = if children.length == 1
           normalize_node(children[0], scope, registry, window_id, depth + 1)
         elsif children.length > 1
-          wrapper = Node.new(id: node.id, type: "container",
-            children: children)
+          wrapper_id = "auto:memo_#{children.length}"
+          wrapper = Node.new(id: wrapper_id, type: "container", children: children)
           normalize_node(wrapper, scope, registry, window_id, depth + 1)
         else
-          Node.new(id: node.id, type: "container")
+          Node.new(id: "auto:memo_empty", type: "container")
         end
 
         UI::MemoCache.store(cache_key, result)
@@ -501,8 +502,9 @@ module Plushie
       return false unless new_val.all? { |e| e.is_a?(Hash) && (e.key?(:id) || e.key?("id")) }
 
       # Build ID-keyed lookup and compare
-      # @type var old_by_id: Hash[untyped, Hash[untyped, untyped]]
-      old_by_id = old_val.each_with_object({}) { |e, h| h[e[:id] || e["id"]] = e }
+      # @type var old_by_id: Hash[untyped, untyped]
+      old_by_id = {}
+      old_val.each { |e| old_by_id[e[:id] || e["id"]] = e }
       new_val.all? { |e| old_by_id[e[:id] || e["id"]] == e }
     end
     private_class_method :id_keyed_lists_equal?

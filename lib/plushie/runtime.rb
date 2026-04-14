@@ -59,8 +59,7 @@ module Plushie
       @consecutive_view_errors = 0
       @widget_statuses = {}    # id -> status string
       @focused_widget_id = nil # currently focused widget ID
-      # @type var @memo_cache: Hash[untyped, untyped]
-      @memo_cache = {}         # memo cache across render cycles
+      @memo_cache = {} #: Hash[untyped, untyped]
       @diagnostics = []        # accumulated prop validation diagnostics
       @diagnostics_mutex = Mutex.new
       @pending_stub_acks = {}  # kind -> Queue (for sync ack round-trip)
@@ -725,6 +724,7 @@ module Plushie
         bridge = @bridge
         ops = Tree.diff(@previous_tree, new_tree)
         if !ops.empty? && bridge
+          bridge.send_encoded(Protocol::Encode.encode_patch(ops, @format))
           @previous_tree = new_tree
         end
       end
