@@ -266,6 +266,8 @@ module Plushie
             ack_queue.push(:ok)
           end
         in :force_rerender
+          @consecutive_errors = 0
+          @consecutive_view_errors = 0
           render_and_patch
         else
           @logger.debug("plushie: unknown message: #{msg.inspect}")
@@ -532,6 +534,8 @@ module Plushie
 
     def handle_renderer_restarted
       @logger.info("plushie: renderer restarted, re-sending settings and snapshot")
+      @consecutive_errors = 0
+      @consecutive_view_errors = 0
 
       # Clear stale interaction state from the old renderer.
       fail_pending_interact("renderer_restarted")
