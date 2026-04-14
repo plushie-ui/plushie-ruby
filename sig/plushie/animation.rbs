@@ -10,8 +10,10 @@ module Plushie
         attr_reader started_at: Integer?
         attr_reader easing: Symbol | Proc
         attr_reader value: Numeric
+        attr_reader repeat: Integer | Symbol | nil
+        attr_reader auto_reverse: bool
 
-        def initialize: (from: Numeric, to: Numeric, duration: Integer, started_at: Integer?, easing: Symbol | Proc, value: Numeric) -> void
+        def initialize: (from: Numeric, to: Numeric, duration: Integer, ?started_at: Integer?, ?easing: Symbol | Proc, ?value: Numeric?, ?repeat: Integer | Symbol | nil, ?auto_reverse: bool) -> void
         def with: (**untyped changes) -> State
       end
 
@@ -27,7 +29,8 @@ module Plushie
       def self.spring: (Float t) -> Float
 
       def self.interpolate: (Numeric from, Numeric to, Numeric t, ?Symbol | Proc easing) -> Float
-      def self.new: (Numeric from, Numeric to, Integer duration_ms, ?easing: Symbol | Proc) -> State
+      def self.new: (Numeric from, Numeric to, Integer duration_ms, ?easing: Symbol | Proc, ?repeat: Integer | Symbol | nil, ?auto_reverse: bool) -> State
+      def self.looping: (Numeric from, Numeric to, Integer duration_ms, **untyped opts) -> State
       def self.start: (State anim, Integer timestamp) -> State
       def self.advance: (State anim, Integer timestamp) -> [Numeric, State | Symbol]
       def self.finished?: (State anim) -> bool

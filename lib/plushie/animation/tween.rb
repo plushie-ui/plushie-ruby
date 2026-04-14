@@ -39,8 +39,18 @@ module Plushie
     #
     class Tween
       # Immutable animation state.
-      State = ::Data.define(:from, :to, :duration, :started_at, :easing, :value) do
+      #
+      # @!attribute [r] repeat [Integer, :forever, nil] remaining repeat count
+      # @!attribute [r] auto_reverse [Boolean] swap from/to on each cycle
+      State = ::Data.define(:from, :to, :duration, :started_at, :easing, :value,
+        :repeat, :auto_reverse) do
         include Plushie::Model::Extensions
+
+        def initialize(from:, to:, duration:, started_at: nil, easing: :linear,
+          value: nil, repeat: nil, auto_reverse: false)
+          super(from: from, to: to, duration: duration, started_at: started_at,
+                easing: easing, value: value || from, repeat: repeat, auto_reverse: auto_reverse)
+        end
       end
 
       # -- Easing functions ---------------------------------------------------
@@ -119,17 +129,34 @@ module Plushie
       # @param duration_ms [Integer] duration in milliseconds (must be > 0)
       # @param easing [Proc, Symbol] easing function or name (default: :linear)
       # @return [State]
-      def self.new(from, to, duration_ms, easing: :linear)
+      def self.new(from, to, duration_ms, easing: :linear, repeat: nil, auto_reverse: false)
         raise ArgumentError, "duration_ms must be positive" unless duration_ms.is_a?(Integer) && duration_ms > 0
 
         State.new(
           from: from,
           to: to,
           duration: duration_ms,
-          started_at: nil,
           easing: easing,
-          value: from
+          repeat: repeat,
+          auto_reverse: auto_reverse
         )
+      end
+
+      # Create a looping tween that repeats forever with auto-reverse.
+      #
+      # Convenience for common back-and-forth animations (pulsing,
+      # breathing, oscillating).
+      #
+      # @example
+      #   anim = Tween.looping(0.0, 1.0, 500, easing: :ease_in_out)
+      #
+      # @param from [Numeric]
+      # @param to [Numeric]
+      # @param duration_ms [Integer]
+      # @param opts [Hash] additional options (e.g. easing:)
+      # @return [State]
+      def self.looping(from, to, duration_ms, **opts)
+        new(from, to, duration_ms, repeat: :forever, auto_reverse: true, **opts)
       end
 
       # Start (or restart) the animation at the given frame timestamp.
@@ -157,7 +184,7 @@ module Plushie
         current = interpolate(anim.from, anim.to, t, anim.easing)
 
         if t >= 1.0
-          [anim.to, :finished]
+          handle_cycle_end(anim)
         else
           [current, anim.with(value: current)]
         end
@@ -178,6 +205,38 @@ module Plushie
       def self.value(anim) = anim.value
 
       # -- Private ------------------------------------------------------------
+
+      # Handle the end of an animation cycle.
+      # @api private
+      def self.handle_cycle_end(anim)
+        case anim.repeat
+        when nil
+          [anim.to, :finished]
+        when :forever
+          [anim.to, restart_cycle(anim)]
+        when Integer
+          if anim.repeat > 1
+            [anim.to, restart_cycle(anim).with(repeat: anim.repeat - 1)]
+          else
+            [anim.to, :finished]
+          end
+        else
+          [anim.to, :finished]
+        end
+      end
+      private_class_method :handle_cycle_end
+
+      # Restart the animation for the next cycle.
+      # @api private
+      def self.restart_cycle(anim)
+        next_start = anim.started_at + anim.duration
+        if anim.auto_reverse
+          anim.with(from: anim.to, to: anim.from, started_at: next_start, value: anim.to)
+        else
+          anim.with(started_at: next_start, value: anim.from)
+        end
+      end
+      private_class_method :restart_cycle
 
       # @api private
       def self.clamp(t)
