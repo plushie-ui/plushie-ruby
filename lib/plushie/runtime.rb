@@ -786,9 +786,10 @@ module Plushie
     end
 
     # Flush pending effect requests: the renderer that would have
-    # responded is gone. Deliver error events so callers don't hang.
-    # Each effect is removed individually before dispatching so that
-    # new effects started during the flush survive.
+    # responded is gone. Deliver error events through update so the
+    # app can react. Each effect is removed individually before its
+    # error event so new effects started during the flush survive.
+    # Rendering is skipped since the renderer is dead.
     def flush_pending_effects_on_exit
       ids = @pending_effects.keys
       ids.each do |id|
@@ -796,7 +797,17 @@ module Plushie
         timer&.kill
         tag = @effect_ids.delete(id)
         @effect_tags.delete(tag) if tag
-        dispatch_event(Event::Effect.new(tag: tag, result: [:error, :renderer_exited]))
+
+        event = Event::Effect.new(tag: tag, result: [:error, :renderer_exited])
+        saved_model = @model
+        begin
+          result = @app.update(@model, event)
+          @model, commands = unwrap_result(result)
+          execute_commands(commands)
+        rescue => e
+          @model = saved_model
+          handle_callback_error("update (effect flush)", e)
+        end
       end
     end
 
@@ -823,6 +834,7 @@ module Plushie
     def shutdown
       @dev_server&.stop
       @bridge&.stop
+      @pending_interact&.dig(:timeout_timer)&.kill
       @async_tasks.each_value { |entry| entry[:thread]&.kill }
       @async_tasks.clear
       @pending_effects.each_value(&:kill)
