@@ -187,7 +187,12 @@ module Plushie
     end
 
     def build_settings
-      settings = @app.settings
+      settings = begin
+        @app.settings
+      rescue => e
+        @logger.warn("plushie: settings callback error: #{e.class}: #{e.message}")
+        {}
+      end
       wc = Plushie.configuration.widget_config
       settings = settings.merge(extension_config: wc) if wc && !wc.empty?
       settings
@@ -322,18 +327,24 @@ module Plushie
 
       # Route through canvas widget handlers before app.update.
       # Handlers can consume, transform, or ignore the event.
+      # Wrapped in rescue so widget handler errors don't crash the runtime.
       unless @canvas_widgets.empty?
-        widgets_before = @canvas_widgets
-        routed_event, @canvas_widgets = CanvasWidget.dispatch_through_widgets(@canvas_widgets, event)
-        if routed_event.nil?
-          # Event consumed by a widget handler. If the registry changed
-          # (widget state updated), re-render to pick up view changes.
-          if @canvas_widgets != widgets_before
-            rerender_after_widget_state_change(widgets_before)
+        begin
+          widgets_before = @canvas_widgets
+          routed_event, @canvas_widgets = CanvasWidget.dispatch_through_widgets(@canvas_widgets, event)
+          if routed_event.nil?
+            # Event consumed by a widget handler. If the registry changed
+            # (widget state updated), re-render to pick up view changes.
+            if @canvas_widgets != widgets_before
+              rerender_after_widget_state_change(widgets_before)
+            end
+            return
           end
+          event = routed_event
+        rescue => e
+          @logger.warn("plushie: widget event routing error: #{e.class}: #{e.message}")
           return
         end
-        event = routed_event
       end
 
       saved_model = @model
@@ -509,7 +520,12 @@ module Plushie
       flush_pending_effects_on_exit
       flush_pending_stub_acks
       @canvas_widgets = {}
-      @model = @app.handle_renderer_exit(@model, reason)
+      begin
+        @model = @app.handle_renderer_exit(@model, reason)
+      rescue => e
+        @logger.error("plushie: handle_renderer_exit error: #{e.class}: #{e.message}")
+        # Preserve model on callback failure
+      end
       @previous_tree = nil
       @running = false unless @daemon
     end

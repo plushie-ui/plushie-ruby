@@ -128,6 +128,8 @@ module Plushie
       def execute_done(value, mapper)
         event = mapper.call(value)
         @event_queue.push([:send_after_event, event])
+      rescue => e
+        @logger.warn("plushie: Command.done mapper error: #{e.class}: #{e.message}")
       end
 
       # Schedule a delayed event.

@@ -18,14 +18,14 @@ module Plushie
         new_specs = begin
           subs = @app.subscribe(@model)
           subs = subs.is_a?(Array) ? subs : []
-          subs.each do |s|
-            unless s.is_a?(Subscription::Sub)
-              raise ArgumentError, "subscribe must return a list of Subscription::Sub structs, got: #{s.inspect}"
+          subs.select do |s|
+            if s.is_a?(Subscription::Sub)
+              true
+            else
+              @logger.warn("plushie: subscribe returned invalid spec (dropping): #{s.inspect}")
+              false
             end
           end
-          subs
-        rescue ArgumentError
-          raise
         rescue => e
           @logger.error("plushie: subscribe raised: #{e.class}: #{e.message}")
           []
