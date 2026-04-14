@@ -144,19 +144,19 @@ module Plushie
 
       # Rotate the coordinate system.
       #
-      # Accepts degrees by default. Use +degrees:+ or +radians:+ for
-      # explicit units.
+      # Accepts degrees by default (matching the Rust SDK convention).
+      # Use +degrees:+ or +radians:+ for explicit units.
       #
       #   rotate(45)              # 45 degrees
       #   rotate(degrees: 45)     # explicit degrees
-      #   rotate(radians: 0.785)  # explicit radians
+      #   rotate(radians: 0.785)  # explicit radians (converted to degrees)
       def rotate(angle = nil, degrees: nil, radians: nil)
         if radians
-          Rotate.new(angle: radians)
+          Rotate.new(angle: radians * 180.0 / Math::PI)
         elsif degrees
-          Rotate.new(angle: degrees * Math::PI / 180.0)
+          Rotate.new(angle: degrees.to_f)
         elsif angle
-          Rotate.new(angle: angle * Math::PI / 180.0)
+          Rotate.new(angle: angle.to_f)
         else
           raise ArgumentError, "rotate requires an angle, degrees:, or radians:"
         end

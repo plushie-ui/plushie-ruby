@@ -335,20 +335,20 @@ class TestCanvasShapes < Minitest::Test
   def test_rotate_degrees
     r = S.rotate(45)
     assert_instance_of S::Rotate, r
-    assert_in_delta Math::PI / 4, r.angle
+    assert_in_delta 45.0, r.angle
     wire = r.to_wire
     assert_equal "rotate", wire[:type]
-    assert_in_delta Math::PI / 4, wire[:angle]
+    assert_in_delta 45.0, wire[:angle]
   end
 
   def test_rotate_explicit_degrees
     r = S.rotate(degrees: 90)
-    assert_in_delta Math::PI / 2, r.angle
+    assert_in_delta 90.0, r.angle
   end
 
   def test_rotate_radians
     r = S.rotate(radians: Math::PI / 4)
-    assert_in_delta Math::PI / 4, r.angle
+    assert_in_delta 45.0, r.angle
   end
 
   def test_scale

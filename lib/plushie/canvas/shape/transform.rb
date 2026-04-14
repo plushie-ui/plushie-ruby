@@ -18,11 +18,12 @@ module Plushie
         end
       end
 
-      # Rotates the canvas coordinate system. Stored as radians internally.
-      # Use Shape.rotate for degrees-by-default convenience.
+      # Rotates the canvas coordinate system. Stored as degrees internally,
+      # matching the wire protocol convention. Use Shape.rotate for
+      # the degrees-by-default convenience constructor.
       #
       # @example
-      #   Rotate.new(angle: Math::PI / 4)
+      #   Rotate.new(angle: 45)
       Rotate = ::Data.define(:angle) do
         def initialize(angle:)
           super
