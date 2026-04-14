@@ -67,11 +67,11 @@ class DocsCommandsTest < Minitest::Test
   # -- Scroll operations --
 
   def test_commands_scroll_to_construct
-    cmd = C.scroll_to("chat_log", 500)
+    cmd = C.scroll_to("chat_log", 0, 500)
     assert_equal :command, cmd.type
     assert_equal "chat_log", cmd.payload[:id]
     assert_equal "scroll_to", cmd.payload[:family]
-    assert_equal({x: 0.0, y: 500}, cmd.payload[:value])
+    assert_equal({x: 0, y: 500}, cmd.payload[:value])
   end
 
   def test_commands_snap_to_construct
@@ -127,7 +127,7 @@ class DocsCommandsTest < Minitest::Test
   def test_commands_maximize_window_construct
     cmd = C.maximize_window("main")
     assert_equal :window_op, cmd.type
-    assert_equal :maximize, cmd.payload[:op]
+    assert_equal "maximize", cmd.payload[:op]
     assert_equal "main", cmd.payload[:window_id]
     assert_equal true, cmd.payload[:maximized]
   end
@@ -135,14 +135,14 @@ class DocsCommandsTest < Minitest::Test
   def test_commands_maximize_window_restore
     cmd = C.maximize_window("main", false)
     assert_equal :window_op, cmd.type
-    assert_equal :maximize, cmd.payload[:op]
+    assert_equal "maximize", cmd.payload[:op]
     assert_equal false, cmd.payload[:maximized]
   end
 
   def test_commands_set_window_mode_construct
     cmd = C.set_window_mode("main", :fullscreen)
     assert_equal :window_op, cmd.type
-    assert_equal :set_mode, cmd.payload[:op]
+    assert_equal "set_mode", cmd.payload[:op]
     assert_equal "main", cmd.payload[:window_id]
     assert_equal "fullscreen", cmd.payload[:mode]
   end
@@ -150,7 +150,7 @@ class DocsCommandsTest < Minitest::Test
   def test_commands_set_window_level_construct
     cmd = C.set_window_level("main", :always_on_top)
     assert_equal :window_op, cmd.type
-    assert_equal :set_level, cmd.payload[:op]
+    assert_equal "set_level", cmd.payload[:op]
     assert_equal "main", cmd.payload[:window_id]
     assert_equal "always_on_top", cmd.payload[:level]
   end
@@ -160,7 +160,7 @@ class DocsCommandsTest < Minitest::Test
   def test_commands_get_window_size_construct
     cmd = C.get_window_size("main", :got_size)
     assert_equal :window_query, cmd.type
-    assert_equal :get_size, cmd.payload[:op]
+    assert_equal "get_size", cmd.payload[:op]
     assert_equal "main", cmd.payload[:window_id]
     assert_equal "got_size", cmd.payload[:tag]
   end
@@ -168,7 +168,7 @@ class DocsCommandsTest < Minitest::Test
   def test_commands_get_system_theme_construct
     cmd = C.get_system_theme(:theme_detected)
     assert_equal :system_query, cmd.type
-    assert_equal :get_system_theme, cmd.payload[:op]
+    assert_equal "get_system_theme", cmd.payload[:op]
     assert_equal "theme_detected", cmd.payload[:tag]
   end
 
@@ -197,7 +197,7 @@ class DocsCommandsTest < Minitest::Test
   def test_commands_create_image_construct
     cmd = C.create_image("preview", "png-data-here")
     assert_equal :image_op, cmd.type
-    assert_equal :create_image, cmd.payload[:op]
+    assert_equal "create_image", cmd.payload[:op]
     assert_equal "preview", cmd.payload[:handle]
     assert_equal "png-data-here", cmd.payload[:data]
   end
@@ -205,7 +205,7 @@ class DocsCommandsTest < Minitest::Test
   def test_commands_delete_image_construct
     cmd = C.delete_image("preview")
     assert_equal :image_op, cmd.type
-    assert_equal :delete_image, cmd.payload[:op]
+    assert_equal "delete_image", cmd.payload[:op]
     assert_equal "preview", cmd.payload[:handle]
   end
 

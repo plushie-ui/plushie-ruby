@@ -109,10 +109,10 @@ class TestCommand < Minitest::Test
   # -- Scroll --------------------------------------------------------------
 
   def test_scroll_to
-    cmd = C.scroll_to("list", 100)
+    cmd = C.scroll_to("list", 0, 100)
     assert_equal :command, cmd.type
     assert_equal "scroll_to", cmd.payload[:family]
-    assert_equal({x: 0.0, y: 100}, cmd.payload[:value])
+    assert_equal({x: 0, y: 100}, cmd.payload[:value])
   end
 
   def test_snap_to
@@ -145,7 +145,7 @@ class TestCommand < Minitest::Test
   def test_resize_window
     cmd = C.resize_window("main", 800, 600)
     assert_equal :window_op, cmd.type
-    assert_equal :resize, cmd.payload[:op]
+    assert_equal "resize", cmd.payload[:op]
   end
 
   def test_maximize_window
@@ -160,20 +160,20 @@ class TestCommand < Minitest::Test
 
   def test_set_window_mode
     cmd = C.set_window_mode("main", :fullscreen)
-    assert_equal :set_mode, cmd.payload[:op]
+    assert_equal "set_mode", cmd.payload[:op]
     assert_equal "fullscreen", cmd.payload[:mode]
   end
 
   def test_toggle_maximize
-    assert_equal :toggle_maximize, C.toggle_maximize("main").payload[:op]
+    assert_equal "toggle_maximize", C.toggle_maximize("main").payload[:op]
   end
 
   def test_toggle_decorations
-    assert_equal :toggle_decorations, C.toggle_decorations("main").payload[:op]
+    assert_equal "toggle_decorations", C.toggle_decorations("main").payload[:op]
   end
 
   def test_focus_window
-    assert_equal :gain_focus, C.focus_window("main").payload[:op]
+    assert_equal "gain_focus", C.focus_window("main").payload[:op]
   end
 
   def test_set_window_level
@@ -182,7 +182,7 @@ class TestCommand < Minitest::Test
   end
 
   def test_drag_window
-    assert_equal :drag, C.drag_window("main").payload[:op]
+    assert_equal "drag", C.drag_window("main").payload[:op]
   end
 
   def test_set_resizable
@@ -192,11 +192,11 @@ class TestCommand < Minitest::Test
 
   def test_set_min_max_size
     cmd = C.set_min_size("main", 400, 300)
-    assert_equal :set_min_size, cmd.payload[:op]
+    assert_equal "set_min_size", cmd.payload[:op]
     assert_equal 400, cmd.payload[:width]
 
     cmd = C.set_max_size("main", 1920, 1080)
-    assert_equal :set_max_size, cmd.payload[:op]
+    assert_equal "set_max_size", cmd.payload[:op]
   end
 
   def test_mouse_passthrough
@@ -206,14 +206,14 @@ class TestCommand < Minitest::Test
 
   def test_set_icon
     cmd = C.set_icon("main", "\x00" * 16, 2, 2)
-    assert_equal :set_icon, cmd.payload[:op]
+    assert_equal "set_icon", cmd.payload[:op]
     assert_equal 2, cmd.payload[:width]
   end
 
   def test_allow_automatic_tabbing
     cmd = C.allow_automatic_tabbing(false)
     assert_equal :system_op, cmd.type
-    assert_equal :allow_automatic_tabbing, cmd.payload[:op]
+    assert_equal "allow_automatic_tabbing", cmd.payload[:op]
     assert_equal false, cmd.payload[:enabled]
   end
 
@@ -222,13 +222,13 @@ class TestCommand < Minitest::Test
   def test_get_window_size
     cmd = C.get_window_size("main", :size_check)
     assert_equal :window_query, cmd.type
-    assert_equal :get_size, cmd.payload[:op]
+    assert_equal "get_size", cmd.payload[:op]
   end
 
   def test_get_system_theme
     cmd = C.get_system_theme(:theme)
     assert_equal :system_query, cmd.type
-    assert_equal :get_system_theme, cmd.payload[:op]
+    assert_equal "get_system_theme", cmd.payload[:op]
   end
 
   # -- PaneGrid ------------------------------------------------------------
@@ -252,7 +252,7 @@ class TestCommand < Minitest::Test
   def test_create_image_with_data
     cmd = C.create_image("img1", "png_bytes")
     assert_equal :image_op, cmd.type
-    assert_equal :create_image, cmd.payload[:op]
+    assert_equal "create_image", cmd.payload[:op]
     assert_equal "png_bytes", cmd.payload[:data]
   end
 
@@ -264,52 +264,52 @@ class TestCommand < Minitest::Test
 
   def test_delete_image
     cmd = C.delete_image("img1")
-    assert_equal :delete_image, cmd.payload[:op]
+    assert_equal "delete_image", cmd.payload[:op]
   end
 
   def test_clear_images
     cmd = C.clear_images
-    assert_equal :clear_images, cmd.payload[:op]
+    assert_equal "clear_images", cmd.payload[:op]
   end
 
   # -- Widget queries ------------------------------------------------------
 
   def test_tree_hash
     cmd = C.tree_hash(:hash_check)
-    assert_equal :tree_hash, cmd.payload[:op]
+    assert_equal "tree_hash", cmd.payload[:op]
     assert_equal "hash_check", cmd.payload[:tag]
   end
 
   def test_find_focused
     cmd = C.find_focused(:focus_check)
-    assert_equal :find_focused, cmd.payload[:op]
+    assert_equal "find_focused", cmd.payload[:op]
     assert_equal "focus_check", cmd.payload[:tag]
   end
 
   def test_list_images_stringifies_tag
     cmd = C.list_images(:img_list)
-    assert_equal :list_images, cmd.payload[:op]
+    assert_equal "list_images", cmd.payload[:op]
     assert_equal "img_list", cmd.payload[:tag]
   end
 
   def test_get_system_info
     cmd = C.get_system_info(:info)
     assert_equal :system_query, cmd.type
-    assert_equal :get_system_info, cmd.payload[:op]
+    assert_equal "get_system_info", cmd.payload[:op]
   end
 
   # -- Font ----------------------------------------------------------------
 
   def test_load_font
     cmd = C.load_font("ttf_bytes")
-    assert_equal :load_font, cmd.payload[:op]
+    assert_equal "load_font", cmd.payload[:op]
   end
 
   # -- Accessibility -------------------------------------------------------
 
   def test_announce
     cmd = C.announce("Item saved")
-    assert_equal :announce, cmd.payload[:op]
+    assert_equal "announce", cmd.payload[:op]
     assert_equal "Item saved", cmd.payload[:text]
   end
 

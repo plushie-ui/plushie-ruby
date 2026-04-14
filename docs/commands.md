@@ -171,7 +171,7 @@ in Event::Widget[type: :click, id: "select_word"]
 
 <!-- test: commands_scroll_to_construct, commands_snap_to_construct, commands_snap_to_end_construct, commands_scroll_by_construct -- keep this code block in sync with the test -->
 ```ruby
-Command.scroll_to(widget_id, offset_y)  # Scroll to absolute vertical position
+Command.scroll_to(widget_id, x, y)     # Scroll to absolute offset
 Command.snap_to(widget_id, x, y)        # Snap scroll to absolute offset
 Command.snap_to_end(widget_id)          # Snap to end of scrollable content
 Command.scroll_by(widget_id, x, y)      # Scroll by relative delta
