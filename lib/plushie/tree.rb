@@ -59,6 +59,25 @@ module Plushie
       result
     end
 
+    # Find the first node matching a predicate (depth-first).
+    # Returns immediately on the first match.
+    #
+    # @param tree [Node, Array<Node>]
+    # @yield [Node] predicate block
+    # @return [Node, nil]
+    def self.find_first(tree, &predicate)
+      return nil if tree.nil?
+      trees = (tree.is_a?(Array) ? tree : [tree]).compact
+
+      trees.each do |node|
+        return node if predicate.call(node)
+        found = find_first(node.children, &predicate)
+        return found if found
+      end
+
+      nil
+    end
+
     # Find all nodes matching a predicate (depth-first).
     #
     # @param tree [Node, Array<Node>]
@@ -93,10 +112,15 @@ module Plushie
     # @param tree [Node, Array<Node>]
     # @param registry [Hash, nil] canvas widget registry for state lookup
     # @return [Array<Node>] normalized tree (always an array)
+    # Maximum tree depth before raising. Protects against infinite
+    # recursion from circular widget compositions.
+    MAX_DEPTH = 256
+    DEPTH_WARNING = 200
+
     def self.normalize(tree, registry: nil)
       return [Node.new(id: "root", type: "container")] if tree.nil?
       trees = (tree.is_a?(Array) ? tree : [tree]).compact
-      normalized = trees.compact.map { |node| normalize_node(node, "", registry, nil) }
+      normalized = trees.compact.map { |node| normalize_node(node, "", registry, nil, 0) }
       check_duplicate_ids!(normalized)
       normalized
     end
@@ -159,7 +183,20 @@ module Plushie
     # Private implementation
     # -------------------------------------------------------------------
 
-    def self.normalize_node(node, scope, registry, window_id)
+    def self.normalize_node(node, scope, registry, window_id, depth = 0)
+      if depth >= MAX_DEPTH
+        raise ArgumentError,
+          "tree depth exceeds #{MAX_DEPTH}. This usually means a widget " \
+          "is composing itself recursively. Check widget view methods for cycles."
+      end
+
+      if depth == DEPTH_WARNING
+        warn "plushie: tree depth reached #{DEPTH_WARNING}, approaching limit of #{MAX_DEPTH}"
+      end
+
+      # Validate user-provided IDs (non-auto)
+      validate_user_id!(node.id) unless node.id.start_with?("auto:")
+
       # Compute scoped ID
       scoped_id = if scope.empty? || node.type == "window" || node.id.start_with?("auto:")
         node.id
@@ -182,7 +219,7 @@ module Plushie
           # Normalize the rendered output. Pass empty scope because the
           # rendered node's ID is already fully scoped (set by
           # render_placeholder). Passing the parent scope would double-scope.
-          normalized = normalize_node(rendered_node, "", registry, current_window_id)
+          normalized = normalize_node(rendered_node, "", registry, current_window_id, depth + 1)
           return normalized.with(meta: rendered_node.meta)
         end
       end
@@ -218,7 +255,7 @@ module Plushie
         end
       end
 
-      children = node.children.map { |c| normalize_node(c, child_scope, registry, current_window_id) }
+      children = node.children.map { |c| normalize_node(c, child_scope, registry, current_window_id, depth + 1) }
       check_duplicate_ids!(children)
       Node.new(id: scoped_id, type: node.type, props: props, children: children)
     end
@@ -240,9 +277,40 @@ module Plushie
 
       return if duplicates.empty?
 
-      raise ArgumentError, "duplicate sibling IDs detected during normalize: #{duplicates.uniq.map(&:inspect).join(", ")}"
+      msg = "duplicate sibling IDs detected during normalize: #{duplicates.uniq.map(&:inspect).join(", ")}"
+      if duplicates.any? { |id| id.start_with?("auto:") }
+        msg += ". For items in dynamic lists, provide explicit IDs instead of relying on auto-generated ones"
+      end
+      raise ArgumentError, msg
     end
     private_class_method :check_duplicate_ids!
+
+    # Validate a user-provided widget ID.
+    # - Must not be empty
+    # - Must not contain "/" (scope separators are built automatically)
+    # - Must not contain "#" (reserved for window-qualified paths)
+    # - Must not exceed 1024 bytes
+    def self.validate_user_id!(id)
+      return if id.nil? || id.empty?
+
+      if id.include?("/")
+        raise ArgumentError,
+          "widget ID #{id.inspect} cannot contain \"/\", " \
+          "scoped paths are built automatically by named containers"
+      end
+
+      if id.include?("#")
+        raise ArgumentError,
+          "widget ID #{id.inspect} cannot contain \"#\", " \
+          "\"#\" is reserved for window-qualified paths (e.g., \"window#widget\")"
+      end
+
+      if id.bytesize > 1024
+        raise ArgumentError,
+          "widget ID #{id.inspect} exceeds maximum length of 1024 bytes"
+      end
+    end
+    private_class_method :validate_user_id!
 
     def self.encode_value(value)
       case value
