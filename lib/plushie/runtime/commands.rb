@@ -125,18 +125,22 @@ module Plushie
       end
 
       # Schedule a delayed event.
+      # Uses a monotonic nonce to handle the Thread.kill race: if the old
+      # timer already pushed its event to the queue before being killed,
+      # the handler discards stale nonces.
       def execute_send_after(delay_ms, event)
         queue = @event_queue
         # Cancel existing timer for the same event key
-        old = @pending_timers.delete(event)
-        old&.kill
+        old_entry = @pending_timers[event]
+        old_entry&.fetch(:thread)&.kill
 
+        nonce = rand(1 << 64)
         thread = Thread.new do
           sleep(delay_ms / 1000.0)
-          queue.push([:send_after_event, event])
+          queue.push([:send_after_event, event, nonce])
         end
         thread.name = "plushie-timer"
-        @pending_timers[event] = thread
+        @pending_timers[event] = {thread: thread, nonce: nonce}
       end
 
       # Execute an effect request (send to renderer + start timeout).

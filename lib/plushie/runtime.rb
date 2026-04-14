@@ -247,8 +247,12 @@ module Plushie
           handle_stream_value(tag, nonce, value)
         in [:timer_tick, tag]
           handle_timer_tick(tag)
-        in [:send_after_event, event]
-          dispatch_event(event)
+        in [:send_after_event, event, nonce]
+          entry = @pending_timers[event]
+          if entry && entry[:nonce] == nonce
+            @pending_timers.delete(event)
+            dispatch_event(event)
+          end
         in [:effect_timeout, id]
           handle_effect_timeout(id)
         in [:register_effect_stub, kind, response, ack_queue]
@@ -771,7 +775,7 @@ module Plushie
       @pending_effects.clear
       @effect_tags.clear
       @effect_ids.clear
-      @pending_timers.each_value(&:kill)
+      @pending_timers.each_value { |entry| entry[:thread]&.kill }
       @pending_timers.clear
       @subscriptions.each_value { |entry| entry[:thread]&.kill if entry[:sub_type] == :timer }
       @subscriptions.clear
