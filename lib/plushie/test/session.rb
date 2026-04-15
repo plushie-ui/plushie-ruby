@@ -79,19 +79,19 @@ module Plushie
       # Press a key (key down).
       # @param key [String] key combo string, e.g. "ctrl+s", "Enter", "a"
       def press(key)
-        interact("press", nil, combo: key)
+        interact("press", nil, combo: key, **parse_key_combo(key))
       end
 
       # Release a key (key up).
       # @param key [String] key combo string
       def release(key)
-        interact("release", nil, combo: key)
+        interact("release", nil, combo: key, **parse_key_combo(key))
       end
 
       # Type a key (press + release).
       # @param key [String] key combo string
       def type_key(key)
-        interact("type_key", nil, combo: key)
+        interact("type_key", nil, combo: key, **parse_key_combo(key))
       end
 
       # Move cursor to coordinates.
@@ -593,6 +593,52 @@ module Plushie
         return false unless event.is_a?(Event::System) && event.type == :diagnostic
         @diagnostics << event
         true
+      end
+
+      # Parse a key combo string into the interact payload format.
+      # Splits on "+" to extract modifiers and key name.
+      # Matches Elixir SDK's parse_key for cross-SDK consistency.
+      #
+      # @param combo [String] e.g. "ctrl+s", "Escape", "shift+Enter"
+      # @return [Hash] interact payload with :key and :modifiers
+      MODIFIER_ALIASES = {
+        "ctrl" => "ctrl", "control" => "ctrl",
+        "shift" => "shift",
+        "alt" => "alt", "option" => "alt",
+        "logo" => "logo", "super" => "logo", "meta" => "logo",
+        "command" => "command", "cmd" => "command"
+      }.freeze
+
+      NAMED_KEYS = {
+        "escape" => "Escape", "enter" => "Enter", "return" => "Enter",
+        "tab" => "Tab", "space" => "Space", "backspace" => "Backspace",
+        "delete" => "Delete", "insert" => "Insert", "home" => "Home",
+        "end" => "End", "pageup" => "PageUp", "pagedown" => "PageDown",
+        "arrowup" => "ArrowUp", "arrowdown" => "ArrowDown",
+        "arrowleft" => "ArrowLeft", "arrowright" => "ArrowRight",
+        "up" => "ArrowUp", "down" => "ArrowDown",
+        "left" => "ArrowLeft", "right" => "ArrowRight"
+      }.freeze
+
+      def parse_key_combo(combo)
+        parts = combo.split("+")
+        key_name = parts.pop
+        modifiers = {}
+
+        parts.each do |mod|
+          resolved = MODIFIER_ALIASES[mod.downcase]
+          raise ArgumentError, "unknown modifier #{mod.inspect} in key combo #{combo.inspect}" unless resolved
+          modifiers[resolved] = true
+        end
+
+        # Single characters are sent lowercase; named keys are PascalCase
+        key = if key_name.length == 1
+          key_name.downcase
+        else
+          NAMED_KEYS[key_name.downcase] || key_name
+        end
+
+        {key: key, modifiers: modifiers}
       end
 
       def extract_events(response)
