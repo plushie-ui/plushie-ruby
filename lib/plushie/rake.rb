@@ -44,12 +44,13 @@ namespace :plushie do
     end
   end
 
-  desc "Build the plushie renderer (stock or with native widgets if configured)"
-  task :build, [:profile] do |_t, args|
+  desc "Build the plushie renderer (args: release, update; e.g. rake plushie:build[release] or plushie:build[update])"
+  task :build, [:arg1, :arg2] do |_t, args|
     require "plushie"
 
-    profile = args[:profile] || "debug"
-    release = (profile == "release")
+    flags = [args[:arg1], args[:arg2]].compact
+    release = flags.include?("release")
+    update = flags.include?("update")
 
     # Verify cargo is available
     unless system("cargo --version", out: File::NULL, err: File::NULL)
@@ -64,8 +65,14 @@ namespace :plushie do
     widgets = Plushie::Widget::NativeBuild.configured_widgets
 
     Plushie::Widget::NativeBuild.build_with_widgets(
-      widgets, release: release
+      widgets, release: release, update: update
     )
+  end
+
+  desc "Remove build artifacts (workspace, compiled binary, Cargo target)"
+  task :clean do
+    require "plushie/widget/native_build"
+    Plushie::Widget::NativeBuild.clean!
   end
 
   desc "Run a Plushie app (e.g. rake plushie:run[Counter] or plushie:run[Counter,dev] or plushie:run[Counter,json])"

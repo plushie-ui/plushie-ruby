@@ -307,16 +307,22 @@ module Plushie
         RUST
       end
 
+      # Tracked Cargo.lock location (checked into version control).
+      # Ensures reproducible builds across machines. Created automatically
+      # on first build; updated after each successful build.
+      LOCK_FILE = File.join("native", "plushie", "Cargo.lock")
+
       # Build the renderer binary. Works for both stock builds (no native
       # widgets) and custom builds (with native widgets).
       #
       # @param widgets [Array<Class>] native widget classes (may be empty)
       # @param release [Boolean] build with optimizations
+      # @param update [Boolean] force Cargo.lock re-resolution
       # @param verbose [Boolean] print cargo output on success
       # @param bin_name [String, nil] override binary name
       # @return [String] path to the installed binary
       # @raise [Plushie::Error] on build failure
-      def build_with_widgets(widgets, release: false, verbose: false, bin_name: nil)
+      def build_with_widgets(widgets, release: false, update: false, verbose: false, bin_name: nil)
         build_dir = File.join("_build", "plushie", "workspace")
         FileUtils.mkdir_p(build_dir)
 
@@ -333,7 +339,6 @@ module Plushie
           check_crate_name_collisions!(widgets)
           check_widget_versions!(crate_paths)
 
-          # Validate crate paths exist
           crate_paths.each do |mod, path|
             unless File.directory?(path)
               raise Error,
@@ -345,11 +350,15 @@ module Plushie
 
         generate_workspace(build_dir, bin_name, widgets, crate_paths)
 
-        # Cargo.lock management for reproducible builds
-        lock_src = File.join(build_dir, "..", "Cargo.lock")
+        # Cargo.lock lifecycle (matches Elixir SDK strategy):
+        # - update mode: delete workspace lock to force re-resolution
+        # - normal mode: validate version, copy tracked lock into workspace
         workspace_lock = File.join(build_dir, "Cargo.lock")
-        if File.exist?(lock_src) && !File.exist?(workspace_lock)
-          FileUtils.cp(lock_src, workspace_lock)
+        if update
+          FileUtils.rm_f(workspace_lock)
+        else
+          check_lock_version!
+          copy_lock_to_workspace(build_dir)
         end
 
         source_path = ENV["PLUSHIE_SOURCE_PATH"] || Plushie.configuration.source_path
@@ -375,11 +384,7 @@ module Plushie
         end
 
         puts "Build succeeded."
-
-        # Copy updated Cargo.lock back for reproducible builds
-        if File.exist?(workspace_lock)
-          FileUtils.cp(workspace_lock, lock_src)
-        end
+        copy_lock_from_workspace(build_dir)
 
         binary_src = File.join(build_dir, "target", profile, bin_name)
         unless File.exist?(binary_src)
@@ -406,6 +411,56 @@ module Plushie
       def write_if_changed(path, content)
         return if File.exist?(path) && File.read(path) == content
         File.write(path, content)
+      end
+
+      # Copy the tracked Cargo.lock into the workspace so Cargo uses
+      # the exact dependency versions from the last successful build.
+      # Skips silently on first build (no lock file yet).
+      def copy_lock_to_workspace(build_dir)
+        return unless File.exist?(LOCK_FILE)
+        FileUtils.cp(LOCK_FILE, File.join(build_dir, "Cargo.lock"))
+      end
+
+      # Copy the workspace Cargo.lock back to the tracked location
+      # after a successful build. Creates the directory if needed.
+      def copy_lock_from_workspace(build_dir)
+        workspace_lock = File.join(build_dir, "Cargo.lock")
+        return unless File.exist?(workspace_lock)
+        FileUtils.mkdir_p(File.dirname(LOCK_FILE))
+        FileUtils.cp(workspace_lock, LOCK_FILE)
+      end
+
+      # Validate the tracked Cargo.lock's plushie-widget-sdk version
+      # matches BINARY_VERSION. Fails early with clear guidance if
+      # they don't match (stale lock from a previous SDK version).
+      # Skips silently if no lock file exists (first build).
+      def check_lock_version!
+        return unless File.exist?(LOCK_FILE)
+
+        content = File.read(LOCK_FILE)
+        expected = Plushie::BINARY_VERSION
+
+        match = content.match(/name = "plushie-widget-sdk"\nversion = "(\d+\.\d+\.\d+)"/)
+        return unless match
+
+        locked_version = match[1]
+        return if locked_version == expected
+
+        raise Error,
+          "Cargo.lock version mismatch: plushie-widget-sdk #{locked_version} is locked " \
+          "but BINARY_VERSION is #{expected}.\n\n" \
+          "Run `rake plushie:build[update]` to re-resolve dependencies."
+      end
+
+      # Remove the build workspace and compiled artifacts.
+      def clean!
+        build_dir = File.join("_build", "plushie")
+        if File.directory?(build_dir)
+          FileUtils.rm_rf(build_dir)
+          puts "Removed #{build_dir}"
+        else
+          puts "Nothing to clean"
+        end
       end
 
       # Install the built binary.
