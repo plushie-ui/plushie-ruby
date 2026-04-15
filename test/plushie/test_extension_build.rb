@@ -142,7 +142,7 @@ class TestExtensionBuild < Minitest::Test
   def test_generate_cargo_toml_with_source_path
     Dir.mktmpdir do |tmpdir|
       # Create fake source dirs so the check passes
-      FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie-ext"))
+      FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie-widget-sdk"))
       FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie-renderer"))
       FileUtils.mkdir_p(File.join(tmpdir, "native", "sparkline"))
 
@@ -162,7 +162,7 @@ class TestExtensionBuild < Minitest::Test
       assert_includes toml, "plushie_custom"
       assert_includes toml, 'edition = "2024"'
       assert_includes toml, "plushie-custom"
-      assert_includes toml, "plushie-ext = { path ="
+      assert_includes toml, "plushie-widget-sdk = { path ="
       assert_includes toml, "plushie-renderer = { path ="
       assert_includes toml, "sparkline = { path ="
     end
@@ -179,7 +179,7 @@ class TestExtensionBuild < Minitest::Test
       ENV["PLUSHIE_SOURCE_PATH"] = old_val if old_val
     end
 
-    assert_includes toml, %(plushie-ext = "#{Plushie::BINARY_VERSION}")
+    assert_includes toml, %(plushie-widget-sdk = "#{Plushie::BINARY_VERSION}")
     assert_includes toml, %(plushie-renderer = "#{Plushie::BINARY_VERSION}")
   end
 
@@ -358,14 +358,14 @@ class TestExtensionBuild < Minitest::Test
         version = "0.1.0"
 
         [dependencies]
-        plushie-ext = "0.1.0"
+        plushie-widget-sdk = "0.1.0"
       TOML
 
       # Should warn but not raise
       output = capture_io do
         Build.check_widget_versions!({FakeSparkline => crate_dir})
       end
-      assert_match(/depends on plushie-ext/, output[1])
+      assert_match(/depends on plushie-widget-sdk/, output[1])
     end
   end
 
@@ -373,7 +373,7 @@ class TestExtensionBuild < Minitest::Test
 
   def test_generate_cargo_toml_with_source_path_includes_patch
     Dir.mktmpdir do |tmpdir|
-      FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie-ext"))
+      FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie-widget-sdk"))
       FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie-renderer"))
       FileUtils.mkdir_p(File.join(tmpdir, "native", "sparkline"))
 
@@ -390,7 +390,7 @@ class TestExtensionBuild < Minitest::Test
       end
 
       assert_includes toml, "[patch.crates-io]"
-      assert_includes toml, "plushie-ext = { path ="
+      assert_includes toml, "plushie-widget-sdk = { path ="
     end
   end
 end

@@ -1018,7 +1018,7 @@ class TestParityFeatures < Minitest::Test
       members = ["plushie-renderer"]
 
       [patch.crates-io]
-      plushie-ext = { path = "../plushie-ext" }
+      plushie-widget-sdk = { path = "../plushie-widget-sdk" }
       plushie-renderer = { path = "plushie-renderer" }
       iced = { path = "../plushie-iced/iced" }
       iced_core = { path = "../plushie-iced/core" }
@@ -1028,11 +1028,11 @@ class TestParityFeatures < Minitest::Test
     TOML
 
     patches = Plushie::Widget::NativeBuild.send(:parse_renderer_patches, dir)
-    # Should include iced patches but exclude plushie-ext and plushie-renderer
+    # Should include iced patches but exclude plushie-widget-sdk and plushie-renderer
     assert_equal 2, patches.length
     assert patches.any? { |p| p.include?("iced =") }
     assert patches.any? { |p| p.include?("iced_core") }
-    refute patches.any? { |p| p.include?("plushie-ext") }
+    refute patches.any? { |p| p.include?("plushie-widget-sdk") }
     refute patches.any? { |p| p.include?("plushie-renderer") }
   ensure
     FileUtils.rm_rf(dir)
