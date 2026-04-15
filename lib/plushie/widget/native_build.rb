@@ -204,13 +204,15 @@ module Plushie
           # different crates and trait impls don't match.
           ext_abs = File.expand_path(File.join(source_path, "crates", "plushie-widget-sdk"))
           renderer_abs = File.expand_path(File.join(source_path, "crates", "plushie-renderer"))
+          core_abs = File.expand_path(File.join(source_path, "crates", "plushie-core"))
 
           # Forward patches from the renderer workspace (e.g. vendored iced)
           renderer_patches = parse_renderer_patches(source_path)
 
           patch_lines = [
             %(plushie-widget-sdk = { path = "#{ext_abs}" }),
-            %(plushie-renderer = { path = "#{renderer_abs}" })
+            %(plushie-renderer = { path = "#{renderer_abs}" }),
+            %(plushie-core = { path = "#{core_abs}" })
           ] + renderer_patches
 
           patch = "\n[patch.crates-io]\n#{patch_lines.join("\n")}\n"
@@ -513,7 +515,7 @@ module Plushie
           if in_patch && line.include?("=") && !line.strip.start_with?("#")
             # Skip our own crates (already included)
             name = line.split("=").first.strip
-            next if name == "plushie-widget-sdk" || name == "plushie-renderer"
+            next if %w[plushie-widget-sdk plushie-renderer plushie-core].include?(name)
             # Resolve relative paths to absolute (they're relative to the
             # renderer workspace, not the generated build workspace)
             resolved = line.strip.gsub(/path\s*=\s*"([^"]+)"/) do
