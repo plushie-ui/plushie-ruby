@@ -1,19 +1,19 @@
 # frozen_string_literal: true
 
-require "test_helper"
+require 'test_helper'
 
 class DocsCommandsTest < Minitest::Test
   C = Plushie::Command
 
   def test_commands_async_construct
-    cmd = C.async(-> { "result" }, :data_fetched)
+    cmd = C.async(-> { 'result' }, :data_fetched)
     assert_equal :async, cmd.type
     assert_equal :data_fetched, cmd.payload[:tag]
     assert_respond_to cmd.payload[:callable], :call
   end
 
   def test_commands_stream_construct
-    cmd = C.stream(->(emit) { emit.call("chunk") }, :file_import)
+    cmd = C.stream(->(emit) { emit.call('chunk') }, :file_import)
     assert_equal :stream, cmd.type
     assert_equal :file_import, cmd.payload[:tag]
   end
@@ -37,14 +37,14 @@ class DocsCommandsTest < Minitest::Test
   end
 
   def test_commands_focus_construct
-    cmd = C.focus("todo_input")
+    cmd = C.focus('todo_input')
     assert_equal :command, cmd.type
-    assert_equal "todo_input", cmd.payload[:id]
-    assert_equal "focus", cmd.payload[:family]
+    assert_equal 'todo_input', cmd.payload[:id]
+    assert_equal 'focus', cmd.payload[:family]
   end
 
   def test_commands_batch_construct
-    cmd = C.batch([C.focus("name_input"), C.send_after(5000, :auto_save)])
+    cmd = C.batch([C.focus('name_input'), C.send_after(5000, :auto_save)])
     assert_equal :batch, cmd.type
     assert_equal :command, cmd.payload[:commands][0].type
     assert_equal :send_after, cmd.payload[:commands][1].type
@@ -58,165 +58,165 @@ class DocsCommandsTest < Minitest::Test
   end
 
   def test_commands_close_window_construct
-    cmd = C.close_window("main")
+    cmd = C.close_window('main')
     assert_equal :widget_op, cmd.type
-    assert_equal "close_window", cmd.payload[:op]
-    assert_equal "main", cmd.payload[:window_id]
+    assert_equal 'close_window', cmd.payload[:op]
+    assert_equal 'main', cmd.payload[:window_id]
   end
 
   # -- Scroll operations --
 
   def test_commands_scroll_to_construct
-    cmd = C.scroll_to("chat_log", 0, 500)
+    cmd = C.scroll_to('chat_log', 0, 500)
     assert_equal :command, cmd.type
-    assert_equal "chat_log", cmd.payload[:id]
-    assert_equal "scroll_to", cmd.payload[:family]
-    assert_equal({x: 0, y: 500}, cmd.payload[:value])
+    assert_equal 'chat_log', cmd.payload[:id]
+    assert_equal 'scroll_to', cmd.payload[:family]
+    assert_equal({ x: 0, y: 500 }, cmd.payload[:value])
   end
 
   def test_commands_snap_to_construct
-    cmd = C.snap_to("scroll_area", 0.0, 0.5)
+    cmd = C.snap_to('scroll_area', 0.0, 0.5)
     assert_equal :command, cmd.type
-    assert_equal "scroll_area", cmd.payload[:id]
-    assert_equal "snap_to", cmd.payload[:family]
-    assert_equal({x: 0.0, y: 0.5}, cmd.payload[:value])
+    assert_equal 'scroll_area', cmd.payload[:id]
+    assert_equal 'snap_to', cmd.payload[:family]
+    assert_equal({ x: 0.0, y: 0.5 }, cmd.payload[:value])
   end
 
   def test_commands_snap_to_end_construct
-    cmd = C.snap_to_end("chat_log")
+    cmd = C.snap_to_end('chat_log')
     assert_equal :command, cmd.type
-    assert_equal "chat_log", cmd.payload[:id]
-    assert_equal "snap_to_end", cmd.payload[:family]
+    assert_equal 'chat_log', cmd.payload[:id]
+    assert_equal 'snap_to_end', cmd.payload[:family]
   end
 
   def test_commands_scroll_by_construct
-    cmd = C.scroll_by("log_view", 0, 100)
+    cmd = C.scroll_by('log_view', 0, 100)
     assert_equal :command, cmd.type
-    assert_equal "log_view", cmd.payload[:id]
-    assert_equal "scroll_by", cmd.payload[:family]
-    assert_equal({x: 0, y: 100}, cmd.payload[:value])
+    assert_equal 'log_view', cmd.payload[:id]
+    assert_equal 'scroll_by', cmd.payload[:family]
+    assert_equal({ x: 0, y: 100 }, cmd.payload[:value])
   end
 
   # -- Text operations --
 
   def test_commands_select_all_construct
-    cmd = C.select_all("editor")
+    cmd = C.select_all('editor')
     assert_equal :command, cmd.type
-    assert_equal "editor", cmd.payload[:id]
-    assert_equal "select_all", cmd.payload[:family]
+    assert_equal 'editor', cmd.payload[:id]
+    assert_equal 'select_all', cmd.payload[:family]
   end
 
   def test_commands_move_cursor_to_construct
-    cmd = C.move_cursor_to("editor", 42)
+    cmd = C.move_cursor_to('editor', 42)
     assert_equal :command, cmd.type
-    assert_equal "editor", cmd.payload[:id]
-    assert_equal "move_cursor_to", cmd.payload[:family]
-    assert_equal({position: 42}, cmd.payload[:value])
+    assert_equal 'editor', cmd.payload[:id]
+    assert_equal 'move_cursor_to', cmd.payload[:family]
+    assert_equal(42, cmd.payload[:value])
   end
 
   def test_commands_select_range_construct
-    cmd = C.select_range("editor", 5, 10)
+    cmd = C.select_range('editor', 5, 10)
     assert_equal :command, cmd.type
-    assert_equal "editor", cmd.payload[:id]
-    assert_equal "select_range", cmd.payload[:family]
-    assert_equal({start: 5, end: 10}, cmd.payload[:value])
+    assert_equal 'editor', cmd.payload[:id]
+    assert_equal 'select_range', cmd.payload[:family]
+    assert_equal({ start_pos: 5, end_pos: 10 }, cmd.payload[:value])
   end
 
   # -- Window management --
 
   def test_commands_maximize_window_construct
-    cmd = C.maximize_window("main")
+    cmd = C.maximize_window('main')
     assert_equal :window_op, cmd.type
-    assert_equal "maximize", cmd.payload[:op]
-    assert_equal "main", cmd.payload[:window_id]
+    assert_equal 'maximize', cmd.payload[:op]
+    assert_equal 'main', cmd.payload[:window_id]
     assert_equal true, cmd.payload[:maximized]
   end
 
   def test_commands_maximize_window_restore
-    cmd = C.maximize_window("main", false)
+    cmd = C.maximize_window('main', false)
     assert_equal :window_op, cmd.type
-    assert_equal "maximize", cmd.payload[:op]
+    assert_equal 'maximize', cmd.payload[:op]
     assert_equal false, cmd.payload[:maximized]
   end
 
   def test_commands_set_window_mode_construct
-    cmd = C.set_window_mode("main", :fullscreen)
+    cmd = C.set_window_mode('main', :fullscreen)
     assert_equal :window_op, cmd.type
-    assert_equal "set_mode", cmd.payload[:op]
-    assert_equal "main", cmd.payload[:window_id]
-    assert_equal "fullscreen", cmd.payload[:mode]
+    assert_equal 'set_mode', cmd.payload[:op]
+    assert_equal 'main', cmd.payload[:window_id]
+    assert_equal 'fullscreen', cmd.payload[:mode]
   end
 
   def test_commands_set_window_level_construct
-    cmd = C.set_window_level("main", :always_on_top)
+    cmd = C.set_window_level('main', :always_on_top)
     assert_equal :window_op, cmd.type
-    assert_equal "set_level", cmd.payload[:op]
-    assert_equal "main", cmd.payload[:window_id]
-    assert_equal "always_on_top", cmd.payload[:level]
+    assert_equal 'set_level', cmd.payload[:op]
+    assert_equal 'main', cmd.payload[:window_id]
+    assert_equal 'always_on_top', cmd.payload[:level]
   end
 
   # -- Window queries --
 
   def test_commands_get_window_size_construct
-    cmd = C.get_window_size("main", :got_size)
+    cmd = C.get_window_size('main', :got_size)
     assert_equal :window_query, cmd.type
-    assert_equal "get_size", cmd.payload[:op]
-    assert_equal "main", cmd.payload[:window_id]
-    assert_equal "got_size", cmd.payload[:tag]
+    assert_equal 'get_size', cmd.payload[:op]
+    assert_equal 'main', cmd.payload[:window_id]
+    assert_equal 'got_size', cmd.payload[:tag]
   end
 
   def test_commands_get_system_theme_construct
     cmd = C.get_system_theme(:theme_detected)
     assert_equal :system_query, cmd.type
-    assert_equal "get_system_theme", cmd.payload[:op]
-    assert_equal "theme_detected", cmd.payload[:tag]
+    assert_equal 'get_system_theme', cmd.payload[:op]
+    assert_equal 'theme_detected', cmd.payload[:tag]
   end
 
   # -- PaneGrid operations --
 
   def test_commands_pane_split_construct
-    cmd = C.pane_split("pane_grid", "editor", :horizontal, "new_editor")
+    cmd = C.pane_split('pane_grid', 'editor', :horizontal, 'new_editor')
     assert_equal :command, cmd.type
-    assert_equal "pane_split", cmd.payload[:family]
-    assert_equal "pane_grid", cmd.payload[:id]
-    assert_equal "editor", cmd.payload[:value][:pane]
-    assert_equal "horizontal", cmd.payload[:value][:axis]
-    assert_equal "new_editor", cmd.payload[:value][:new_pane_id]
+    assert_equal 'pane_split', cmd.payload[:family]
+    assert_equal 'pane_grid', cmd.payload[:id]
+    assert_equal 'editor', cmd.payload[:value][:pane]
+    assert_equal 'horizontal', cmd.payload[:value][:axis]
+    assert_equal 'new_editor', cmd.payload[:value][:new_pane_id]
   end
 
   def test_commands_pane_close_construct
-    cmd = C.pane_close("pane_grid", "editor")
+    cmd = C.pane_close('pane_grid', 'editor')
     assert_equal :command, cmd.type
-    assert_equal "pane_close", cmd.payload[:family]
-    assert_equal "pane_grid", cmd.payload[:id]
-    assert_equal "editor", cmd.payload[:value][:pane]
+    assert_equal 'pane_close', cmd.payload[:family]
+    assert_equal 'pane_grid', cmd.payload[:id]
+    assert_equal 'editor', cmd.payload[:value][:pane]
   end
 
   # -- Image operations --
 
   def test_commands_create_image_construct
-    cmd = C.create_image("preview", "png-data-here")
+    cmd = C.create_image('preview', 'png-data-here')
     assert_equal :image_op, cmd.type
-    assert_equal "create_image", cmd.payload[:op]
-    assert_equal "preview", cmd.payload[:handle]
-    assert_equal "png-data-here", cmd.payload[:data]
+    assert_equal 'create_image', cmd.payload[:op]
+    assert_equal 'preview', cmd.payload[:handle]
+    assert_equal 'png-data-here', cmd.payload[:data]
   end
 
   def test_commands_delete_image_construct
-    cmd = C.delete_image("preview")
+    cmd = C.delete_image('preview')
     assert_equal :image_op, cmd.type
-    assert_equal "delete_image", cmd.payload[:op]
-    assert_equal "preview", cmd.payload[:handle]
+    assert_equal 'delete_image', cmd.payload[:op]
+    assert_equal 'preview', cmd.payload[:handle]
   end
 
   # -- Widget commands --
 
   def test_commands_widget_command_construct
-    cmd = C.widget_command("term-1", "write", {data: "hello"})
+    cmd = C.widget_command('term-1', 'write', { data: 'hello' })
     assert_equal :command, cmd.type
-    assert_equal "term-1", cmd.payload[:id]
-    assert_equal "write", cmd.payload[:family]
-    assert_equal({data: "hello"}, cmd.payload[:value])
+    assert_equal 'term-1', cmd.payload[:id]
+    assert_equal 'write', cmd.payload[:family]
+    assert_equal({ data: 'hello' }, cmd.payload[:value])
   end
 
   # -- Animation --

@@ -17,21 +17,21 @@ module Plushie
       # @param widget_id [String]
       # @return [Cmd]
       def select_all(widget_id)
-        Command.widget_command(widget_id, "select_all")
+        Command.widget_command(widget_id, 'select_all')
       end
 
       # Move cursor to the beginning.
       # @param widget_id [String]
       # @return [Cmd]
       def move_cursor_to_front(widget_id)
-        Command.widget_command(widget_id, "move_cursor_to_front")
+        Command.widget_command(widget_id, 'move_cursor_to_front')
       end
 
       # Move cursor to the end.
       # @param widget_id [String]
       # @return [Cmd]
       def move_cursor_to_end(widget_id)
-        Command.widget_command(widget_id, "move_cursor_to_end")
+        Command.widget_command(widget_id, 'move_cursor_to_end')
       end
 
       # Move cursor to a specific position.
@@ -39,7 +39,7 @@ module Plushie
       # @param position [Integer]
       # @return [Cmd]
       def move_cursor_to(widget_id, position)
-        Command.widget_command(widget_id, "move_cursor_to", {position: position})
+        Command.widget_command(widget_id, 'move_cursor_to', position)
       end
 
       # Select a range of text.
@@ -48,7 +48,7 @@ module Plushie
       # @param end_pos [Integer]
       # @return [Cmd]
       def select_range(widget_id, start_pos, end_pos)
-        Command.widget_command(widget_id, "select_range", {start: start_pos, end: end_pos})
+        Command.widget_command(widget_id, 'select_range', { start_pos: start_pos, end_pos: end_pos })
       end
     end
   end
