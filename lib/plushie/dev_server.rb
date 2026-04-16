@@ -7,7 +7,7 @@ module Plushie
   # saves, and triggers a re-render in the runtime. The model state is
   # preserved across reloads: only the view is re-evaluated.
   #
-  # Requires the `listen` gem (optional dependency, not in gemspec).
+  # Requires the +listen+ gem (optional dependency, not in gemspec).
   # Install it in your Gemfile for development:
   #
   #   gem "listen", group: :development
@@ -31,7 +31,14 @@ module Plushie
       @listener = nil
       @debounce_timer = nil
       @debounce_mutex = Mutex.new
+      @running = false
       @logger = Logger.new($stderr, level: :info, progname: "plushie-dev")
+    end
+
+    # Whether the dev server is actively watching.
+    # @return [Boolean]
+    def running?
+      @running
     end
 
     # Start watching for file changes.
@@ -48,14 +55,35 @@ module Plushie
         schedule_reload(files) unless files.empty?
       end
 
-      @listener.start
-      @logger.info("plushie dev: watching #{@dirs.join(", ")} for changes")
+      begin
+        @listener.start
+        @running = true
+        @logger.info("plushie dev: watching #{@dirs.join(", ")} for changes")
+      rescue => e
+        @logger.error("plushie dev: file watcher failed to start: #{e.class}: #{e.message}")
+        @listener = nil
+      end
     end
 
-    # Stop watching.
+    # Stop watching and clean up all resources.
+    #
+    # Kills the debounce timer thread, stops the file listener, and
+    # resets internal state. Safe to call multiple times.
     def stop
-      @listener&.stop
-      @debounce_timer&.kill
+      @running = false
+
+      @debounce_mutex.synchronize do
+        @debounce_timer&.kill
+        @debounce_timer = nil
+      end
+
+      return unless @listener
+
+      begin
+        @listener.stop
+      rescue => e
+        @logger.warn("plushie dev: error stopping file watcher: #{e.class}: #{e.message}")
+      end
       @listener = nil
     end
 
