@@ -5,9 +5,18 @@ module Plushie
     Table = Plushie::Widget.define(:table) do
       children :many
       prop :columns, :rows, :header, :separator, :separator_color,
-        :width, :height, :padding, :sort_by, :sort_order,
-        :header_text_size, :row_text_size
+           :width, :height, :padding, :sort_by, :sort_order,
+           :header_text_size, :row_text_size, :selected, :striped
       default_a11y role: :table
+    end
+
+    TableRow = Plushie::Widget.define(:table_row) do
+      children :many
+    end
+
+    TableCell = Plushie::Widget.define(:table_cell) do
+      children :many
+      prop :column
     end
 
     # Data table with column definitions and optional sorting.
@@ -45,7 +54,7 @@ module Plushie
         if columns.is_a?(Array) && !columns.empty?
           first_col = columns[0]
           if first_col.is_a?(Hash)
-            key_val = first_col[:key] || first_col["key"]
+            key_val = first_col[:key] || first_col['key']
             col_key_type = key_val.is_a?(Symbol) ? :symbol : :string if key_val
           end
         end
@@ -57,16 +66,16 @@ module Plushie
 
           if col_key_type && row_key_type != col_key_type
             raise ArgumentError,
-              "table #{@id.inspect} row #{idx} uses #{row_key_type} keys but columns use #{col_key_type} keys. " \
-              "All keys must be the same type across columns and rows."
+                  "table #{@id.inspect} row #{idx} uses #{row_key_type} keys but columns use #{col_key_type} keys. " \
+                  'All keys must be the same type across columns and rows.'
           end
 
           mixed = row.keys.any? { |k| (k.is_a?(Symbol) ? :symbol : :string) != row_key_type }
-          if mixed
-            raise ArgumentError,
-              "table #{@id.inspect} row #{idx} has mixed key types. " \
-              "Use all symbol keys or all string keys, not both."
-          end
+          next unless mixed
+
+          raise ArgumentError,
+                "table #{@id.inspect} row #{idx} has mixed key types. " \
+                'Use all symbol keys or all string keys, not both.'
         end
       end
     end
