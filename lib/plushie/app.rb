@@ -67,6 +67,8 @@ module Plushie
       def settings = {}
 
       # Override to configure default window properties.
+      # Called when a new window is opened. Per-window props from the
+      # tree (title, size, position, etc.) override these defaults.
       # Default: empty (renderer defaults).
       def window_config(_model) = {}
 

@@ -4,6 +4,7 @@ require 'logger'
 require 'securerandom'
 require_relative 'runtime/commands'
 require_relative 'runtime/subscriptions'
+require_relative 'runtime/windows'
 
 module Plushie
   # Core event loop for Plushie applications.
@@ -15,6 +16,9 @@ module Plushie
   class Runtime
     include Commands
     include Subscriptions
+
+    # Accessors for Runtime submodules (Windows, etc.).
+    attr_reader :app, :model, :logger
 
     # @param app [Object] app instance (includes Plushie::App)
     # @param transport [:spawn, :stdio, Array(:iostream, adapter)] transport mode
@@ -65,6 +69,7 @@ module Plushie
       @pending_stub_acks = {}  # kind -> Queue (for sync ack round-trip)
       @pending_await_async = {} # tag -> Queue (for sync await)
       @pending_interact = nil   # {id:, result_queue:} for current interact
+      @tracked_windows = Set.new # active window IDs
 
       @logger = Logger.new($stderr, level: :warn, progname: 'plushie')
     end
@@ -153,6 +158,13 @@ module Plushie
     # @return [Boolean]
     def view_error?
       @consecutive_view_errors > 0
+    end
+
+    # @api private
+    # Send a window operation to the renderer via the bridge.
+    def bridge_send_window_op(op, window_id, settings = {})
+      bridge = @bridge or return
+      bridge.send_encoded(Protocol::Encode.encode_window_op(op, window_id, Encode.encode_props(settings), @format))
     end
 
     # Simulate a user interaction with a widget.
@@ -425,6 +437,8 @@ module Plushie
       @canvas_widgets = CanvasWidget.derive_registry(@previous_tree) if @previous_tree
 
       tree = @previous_tree or raise Plushie::Error, 'missing normalized view tree'
+      @tracked_windows = Windows.sync_windows(self, tree, nil, @tracked_windows)
+
       wire = Tree.node_to_wire(tree)
       encoded = Protocol::Encode.encode_snapshot(wire, @format)
       bridge = @bridge or raise Plushie::Error, 'bridge not started'
@@ -432,8 +446,6 @@ module Plushie
       @consecutive_view_errors = 0
     rescue StandardError => e
       handle_view_error(e)
-      # Send the last known snapshot as a fallback. Without this,
-      # interact_step callers hang waiting for a snapshot response.
       resend_last_snapshot
     end
 
@@ -443,13 +455,16 @@ module Plushie
       @canvas_widgets = CanvasWidget.derive_registry(new_tree) if new_tree
 
       if @previous_tree.nil?
-        # First render or post-restart: send full snapshot
         @previous_tree = new_tree
+        @tracked_windows = Windows.sync_windows(self, new_tree, nil, @tracked_windows)
+
         wire = Tree.node_to_wire(new_tree)
         encoded = Protocol::Encode.encode_snapshot(wire, @format)
         bridge = @bridge or raise Plushie::Error, 'bridge not started'
         bridge.send_encoded(encoded)
       else
+        @tracked_windows = Windows.sync_windows(self, new_tree, @previous_tree, @tracked_windows)
+
         ops = Tree.diff(@previous_tree, new_tree)
         @previous_tree = new_tree
 
@@ -626,6 +641,9 @@ module Plushie
 
       # The new renderer expects Settings as the first message.
       send_settings
+
+      # Reset tracked windows so sync_windows re-opens them all.
+      @tracked_windows = Set.new
 
       # Re-render to get a fresh tree and send a full snapshot.
       render_and_snapshot
