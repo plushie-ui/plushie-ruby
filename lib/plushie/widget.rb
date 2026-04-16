@@ -106,16 +106,16 @@ module Plushie
         kind = opts.fetch(:kind, :widget)
         unless VALID_KINDS.include?(kind)
           raise ArgumentError,
-            "unsupported widget kind #{kind.inspect}. Supported: #{VALID_KINDS.inspect}"
+                "unsupported widget kind #{kind.inspect}. Supported: #{VALID_KINDS.inspect}"
         end
 
         @_widget_type = type_name
         @_widget_kind = kind
 
-        if opts.key?(:container)
-          mode = (opts[:container] == true) ? :many : opts[:container]
-          children(mode)
-        end
+        return unless opts.key?(:container)
+
+        mode = opts[:container] == true ? :many : opts[:container]
+        children(mode)
       end
 
       # Declare one or more props.
@@ -140,29 +140,29 @@ module Plushie
           name = names[0].to_sym
           if type && !KNOWN_PROP_TYPES.include?(type.to_sym)
             raise ArgumentError,
-              "unsupported prop type #{type.inspect} for #{name.inspect}. " \
-              "Known types: #{KNOWN_PROP_TYPES.inspect}"
+                  "unsupported prop type #{type.inspect} for #{name.inspect}. " \
+                  "Known types: #{KNOWN_PROP_TYPES.inspect}"
           end
           _check_prop_name!(name)
-          @_widget_props << {name: name, type: type, default: default}
-          (@_prop_meta ||= {})[name] = {type: type, doc: doc}.compact
+          @_widget_props << { name: name, type: type, default: default }
+          (@_prop_meta ||= {})[name] = { type: type, doc: doc }.compact
         elsif names.length == 2 && KNOWN_PROP_TYPES.include?(names[1].to_sym)
           # Typed form: prop :name, :string, default: 0
           name = names[0].to_sym
           type_val = names[1].to_sym
           _check_prop_name!(name)
-          @_widget_props << {name: name, type: type_val, default: default}
+          @_widget_props << { name: name, type: type_val, default: default }
         else
           # Simple form: prop :name1, :name2, ...
           if default
             raise ArgumentError,
-              "default: cannot be used with the multi-name prop form. " \
-              "Use `prop :#{names.first}, type: :any, default: ...` for a single prop with a default"
+                  'default: cannot be used with the multi-name prop form. ' \
+                  "Use `prop :#{names.first}, type: :any, default: ...` for a single prop with a default"
           end
           names.each do |n|
             sym = n.to_sym
             _check_prop_name!(sym)
-            @_widget_props << {name: sym, type: nil, default: nil}
+            @_widget_props << { name: sym, type: nil, default: nil }
           end
         end
       end
@@ -176,7 +176,7 @@ module Plushie
       # @param default [Object] default value (:_required_ means mandatory)
       # @return [void]
       def positional(name, default: :_required_)
-        @_widget_positionals << {name: name.to_sym, default: default}
+        @_widget_positionals << { name: name.to_sym, default: default }
       end
 
       # Declare children mode.
@@ -213,7 +213,7 @@ module Plushie
       # @param default [Object] initial value
       # @return [void]
       def state(name, default: nil)
-        @_widget_state_fields << {name: name.to_sym, default: default}
+        @_widget_state_fields << { name: name.to_sym, default: default }
       end
 
       # Declares a cache key function for view-level caching.
@@ -231,14 +231,45 @@ module Plushie
 
       # Declares an event that this widget can emit.
       #
-      # Event declarations are informational: they document the widget's
-      # public event contract. Widgets with event declarations or
-      # +handle_event+ participate in the event dispatch chain.
+      # Event declarations document the widget's public event contract.
+      # Widgets with event declarations or +handle_event+ participate
+      # in the event dispatch chain.
+      #
+      # With +fields:+, declares typed fields that are validated at emit
+      # time. Fields are required by default. Use
+      # +{type: Class, required: false}+ to make a field optional.
       #
       # @param name [Symbol] event name (e.g. +:select+, +:change+)
+      # @param fields [Hash{Symbol => Class, Hash}] typed field declarations
       # @return [void]
-      def event(name)
-        @_widget_events << name.to_sym
+      #
+      # @example Simple event
+      #   event :click
+      #
+      # @example Event with typed required fields
+      #   event :change, fields: {hue: Numeric, saturation: Numeric}
+      #
+      # @example Event with optional field
+      #   event :change, fields: {
+      #     hue: Numeric,
+      #     saturation: Numeric,
+      #     modifier: {type: String, required: false}
+      #   }
+      def event(name, fields: nil)
+        name = name.to_sym
+        spec = if fields && !fields.empty?
+                 resolved_fields = fields.each_with_object({}) do |(k, v), h|
+                   h[k] = if v.is_a?(Hash)
+                            { type: v[:type], required: v.fetch(:required, true) }
+                          else
+                            { type: v, required: true }
+                          end
+                 end
+                 { name: name, fields: resolved_fields }
+               else
+                 { name: name, fields: nil }
+               end
+        @_widget_events << spec
       end
 
       # Declares a command (for native widgets, informational in Ruby).
@@ -247,7 +278,7 @@ module Plushie
       # @param params [Hash{Symbol => Symbol}] parameter names to types
       # @return [void]
       def command(name, **params)
-        @_widget_commands << {name: name.to_sym, params: params}
+        @_widget_commands << { name: name.to_sym, params: params }
       end
 
       # Declares the relative path to the Rust crate directory.
@@ -307,7 +338,11 @@ module Plushie
 
       # Returns the declared event names.
       # @return [Array<Symbol>]
-      def widget_events = @_widget_events
+      def widget_events = @_widget_events.map { |e| e[:name] }
+
+      # Returns the declared event specs with field definitions.
+      # @return [Array<Hash{Symbol => Object}>]
+      def widget_event_specs = @_widget_events
 
       # Whether this is a container widget (accepts children).
       # @return [Boolean]
@@ -356,32 +391,30 @@ module Plushie
       private
 
       def _check_prop_name!(name)
-        if RESERVED_PROP_NAMES.include?(name)
-          raise ArgumentError,
-            "prop name #{name.inspect} is reserved. Reserved: #{RESERVED_PROP_NAMES.inspect}"
-        end
+        return unless RESERVED_PROP_NAMES.include?(name)
+
+        raise ArgumentError,
+              "prop name #{name.inspect} is reserved. Reserved: #{RESERVED_PROP_NAMES.inspect}"
       end
 
       def _validate!
-        unless @_widget_type
-          raise ArgumentError, "missing `widget :type_name` declaration in #{name || "(anonymous)"}"
-        end
+        raise ArgumentError, "missing `widget :type_name` declaration in #{name || '(anonymous)'}" unless @_widget_type
 
         if @_widget_kind == :native_widget
           unless @_widget_native_crate
             raise ArgumentError,
-              "native_widget #{name} requires a `rust_crate` declaration"
+                  "native_widget #{name} requires a `rust_crate` declaration"
           end
           unless @_widget_rust_constructor
             raise ArgumentError,
-              "native_widget #{name} requires a `rust_constructor` declaration"
+                  "native_widget #{name} requires a `rust_constructor` declaration"
           end
         end
 
-        if stateful? && !respond_to?(:view)
-          raise ArgumentError,
-            "stateful widget #{name} requires a `def self.view(id, props, state)` class method"
-        end
+        return unless stateful? && !respond_to?(:view)
+
+        raise ArgumentError,
+              "stateful widget #{name} requires a `def self.view(id, props, state)` class method"
       end
 
       # Provide default implementations for stateful callbacks.
@@ -402,13 +435,13 @@ module Plushie
           end
         end
 
-        unless respond_to?(:subscribe)
-          define_singleton_method(:subscribe) { |_props, _state| [] }
-        end
+        return if respond_to?(:subscribe)
+
+        define_singleton_method(:subscribe) { |_props, _state| [] }
       end
 
       def _generate_readers!
-        all = [:id] + @_widget_props.map { _1[:name] } + [:a11y, :event_rate]
+        all = [:id] + @_widget_props.map { _1[:name] } + %i[a11y event_rate]
         all << :children if container?
         all.each { |name| attr_reader name }
       end
@@ -424,6 +457,7 @@ module Plushie
           # Merge positional args into opts (keyword args take precedence).
           positionals.each_with_index do |spec, i|
             next if opts.key?(spec[:name])
+
             if i < args.length
               opts[spec[:name]] = args[i]
             elsif spec[:default] != :_required_
@@ -492,7 +526,7 @@ module Plushie
             CanvasWidget::META_KEY => widget_class,
             CanvasWidget::PROPS_KEY => props_hash
           }.freeze
-          node = Plushie::Node.new(id: @id, type: "widget_placeholder", props: {}, meta: meta)
+          node = Plushie::Node.new(id: @id, type: 'widget_placeholder', props: {}, meta: meta)
 
           parent = Plushie::UI::Context.current
           parent << node if parent
@@ -538,21 +572,21 @@ module Plushie
           props_hash[:event_rate] = @event_rate unless @event_rate.nil?
 
           node = if respond_to?(:view)
-            view(@id, props_hash)
-          elsif is_container
-            Plushie::Node.new(
-              id: @id,
-              type: self.class.type_names.first.to_s,
-              props: props_hash,
-              children: Build.children_to_nodes(@children)
-            )
-          else
-            Plushie::Node.new(
-              id: @id,
-              type: self.class.type_names.first.to_s,
-              props: props_hash
-            )
-          end
+                   view(@id, props_hash)
+                 elsif is_container
+                   Plushie::Node.new(
+                     id: @id,
+                     type: self.class.type_names.first.to_s,
+                     props: props_hash,
+                     children: Build.children_to_nodes(@children)
+                   )
+                 else
+                   Plushie::Node.new(
+                     id: @id,
+                     type: self.class.type_names.first.to_s,
+                     props: props_hash
+                   )
+                 end
 
           parent = Plushie::UI::Context.current
           parent << node if parent
