@@ -471,6 +471,7 @@ module Plushie
 
           props.each do |prop|
             val = opts.key?(prop[:name]) ? opts[prop[:name]] : prop[:default]
+            self.class.validate_prop_type(prop[:name], val, prop[:type]) unless val.nil? || !prop[:type]
             instance_variable_set(:"@#{prop[:name]}", val)
           end
         end
@@ -479,8 +480,16 @@ module Plushie
       def _generate_setters!
         @_widget_props.each do |prop|
           pname = prop[:name]
-          define_method(:"set_#{pname}") do |value|
-            dup.tap { _1.instance_variable_set(:"@#{pname}", value) }
+          ptype = prop[:type]
+          if ptype
+            define_method(:"set_#{pname}") do |value|
+              self.class.validate_prop_type(pname, value, ptype) unless value.nil?
+              dup.tap { _1.instance_variable_set(:"@#{pname}", value) }
+            end
+          else
+            define_method(:"set_#{pname}") do |value|
+              dup.tap { _1.instance_variable_set(:"@#{pname}", value) }
+            end
           end
         end
 
@@ -498,6 +507,68 @@ module Plushie
           dup.tap { |copy| copy.instance_variable_set(:@children, @children + [child]) }
         end
       end
+
+      # Validate a prop value against its declared type.
+      # Supports Class/module types, :numeric, :boolean, and composite
+      # types ({tuple: [T1, T2]}, {enum: [:a, :b]}, {list: T}).
+      def validate_prop_type(name, value, type)
+        case type
+        when Class, Module
+          unless value.is_a?(type)
+            raise ArgumentError,
+                  "#{name} expects #{type}, got #{value.class}: #{value.inspect}"
+          end
+        when :numeric
+          unless value.is_a?(Numeric)
+            raise ArgumentError,
+                  "#{name} expects a Numeric, got #{value.class}: #{value.inspect}"
+          end
+        when :boolean
+          unless [true, false].include?(value)
+            raise ArgumentError,
+                  "#{name} expects true or false, got #{value.inspect}"
+          end
+        when :symbol
+          unless value.is_a?(Symbol)
+            raise ArgumentError,
+                  "#{name} expects a Symbol, got #{value.class}: #{value.inspect}"
+          end
+        when Hash
+          validate_composite_type(name, value, type)
+        end
+      end
+
+      def validate_composite_type(name, value, type_spec)
+        if (tuple_types = type_spec[:tuple])
+          unless value.is_a?(Array) && value.length == tuple_types.length
+            raise ArgumentError,
+                  "#{name} expects a #{tuple_types.length}-element Array, " \
+                  "got #{value.inspect}"
+          end
+          tuple_types.each_with_index do |elem_type, i|
+            validate_prop_type("#{name}[#{i}]", value[i], elem_type)
+          end
+        elsif (enum_values = type_spec[:enum])
+          unless enum_values.include?(value)
+            raise ArgumentError,
+                  "#{name} expects one of #{enum_values.inspect}, got #{value.inspect}"
+          end
+        elsif (list_type = type_spec[:list])
+          raise ArgumentError, "#{name} expects an Array, got #{value.class}" unless value.is_a?(Array)
+
+          value.each_with_index do |elem, i|
+            validate_prop_type("#{name}[#{i}]", elem, list_type)
+          end
+        elsif (map_types = type_spec[:map])
+          raise ArgumentError, "#{name} expects a Hash, got #{value.class}" unless value.is_a?(Hash)
+
+          map_types.each do |key, val_type|
+            validate_prop_type("#{name}[#{key.inspect}]", value[key], val_type) if value.key?(key)
+          end
+        end
+      end
+
+      public :validate_prop_type, :validate_composite_type
 
       def _generate_build!
         if stateful?
