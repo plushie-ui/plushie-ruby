@@ -19,7 +19,7 @@ module Plushie
         role label description hidden expanded required level live
         busy invalid modal read_only mnemonic toggled selected value
         orientation labelled_by described_by error_message disabled
-        position_in_set size_of_set has_popup
+        position_in_set size_of_set has_popup active_descendant radio_group
       ].freeze
 
       # Valid accessibility roles.
@@ -72,7 +72,7 @@ module Plushie
         case value
         when Spec then value.to_wire
         when Hash
-          mnemonic = value[:mnemonic] || value["mnemonic"]
+          mnemonic = value[:mnemonic] || value['mnemonic']
           validate_mnemonic!(mnemonic) if mnemonic
           value.compact
         when nil then nil
@@ -92,10 +92,10 @@ module Plushie
       # @raise [ArgumentError] if not a single character
       def validate_mnemonic!(char)
         return unless char.is_a?(String)
-        if char.length != 1
-          raise ArgumentError,
-            "mnemonic must be a single character, got: #{char.inspect}"
-        end
+        return unless char.length != 1
+
+        raise ArgumentError,
+              "mnemonic must be a single character, got: #{char.inspect}"
       end
     end
   end

@@ -875,13 +875,15 @@ module Plushie
     # @yield additional children
     # @return [Node]
     def cell(id, content_or_props = nil, **props, &block)
+      props[:column] = id unless props.key?(:column)
       if content_or_props.is_a?(Hash) && !content_or_props.empty? && props.empty? && !block
         props = content_or_props
+        props[:column] = id unless props.key?(:column)
       elsif content_or_props && !content_or_props.is_a?(Hash)
         children = [content_or_props]
         return _plushie_container('table_cell', id, props.merge(children: children))
       end
-      _plushie_container('table_cell', id, props.merge(column: id), &block)
+      _plushie_container('table_cell', id, props, &block)
     end
 
     # =========================================================================

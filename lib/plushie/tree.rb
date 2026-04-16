@@ -234,7 +234,11 @@ module Plushie
                        end
 
       # Consume the :rows prop so it doesn't appear on the wire.
-      props = props.reject { |k, _| k == 'rows' } if node.type == 'table' && !table_children.equal?(node.children)
+      if node.type == 'table' && !table_children.equal?(node.children)
+        props = props.reject do |k, _|
+          ['rows', :rows].include?(k)
+        end
+      end
 
       children = table_children.map { |c| normalize_node(c, child_scope, registry, current_window_id, depth + 1) }
       check_duplicate_ids!(children)
@@ -306,7 +310,7 @@ module Plushie
                  end
 
       rows.map do |row|
-        row_id = (row[:id] || row['id']).to_s
+        row_id = (row[:id] || row['id'] || '').to_s
 
         cells = col_keys.map do |key|
           value = row[key.to_sym] || row[key] || ''
