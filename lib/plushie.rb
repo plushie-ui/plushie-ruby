@@ -190,6 +190,11 @@ module Plushie
     # @return [String, nil]
     attr_accessor :wasm_dir
 
+    # Enable renderer-side prop validation. When true, the renderer
+    # emits diagnostic events for unknown or invalid props.
+    # @return [Boolean]
+    attr_accessor :validate_props
+
     def initialize
       @binary_path = nil
       @source_path = nil
@@ -200,6 +205,7 @@ module Plushie
       @artifacts = [:bin]
       @bin_file = nil
       @wasm_dir = nil
+      @validate_props = false
     end
   end
 

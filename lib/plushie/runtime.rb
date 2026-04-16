@@ -214,6 +214,7 @@ module Plushie
       end
       wc = Plushie.configuration.widget_config
       settings = settings.merge(widget_config: wc) if wc && !wc.empty?
+      settings = settings.merge(validate_props: true) if Plushie.configuration.validate_props
       settings
     end
 
