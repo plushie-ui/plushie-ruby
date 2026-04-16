@@ -147,6 +147,14 @@ module Plushie
       @focused_widget_id
     end
 
+    # Returns true if the most recent view/render call failed, meaning
+    # the tree is stale and does not reflect the current model state.
+    #
+    # @return [Boolean]
+    def view_error?
+      @consecutive_view_errors > 0
+    end
+
     # Simulate a user interaction with a widget.
     #
     # Sends an interact message through the bridge and blocks until the
@@ -808,8 +816,10 @@ module Plushie
       @pending_interact = nil
       return unless pending
 
+      result = { events: events }
+      result[:view_error] = true if @consecutive_view_errors > 0
       pending[:timeout_timer]&.kill
-      pending[:result_queue]&.push({ events: events })
+      pending[:result_queue]&.push(result)
     end
 
     def handle_interact_timeout(id)
