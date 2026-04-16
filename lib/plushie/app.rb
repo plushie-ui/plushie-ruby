@@ -71,8 +71,10 @@ module Plushie
       def window_config(_model) = {}
 
       # Override to handle renderer process exit.
+      # Receives a Plushie::RendererExit with type (:crash, :connection_lost,
+      # :shutdown, :heartbeat_timeout), message, and optional details.
       # Default: return model unchanged.
-      def handle_renderer_exit(model, _reason) = model
+      def handle_renderer_exit(model, _exit) = model
     end
   end
 end

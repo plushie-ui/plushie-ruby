@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require "logger"
-require "securerandom"
-require_relative "runtime/commands"
-require_relative "runtime/subscriptions"
+require 'logger'
+require 'securerandom'
+require_relative 'runtime/commands'
+require_relative 'runtime/subscriptions'
 
 module Plushie
   # Core event loop for Plushie applications.
@@ -26,7 +26,7 @@ module Plushie
     # @param dev [Boolean] enable live code reloading via DevServer
     # @param dev_dirs [Array<String>, nil] directories to watch (default: ["lib/"])
     def initialize(app:, transport: :spawn, format: :msgpack, daemon: false,
-      binary: nil, log_level: :error, token: nil, dev: false, dev_dirs: nil)
+                   binary: nil, log_level: :error, token: nil, dev: false, dev_dirs: nil)
       validate_app!(app)
       validate_transport!(transport)
 
@@ -59,14 +59,14 @@ module Plushie
       @consecutive_view_errors = 0
       @widget_statuses = {}    # id -> status string
       @focused_widget_id = nil # currently focused widget ID
-      @memo_cache = {} #: Hash[untyped, untyped]
+      @memo_cache = {} # : Hash[untyped, untyped]
       @diagnostics = []        # accumulated prop validation diagnostics
       @diagnostics_mutex = Mutex.new
       @pending_stub_acks = {}  # kind -> Queue (for sync ack round-trip)
       @pending_await_async = {} # tag -> Queue (for sync await)
       @pending_interact = nil   # {id:, result_queue:} for current interact
 
-      @logger = Logger.new($stderr, level: :warn, progname: "plushie")
+      @logger = Logger.new($stderr, level: :warn, progname: 'plushie')
     end
 
     # Run the event loop in the calling thread (blocking).
@@ -83,7 +83,7 @@ module Plushie
     # @return [Runtime] self
     def start
       thread = Thread.new { run }
-      thread.name = "plushie-runtime"
+      thread.name = 'plushie-runtime'
       @loop_thread = thread
       self
     end
@@ -106,6 +106,7 @@ module Plushie
       @event_queue.push([:register_effect_stub, kind, response, ack_queue])
       result = ack_queue.pop(timeout: Float(timeout))
       raise Plushie::Error, "effect stub registration timed out for #{kind}" if result.nil?
+
       :ok
     end
 
@@ -119,6 +120,7 @@ module Plushie
       @event_queue.push([:unregister_effect_stub, kind, ack_queue])
       result = ack_queue.pop(timeout: Float(timeout))
       raise Plushie::Error, "effect stub unregistration timed out for #{kind}" if result.nil?
+
       :ok
     end
 
@@ -163,6 +165,7 @@ module Plushie
       result = result_queue.pop(timeout: Float(timeout))
       raise Plushie::Error, "interact timed out for #{action}" if result.nil?
       raise Plushie::Error, result[:error] if result.is_a?(Hash) && result[:error]
+
       result.is_a?(Hash) ? result.fetch(:events, []) : []
     end
 
@@ -180,6 +183,7 @@ module Plushie
       @event_queue.push([:await_async, tag, ack_queue])
       result = ack_queue.pop(timeout: Float(timeout))
       raise Plushie::Error, "await_async timed out for #{tag}" if result.nil?
+
       :ok
     end
 
@@ -196,7 +200,7 @@ module Plushie
         log_level: @log_level,
         token: @token
       )
-      bridge = @bridge or raise Plushie::Error, "bridge not started"
+      bridge = @bridge or raise Plushie::Error, 'bridge not started'
       bridge.start(settings: build_settings)
     end
 
@@ -204,7 +208,7 @@ module Plushie
       # @type var settings: Hash[Symbol, untyped]
       settings = begin
         @app.settings
-      rescue => e
+      rescue StandardError => e
         @logger.warn("plushie: settings callback error: #{e.class}: #{e.message}")
         {}
       end
@@ -264,14 +268,14 @@ module Plushie
           handle_interact_timeout(id)
         in [:register_effect_stub, kind, response, ack_queue]
           if @pending_stub_acks.key?(kind)
-            ack_queue.push({error: "stub ack already pending for #{kind}"})
+            ack_queue.push({ error: "stub ack already pending for #{kind}" })
           else
             @bridge.send_register_effect_stub(kind, response)
             @pending_stub_acks[kind] = ack_queue
           end
         in [:unregister_effect_stub, kind, ack_queue]
           if @pending_stub_acks.key?(kind)
-            ack_queue.push({error: "stub ack already pending for #{kind}"})
+            ack_queue.push({ error: "stub ack already pending for #{kind}" })
           else
             @bridge.send_unregister_effect_stub(kind)
             @pending_stub_acks[kind] = ack_queue
@@ -280,7 +284,7 @@ module Plushie
           handle_interact_request(action, selector, payload, result_queue)
         in [:await_async, tag, ack_queue]
           if @pending_await_async.key?(tag)
-            ack_queue.push({error: "await already in progress for #{tag}"})
+            ack_queue.push({ error: "await already in progress for #{tag}" })
           elsif @async_tasks.key?(tag)
             @pending_await_async[tag] = ack_queue
           else
@@ -312,10 +316,10 @@ module Plushie
       # are still dispatched through update: only the caller completion
       # is skipped.
       if event.is_a?(Hash)
-        event_type = (event[:type] || event["type"])&.to_sym
-        response_id = event[:id] || event["id"]
+        event_type = (event[:type] || event['type'])&.to_sym
+        response_id = event[:id] || event['id']
         pending = @pending_interact
-        if event_type == :interact_step || event_type == :interact_response
+        if %i[interact_step interact_response].include?(event_type)
           if pending && response_id == pending[:id]
             if event_type == :interact_step
               handle_interact_step(event)
@@ -342,11 +346,11 @@ module Plushie
       # Log at the severity level specified by the renderer.
       if event.is_a?(Event::System) && event.type == :diagnostic
         diag = event.value
-        level = diag.is_a?(Hash) ? (diag["level"] || diag[:level] || "warning") : "warning"
-        msg = diag.is_a?(Hash) ? (diag["message"] || diag[:message] || diag.inspect) : diag.inspect
+        level = diag.is_a?(Hash) ? (diag['level'] || diag[:level] || 'warning') : 'warning'
+        msg = diag.is_a?(Hash) ? (diag['message'] || diag[:message] || diag.inspect) : diag.inspect
         case level.to_s
-        when "error" then @logger.error("plushie: diagnostic: #{msg}")
-        when "info" then @logger.info("plushie: diagnostic: #{msg}")
+        when 'error' then @logger.error("plushie: diagnostic: #{msg}")
+        when 'info' then @logger.info("plushie: diagnostic: #{msg}")
         else @logger.warn("plushie: diagnostic: #{msg}")
         end
         @diagnostics_mutex.synchronize { @diagnostics << event }
@@ -360,11 +364,10 @@ module Plushie
         timer&.kill
         tag = @effect_ids.delete(wire_id)
         @effect_tags.delete(tag) if tag
-        if tag
-          event = Event::Effect.new(tag: tag, result: event[:result])
-        else
-          return
-        end
+        return unless tag
+
+        event = Event::Effect.new(tag: tag, result: event[:result])
+
       end
 
       # Route through canvas widget handlers before app.update.
@@ -377,13 +380,11 @@ module Plushie
           if routed_event.nil?
             # Event consumed by a widget handler. If the registry changed
             # (widget state updated), re-render to pick up view changes.
-            if @canvas_widgets != widgets_before
-              rerender_after_widget_state_change(widgets_before)
-            end
+            rerender_after_widget_state_change(widgets_before) if @canvas_widgets != widgets_before
             return
           end
           event = routed_event
-        rescue => e
+        rescue StandardError => e
           @logger.warn("plushie: widget event routing error: #{e.class}: #{e.message}")
           return
         end
@@ -400,11 +401,11 @@ module Plushie
       sync_subscriptions
     rescue NoMatchingPatternError => e
       @model = saved_model
-      handle_callback_error("update", e,
-        hint: "Add an `else` clause to your update method to handle unmatched events")
-    rescue => e
+      handle_callback_error('update', e,
+                            hint: 'Add an `else` clause to your update method to handle unmatched events')
+    rescue StandardError => e
       @model = saved_model
-      handle_callback_error("update", e)
+      handle_callback_error('update', e)
     end
 
     # -- Rendering -----------------------------------------------------------
@@ -414,13 +415,13 @@ module Plushie
       @previous_tree = normalize_view_tree(@app.view(@model))
       @canvas_widgets = CanvasWidget.derive_registry(@previous_tree) if @previous_tree
 
-      tree = @previous_tree or raise Plushie::Error, "missing normalized view tree"
+      tree = @previous_tree or raise Plushie::Error, 'missing normalized view tree'
       wire = Tree.node_to_wire(tree)
       encoded = Protocol::Encode.encode_snapshot(wire, @format)
-      bridge = @bridge or raise Plushie::Error, "bridge not started"
+      bridge = @bridge or raise Plushie::Error, 'bridge not started'
       bridge.send_encoded(encoded)
       @consecutive_view_errors = 0
-    rescue => e
+    rescue StandardError => e
       handle_view_error(e)
       # Send the last known snapshot as a fallback. Without this,
       # interact_step callers hang waiting for a snapshot response.
@@ -437,19 +438,19 @@ module Plushie
         @previous_tree = new_tree
         wire = Tree.node_to_wire(new_tree)
         encoded = Protocol::Encode.encode_snapshot(wire, @format)
-        bridge = @bridge or raise Plushie::Error, "bridge not started"
+        bridge = @bridge or raise Plushie::Error, 'bridge not started'
         bridge.send_encoded(encoded)
       else
         ops = Tree.diff(@previous_tree, new_tree)
         @previous_tree = new_tree
 
         unless ops.empty?
-          bridge = @bridge or raise Plushie::Error, "bridge not started"
+          bridge = @bridge or raise Plushie::Error, 'bridge not started'
           bridge.send_encoded(Protocol::Encode.encode_patch(ops, @format))
         end
       end
       @consecutive_view_errors = 0
-    rescue => e
+    rescue StandardError => e
       handle_view_error(e)
     end
 
@@ -467,9 +468,10 @@ module Plushie
       tree = @previous_tree
       bridge = @bridge
       return unless tree && bridge
+
       wire = Tree.node_to_wire(tree)
       bridge.send_encoded(Protocol::Encode.encode_snapshot(wire, @format))
-    rescue => e
+    rescue StandardError => e
       @logger.error("plushie: failed to resend fallback snapshot: #{e.class}: #{e.message}")
     end
 
@@ -493,6 +495,7 @@ module Plushie
               [model, [cmd1, cmd2]]        # model + command list
           MSG
         end
+
         [result, Command.none]
       end
     end
@@ -521,6 +524,7 @@ module Plushie
     def handle_stream_value(tag, nonce, value)
       entry = @async_tasks[tag]
       return unless entry && entry[:nonce] == nonce
+
       dispatch_event(Event::Stream.new(tag: tag, value: value))
     end
 
@@ -544,9 +548,9 @@ module Plushie
       end
 
       dispatch_event(Event::Timer.new(
-        tag: tag,
-        timestamp: Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
-      ))
+                       tag: tag,
+                       timestamp: Process.clock_gettime(Process::CLOCK_MONOTONIC, :millisecond)
+                     ))
     end
 
     # -- Effect handling -----------------------------------------------------
@@ -554,17 +558,20 @@ module Plushie
     def handle_effect_timeout(id)
       timer = @pending_effects.delete(id)
       return unless timer
+
       tag = @effect_ids.delete(id)
       @effect_tags.delete(tag) if tag
       return unless tag
-      dispatch_event(Event::Effect.new(tag: tag, result: [:error, :timeout]))
+
+      dispatch_event(Event::Effect.new(tag: tag, result: %i[error timeout]))
     end
 
     # -- Renderer exit -------------------------------------------------------
 
     def handle_renderer_exit(reason)
-      @logger.warn("plushie: renderer exited: #{reason}")
-      fail_pending_interact("renderer_exited")
+      renderer_exit = build_renderer_exit(reason)
+      @logger.warn("plushie: renderer exited: #{renderer_exit.message}")
+      fail_pending_interact('renderer_exited')
       flush_pending_effects_on_exit
       flush_pending_stub_acks
       @canvas_widgets = {}
@@ -573,8 +580,8 @@ module Plushie
       # @type var recovery_error: Exception?
       recovery_error = nil
       begin
-        @model = @app.handle_renderer_exit(@model, reason)
-      rescue => e
+        @model = @app.handle_renderer_exit(@model, renderer_exit)
+      rescue StandardError => e
         @logger.error("plushie: handle_renderer_exit error: #{e.class}: #{e.message}")
         recovery_error = e
       end
@@ -583,9 +590,9 @@ module Plushie
       # so the app can react (show an error banner, reset to safe state).
       if recovery_error
         dispatch_event(Event::System.new(
-          type: :recovery_failed,
-          value: {error: recovery_error.message, renderer_exit: reason.inspect} #: Hash[Symbol, untyped]
-        ))
+                         type: :recovery_failed,
+                         value: { error: recovery_error.message, renderer_exit: renderer_exit.message } # : Hash[Symbol, untyped]
+                       ))
       end
 
       @previous_tree = nil
@@ -593,12 +600,12 @@ module Plushie
     end
 
     def handle_renderer_restarted
-      @logger.info("plushie: renderer restarted, re-sending settings and snapshot")
+      @logger.info('plushie: renderer restarted, re-sending settings and snapshot')
       @consecutive_errors = 0
       @consecutive_view_errors = 0
 
       # Clear stale interaction state from the old renderer.
-      fail_pending_interact("renderer_restarted")
+      fail_pending_interact('renderer_restarted')
       flush_pending_effects_on_exit
       flush_pending_stub_acks
       @canvas_widgets = {}
@@ -633,21 +640,21 @@ module Plushie
       prev_status = @widget_statuses[id]
       @widget_statuses[id] = status
 
-      if status == "focused"
+      if status == 'focused'
         @focused_widget_id = id
-      elsif prev_status == "focused" && @focused_widget_id == id
+      elsif prev_status == 'focused' && @focused_widget_id == id
         @focused_widget_id = nil
       end
 
       # Derive focused/blurred events from status transitions
-      if prev_status != "focused" && status == "focused"
+      if prev_status != 'focused' && status == 'focused'
         dispatch_event(Event::Widget.new(
-          type: :focused, id: id, window_id: event.window_id, scope: event.scope
-        ))
-      elsif prev_status == "focused" && status != "focused"
+                         type: :focused, id: id, window_id: event.window_id, scope: event.scope
+                       ))
+      elsif prev_status == 'focused' && status != 'focused'
         dispatch_event(Event::Widget.new(
-          type: :blurred, id: id, window_id: event.window_id, scope: event.scope
-        ))
+                         type: :blurred, id: id, window_id: event.window_id, scope: event.scope
+                       ))
       end
     end
 
@@ -658,8 +665,8 @@ module Plushie
       return if missing.empty?
 
       raise ArgumentError,
-        "app must respond to #{missing.join(", ")}. " \
-        "Include Plushie::App or define init/update/view methods."
+            "app must respond to #{missing.join(', ')}. " \
+            'Include Plushie::App or define init/update/view methods.'
     end
 
     def validate_transport!(transport)
@@ -668,7 +675,8 @@ module Plushie
       when Array
         raise ArgumentError, "unsupported transport: #{transport.inspect}" unless transport[0] == :iostream
       else
-        raise ArgumentError, "unsupported transport: #{transport.inspect}. Expected :spawn, :stdio, or [:iostream, adapter]"
+        raise ArgumentError,
+              "unsupported transport: #{transport.inspect}. Expected :spawn, :stdio, or [:iostream, adapter]"
       end
     end
 
@@ -689,11 +697,11 @@ module Plushie
 
     def handle_view_error(error)
       @consecutive_view_errors += 1
-      handle_callback_error("view", error)
-      if @consecutive_view_errors == VIEW_ERROR_WARN_THRESHOLD
-        @logger.warn("plushie: view has failed #{VIEW_ERROR_WARN_THRESHOLD} consecutive times; UI is stale")
-        inject_frozen_ui_overlay if @dev
-      end
+      handle_callback_error('view', error)
+      return unless @consecutive_view_errors == VIEW_ERROR_WARN_THRESHOLD
+
+      @logger.warn("plushie: view has failed #{VIEW_ERROR_WARN_THRESHOLD} consecutive times; UI is stale")
+      inject_frozen_ui_overlay if @dev
     end
 
     # In dev mode, inject a red error bar into the stale tree to alert
@@ -703,20 +711,20 @@ module Plushie
       return unless tree && @bridge
 
       overlay_node = Node.new(
-        id: "__frozen_ui__",
-        type: "container",
+        id: '__frozen_ui__',
+        type: 'container',
         props: {
-          width: "fill",
+          width: 'fill',
           height: 40,
           padding: 8,
-          style: {background: "#dc2626"}
+          style: { background: '#dc2626' }
         },
         children: [
-          Node.new(id: "__frozen_ui_text__", type: "text", props: {
-            content: "View error: UI is frozen. Fix the error and save to reload.",
-            size: 14,
-            color: "#ffffff"
-          })
+          Node.new(id: '__frozen_ui_text__', type: 'text', props: {
+                     content: 'View error: UI is frozen. Fix the error and save to reload.',
+                     size: 14,
+                     color: '#ffffff'
+                   })
         ]
       )
 
@@ -735,7 +743,7 @@ module Plushie
           @previous_tree = new_tree
         end
       end
-    rescue => e
+    rescue StandardError => e
       @logger.debug("plushie: failed to inject frozen UI overlay: #{e.message}")
     end
 
@@ -749,7 +757,7 @@ module Plushie
     def rerender_after_widget_state_change(widgets_before)
       render_and_patch
       sync_subscriptions
-    rescue => e
+    rescue StandardError => e
       @canvas_widgets = widgets_before
       handle_view_error(e)
     end
@@ -774,9 +782,9 @@ module Plushie
         sleep(INTERACT_TIMEOUT_S)
         queue.push([:interact_timeout, id])
       end
-      timer.name = "plushie-interact-timeout"
-      @pending_interact = {id: id, result_queue: result_queue, timeout_timer: timer}
-      bridge = @bridge or raise Plushie::Error, "bridge not started"
+      timer.name = 'plushie-interact-timeout'
+      @pending_interact = { id: id, result_queue: result_queue, timeout_timer: timer }
+      bridge = @bridge or raise Plushie::Error, 'bridge not started'
       bridge.send_encoded(
         Protocol::Encode.encode_interact(id, action, selector, payload, @format)
       )
@@ -800,7 +808,7 @@ module Plushie
       return unless pending
 
       pending[:timeout_timer]&.kill
-      pending[:result_queue]&.push({events: events})
+      pending[:result_queue]&.push({ events: events })
     end
 
     def handle_interact_timeout(id)
@@ -809,7 +817,7 @@ module Plushie
 
       @logger.warn("plushie: interact #{id} timed out")
       @pending_interact = nil
-      pending[:result_queue]&.push({error: "interact timed out"})
+      pending[:result_queue]&.push({ error: 'interact timed out' })
     end
 
     # Process an event through update + commands WITHOUT rendering.
@@ -820,6 +828,7 @@ module Plushie
       unless @canvas_widgets.empty?
         routed_event, @canvas_widgets = CanvasWidget.dispatch_through_widgets(@canvas_widgets, event)
         return if routed_event.nil?
+
         event = routed_event
       end
 
@@ -830,15 +839,15 @@ module Plushie
       execute_commands(commands)
     rescue NoMatchingPatternError => e
       @model = saved_model
-      handle_callback_error("update", e,
-        hint: "Add an `else` clause to your update method to handle unmatched events")
-    rescue => e
+      handle_callback_error('update', e,
+                            hint: 'Add an `else` clause to your update method to handle unmatched events')
+    rescue StandardError => e
       @model = saved_model
-      handle_callback_error("update", e)
+      handle_callback_error('update', e)
     end
 
     def extract_interact_events(response)
-      raw = response[:events] || response["events"] || []
+      raw = response[:events] || response['events'] || []
       raw.filter_map do |e|
         if e.is_a?(Hash)
           Protocol::Decode.decode_event(e.transform_keys(&:to_s))
@@ -854,7 +863,7 @@ module Plushie
       return unless pending
 
       pending[:timeout_timer]&.kill
-      pending[:result_queue]&.push({error: reason})
+      pending[:result_queue]&.push({ error: reason })
     end
 
     # -- Resync helpers -------------------------------------------------------
@@ -880,15 +889,15 @@ module Plushie
         @effect_tags.delete(tag) if tag
         next unless tag
 
-        event = Event::Effect.new(tag: tag, result: [:error, :renderer_exited])
+        event = Event::Effect.new(tag: tag, result: %i[error renderer_exited])
         saved_model = @model
         begin
           result = @app.update(@model, event)
           @model, commands = unwrap_result(result)
           execute_commands(commands)
-        rescue => e
+        rescue StandardError => e
           @model = saved_model
-          handle_callback_error("update (effect flush)", e)
+          handle_callback_error('update (effect flush)', e)
         end
       end
     end
@@ -896,7 +905,7 @@ module Plushie
     # Flush pending stub ack queues with an error so callers know the old
     # renderer's stub registry was lost. Callers must re-register.
     def flush_pending_stub_acks
-      @pending_stub_acks.each_value { |q| q.push({error: "renderer_restarted"}) }
+      @pending_stub_acks.each_value { |q| q.push({ error: 'renderer_restarted' }) }
       @pending_stub_acks.clear
     end
 
@@ -909,6 +918,40 @@ module Plushie
       end
       renderer_keys.each { |key| @subscriptions.delete(key) }
       @subscription_keys = @subscriptions.keys.sort_by(&:to_s)
+    end
+
+    # Converts a raw renderer exit reason into a structured RendererExit.
+    def build_renderer_exit(reason)
+      case reason
+      in { type: :connection_closed, reason: :heartbeat_timeout }
+        RendererExit.new(
+          type: :heartbeat_timeout,
+          message: 'renderer unresponsive (heartbeat timeout)'
+        )
+      in { type: :connection_closed }
+        RendererExit.new(
+          type: :connection_lost,
+          message: 'renderer connection closed'
+        )
+      in { type: :connection_error, error: }
+        RendererExit.new(
+          type: :crash,
+          message: "renderer connection error: #{error}",
+          details: error
+        )
+      in Exception
+        RendererExit.new(
+          type: :crash,
+          message: "renderer exited unexpectedly: #{reason.message}",
+          details: reason
+        )
+      else
+        RendererExit.new(
+          type: :crash,
+          message: "renderer exited unexpectedly: #{reason.inspect}",
+          details: reason
+        )
+      end
     end
 
     # -- Shutdown ------------------------------------------------------------
@@ -934,7 +977,7 @@ module Plushie
       @pending_await_async.each_value { |q| q.push(:ok) }
       @pending_await_async.clear
       # Flush pending interact so callers don't hang
-      fail_pending_interact("runtime_shutdown")
+      fail_pending_interact('runtime_shutdown')
     end
   end
 end
