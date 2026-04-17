@@ -139,6 +139,24 @@ module Plushie
     # @return [Cmd]
     def self.focus_previous = Cmd.new(type: :widget_op, payload: {op: "focus_previous"})
 
+    # Move focus to the next focusable widget within the subtree rooted
+    # at +scope+. Focus wraps at the subtree boundary. Useful for
+    # menus, pane grids, and other keyboard containers that want a
+    # bounded Tab cycle without leaking focus to siblings.
+    # @param scope [String] the widget ID of the subtree root
+    # @return [Cmd]
+    def self.focus_next_within(scope)
+      Cmd.new(type: :widget_op, payload: {op: "focus_next_within", scope: scope})
+    end
+
+    # Move focus to the previous focusable widget within the subtree
+    # rooted at +scope+. See {.focus_next_within} for semantics.
+    # @param scope [String] the widget ID of the subtree root
+    # @return [Cmd]
+    def self.focus_previous_within(scope)
+      Cmd.new(type: :widget_op, payload: {op: "focus_previous_within", scope: scope})
+    end
+
     # -------------------------------------------------------------------
     # PaneGrid operations
     # -------------------------------------------------------------------
@@ -225,9 +243,22 @@ module Plushie
     # -------------------------------------------------------------------
 
     # Screen reader announcement.
+    #
+    # +politeness+ controls how assistive technology delivers the
+    # announcement. +:polite+ (the default) waits for a gap in the
+    # current announcement and is correct for most toast-style
+    # feedback. +:assertive+ interrupts the current announcement and
+    # should be reserved for urgent context the user must hear
+    # immediately.
     # @param text [String]
+    # @param politeness [Symbol] +:polite+ (default) or +:assertive+
     # @return [Cmd]
-    def self.announce(text) = Cmd.new(type: :widget_op, payload: {op: "announce", text:})
+    def self.announce(text, politeness = :polite)
+      unless %i[polite assertive].include?(politeness)
+        raise ArgumentError, "politeness must be :polite or :assertive, got #{politeness.inspect}"
+      end
+      Cmd.new(type: :widget_op, payload: {op: "announce", text:, politeness: politeness.to_s})
+    end
 
     # -------------------------------------------------------------------
     # Test / headless
