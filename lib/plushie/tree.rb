@@ -312,6 +312,7 @@ module Plushie
     # Each row map becomes a table_row with text cell children, one per column.
     # Requires an :id key in each row for stable row identity.
     def self.expand_table_rows(rows, columns)
+      # @type var col_keys: Array[String]
       col_keys = if columns.is_a?(Array)
         columns.map do |col|
           case col

@@ -18,6 +18,7 @@ module Plushie
 
     def self.normalize_node: (Node node, String scope, Hash[String, CanvasWidget::RegistryEntry]? registry, String? window_id, ?Integer depth) -> Node
     def self.infer_radio_groups: (Array[Node] children) -> Array[Node]
+    def self.expand_table_rows: (Array[untyped] rows, untyped columns) -> Array[Node]
     def self.check_duplicate_ids!: (Array[Node] children) -> void
     def self.validate_user_id!: (String? id) -> void
     def self.normalize_memo: (Node node, String scope, Hash[String, CanvasWidget::RegistryEntry]? registry, String? window_id, Integer depth) -> Node

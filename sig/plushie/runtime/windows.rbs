@@ -1,0 +1,21 @@
+module Plushie
+  class Runtime
+    module Windows
+      WINDOW_PROP_KEYS: Array[Symbol]
+
+      def self.detect_windows: (Node? tree) -> Set[String]
+      def self.sync_windows: (
+        Runtime runtime,
+        Node? new_tree,
+        Node? previous_tree,
+        Set[String] tracked_windows
+      ) -> Set[String]
+      def self.extract_window_props: (Node? tree, String window_id) -> Hash[Symbol, untyped]
+      def self.collect_window_ids: (Node node, Array[String] ids) -> void
+      def self.find_window_node: (Node node, String window_id) -> Node?
+      def self.decompose_size_tuples: (Hash[Symbol, untyped] props) -> Hash[Symbol, untyped]
+      def self.decompose_size: (Hash[Symbol, untyped] props) -> Hash[Symbol, untyped]
+      def self.decompose_nested_size: (Hash[Symbol, untyped] props, Symbol key) -> Hash[Symbol, untyped]
+    end
+  end
+end

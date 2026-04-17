@@ -9,6 +9,7 @@ module Plushie
     attr_accessor artifacts: Array[Symbol]
     attr_accessor bin_file: String?
     attr_accessor wasm_dir: String?
+    attr_accessor validate_props: bool
   end
 
   VERSION: String

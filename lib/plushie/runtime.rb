@@ -834,6 +834,7 @@ module Plushie
       @pending_interact = nil
       return unless pending
 
+      # @type var result: Hash[Symbol, untyped]
       result = {events: events}
       result[:view_error] = true if @consecutive_view_errors > 0
       pending[:timeout_timer]&.kill

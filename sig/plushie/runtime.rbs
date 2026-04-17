@@ -57,6 +57,7 @@ module Plushie
     def unregister_effect_stub: (String kind, ?timeout: Numeric) -> :ok
     def get_diagnostics: () -> Array[Event::System]
     def get_focused: () -> String?
+    def view_error?: () -> bool
     def interact: (String action, ?untyped selector, ?Hash[Symbol, untyped] payload, ?timeout: Numeric) -> Array[untyped]
     def await_async: (Symbol tag, ?timeout: Numeric) -> :ok
 
@@ -96,11 +97,13 @@ module Plushie
 
     def start_bridge: () -> void
     def build_settings: () -> Hash[Symbol, untyped]
+    def bridge_send_window_op: (String | Symbol op, String window_id, ?Hash[Symbol | String, untyped] settings) -> void
 
     # Renderer exit / restart
     def handle_renderer_exit: (untyped reason) -> void
     def handle_renderer_restarted: () -> void
     def fail_pending_interact: (String reason) -> void
+    def build_renderer_exit: (untyped reason) -> untyped
 
     # Init validation
     def validate_app!: (untyped app) -> void
