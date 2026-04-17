@@ -66,7 +66,7 @@ module Plushie
         when 'tree_hash_response' then decode_tree_hash_response(msg)
         when 'screenshot_response' then decode_screenshot_response(msg)
         when 'reset_response' then decode_reset_response(msg)
-        when 'effect_stub_registered', 'effect_stub_unregistered'
+        when 'effect_stub_register_ack', 'effect_stub_unregister_ack'
           { type: :effect_stub_ack, kind: msg['kind'] }
         else msg
         end

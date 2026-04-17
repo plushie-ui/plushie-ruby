@@ -520,14 +520,14 @@ class TestProtocolDecode < Minitest::Test
 
   # -- Effect stub ack responses -------------------------------------------
 
-  def test_decode_effect_stub_registered
-    result = D.dispatch_message({"type" => "effect_stub_registered", "kind" => "clipboard_read"})
+  def test_decode_effect_stub_register_ack
+    result = D.dispatch_message({"type" => "effect_stub_register_ack", "kind" => "clipboard_read"})
     assert_equal :effect_stub_ack, result[:type]
     assert_equal "clipboard_read", result[:kind]
   end
 
-  def test_decode_effect_stub_unregistered
-    result = D.dispatch_message({"type" => "effect_stub_unregistered", "kind" => "file_open"})
+  def test_decode_effect_stub_unregister_ack
+    result = D.dispatch_message({"type" => "effect_stub_unregister_ack", "kind" => "file_open"})
     assert_equal :effect_stub_ack, result[:type]
     assert_equal "file_open", result[:kind]
   end
