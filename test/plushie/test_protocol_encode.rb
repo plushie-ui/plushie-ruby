@@ -67,7 +67,7 @@ class TestProtocolEncode < Minitest::Test
     assert_equal "window_op", result["type"]
     assert_equal "resize", result["op"]
     assert_equal "main", result["window_id"]
-    assert_equal 800, result["settings"]["width"]
+    assert_equal 800, result["payload"]["width"]
   end
 
   def test_encode_effect
@@ -82,16 +82,16 @@ class TestProtocolEncode < Minitest::Test
     result = JSON.parse(E.encode_image_op("create_image", {handle: "img1", data: "\x89PNG"}, :json))
     assert_equal "image_op", result["type"]
     assert_equal "create_image", result["op"]
-    assert_equal "img1", result["handle"]
-    refute_nil result["data"]
+    assert_equal "img1", result["payload"]["handle"]
+    refute_nil result["payload"]["data"]
   end
 
   def test_encode_image_op_with_pixels
     pixels = "\x00" * 16
     result = JSON.parse(E.encode_image_op("create_image", {handle: "img1", pixels: pixels, width: 2, height: 2}, :json))
-    assert_equal 2, result["width"]
-    assert_equal 2, result["height"]
-    refute_nil result["pixels"]
+    assert_equal 2, result["payload"]["width"]
+    assert_equal 2, result["payload"]["height"]
+    refute_nil result["payload"]["pixels"]
   end
 
   def test_encode_command

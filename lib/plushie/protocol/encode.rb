@@ -131,41 +131,48 @@ module Plushie
 
       # Manage a window (open, close, resize, etc.).
       #
+      # Uses the unified +_op+ envelope: op-specific data lives under
+      # +payload+; the +window_id+ addressing field stays flat beside +op+.
+      #
       # @param op [String, Symbol] operation name
       # @param window_id [String] target window ID
-      # @param settings [Hash] operation-specific parameters
+      # @param payload [Hash] operation-specific parameters
       # @param format [:msgpack, :json]
       # @return [String]
-      def encode_window_op(op, window_id, settings, format = :msgpack)
+      def encode_window_op(op, window_id, payload, format = :msgpack)
         encode({
           type: "window_op", session: "",
-          op: op.to_s, window_id: window_id, settings: settings
+          op: op.to_s, window_id: window_id, payload: payload
         }, format)
       end
 
       # Send a system-level operation not tied to a specific window.
       #
+      # Uses the unified +_op+ envelope: op-specific data lives under +payload+.
+      #
       # @param op [String, Symbol]
-      # @param settings [Hash]
+      # @param payload [Hash]
       # @param format [:msgpack, :json]
       # @return [String]
-      def encode_system_op(op, settings, format = :msgpack)
+      def encode_system_op(op, payload, format = :msgpack)
         encode({
           type: "system_op", session: "",
-          op: op.to_s, settings: settings
+          op: op.to_s, payload: payload
         }, format)
       end
 
       # Send a system-level query.
       #
+      # Uses the unified +_op+ envelope: query-specific data lives under +payload+.
+      #
       # @param op [String, Symbol]
-      # @param settings [Hash]
+      # @param payload [Hash]
       # @param format [:msgpack, :json]
       # @return [String]
-      def encode_system_query(op, settings, format = :msgpack)
+      def encode_system_query(op, payload, format = :msgpack)
         encode({
           type: "system_query", session: "",
-          op: op.to_s, settings: settings
+          op: op.to_s, payload: payload
         }, format)
       end
 
@@ -193,6 +200,8 @@ module Plushie
 
       # Manage in-memory image handles (create, update, delete).
       #
+      # Uses the unified +_op+ envelope: op-specific data (+handle+,
+      # +data+, +pixels+, +width+, +height+) lives under +payload+.
       # Binary fields (data, pixels) are base64-encoded for JSON and
       # passed as raw binary for MessagePack.
       #
@@ -201,20 +210,20 @@ module Plushie
       # @param format [:msgpack, :json]
       # @return [String]
       def encode_image_op(op, payload, format = :msgpack)
-        msg = {type: "image_op", session: "", op: op.to_s}
-        msg[:handle] = payload[:handle] if payload[:handle]
+        op_payload = {}
+        op_payload[:handle] = payload[:handle] if payload[:handle]
 
         if payload[:data]
-          msg[:data] = encode_binary(payload[:data], format)
+          op_payload[:data] = encode_binary(payload[:data], format)
         end
 
         if payload[:pixels]
-          msg[:pixels] = encode_binary(payload[:pixels], format)
-          msg[:width] = payload[:width]
-          msg[:height] = payload[:height]
+          op_payload[:pixels] = encode_binary(payload[:pixels], format)
+          op_payload[:width] = payload[:width]
+          op_payload[:height] = payload[:height]
         end
 
-        encode(msg, format)
+        encode({type: "image_op", session: "", op: op.to_s, payload: op_payload}, format)
       end
 
       # ---------------------------------------------------------------
