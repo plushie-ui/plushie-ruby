@@ -44,7 +44,7 @@ module Plushie
     STATE_KEY = :__canvas_widget_state__
 
     # Subscription tag namespace prefix for canvas widgets.
-    CW_TAG_PREFIX = '__cw:'
+    CW_TAG_PREFIX = "__cw:"
 
     # Build a registry key from a window ID and a local widget path.
     #
@@ -99,7 +99,7 @@ module Plushie
         META_KEY => widget_module,
         PROPS_KEY => props
       }.freeze
-      Node.new(id: id, type: 'widget_placeholder', props: {}, meta: meta)
+      Node.new(id: id, type: "widget_placeholder", props: {}, meta: meta)
     end
 
     # Check if a node is a canvas widget placeholder.
@@ -191,10 +191,10 @@ module Plushie
       rest = tag_str[CW_TAG_PREFIX.length..]
       return nil if rest.nil? || rest.empty?
 
-      first = rest.index(':')
+      first = rest.index(":")
       return nil unless first
 
-      second = rest.index(':', first + 1)
+      second = rest.index(":", first + 1)
       return nil unless second
 
       window_id = rest[0...first].to_s
@@ -265,17 +265,17 @@ module Plushie
       return nil unless widget_module
       if window_id.nil? || window_id.empty?
         raise ArgumentError,
-              "canvas widget #{local_id.inspect} must be rendered inside a window"
+          "canvas widget #{local_id.inspect} must be rendered inside a window"
       end
 
       # Look up existing state or create initial.
       # scoped_id is already in "window#path" format from normalization.
       existing = registry[scoped_id]
       state = if existing
-                existing.state
-              else
-                widget_module.init
-              end
+        existing.state
+      else
+        widget_module.init
+      end
 
       entry = RegistryEntry.new(widget_module: widget_module, state: state, props: widget_props)
 
@@ -304,12 +304,12 @@ module Plushie
       private
 
       def collect_entries(node, acc, current_window_id)
-        current_window_id = node.id if node.type == 'window'
+        current_window_id = node.id if node.type == "window"
         meta = node.meta
         if meta.key?(META_KEY) && meta.key?(STATE_KEY)
           if current_window_id.nil? || current_window_id.empty?
             raise ArgumentError,
-                  "canvas widget #{node.id.inspect} must be rendered inside a window"
+              "canvas widget #{node.id.inspect} must be rendered inside a window"
           end
 
           widget_module = meta[META_KEY]
@@ -385,7 +385,7 @@ module Plushie
         in [:emit, kind, data]
           [[:emit, kind, data], entry.state]
         end
-      rescue StandardError => e
+      rescue => e
         warn "plushie: canvas_widget \"#{widget_id}\" raised in handle_event: #{e.class}: #{e.message}"
         [:ignored, entry.state]
       end
@@ -408,7 +408,7 @@ module Plushie
       end
 
       def split_widget_id(widget_id)
-        parts = widget_id.split('/')
+        parts = widget_id.split("/")
         if parts.length > 1
           [parts.last.to_s, Array(parts[0...-1]).reverse]
         else
@@ -418,10 +418,10 @@ module Plushie
 
       def normalize_emit_data(data, widget_module = nil, kind = nil)
         normalized = if data.is_a?(Hash)
-                       data.transform_keys(&:to_sym)
-                     else
-                       { value: data }
-                     end
+          data.transform_keys(&:to_sym)
+        else
+          {value: data}
+        end
 
         validate_emit_fields!(normalized, widget_module, kind) if widget_module && kind
 
@@ -431,25 +431,20 @@ module Plushie
       # Validate emitted data against declared event field specs.
       def validate_emit_fields!(data, widget_module, kind)
         specs = if widget_module.respond_to?(:widget_event_specs)
-                  widget_module.widget_event_specs
-                else
-                  []
-                end
+          widget_module.widget_event_specs
+        else
+          []
+        end
         spec = specs.find { |s| s[:name] == kind.to_sym }
         return unless spec && spec[:fields]
 
         fields = spec[:fields]
-        unless data.is_a?(Hash)
-          raise ArgumentError,
-                "event #{kind.inspect} declares fields #{fields.keys.inspect}, " \
-                "but emit data is not a Hash: #{data.inspect}"
-        end
 
         required = fields.select { |_, v| v[:required] }.keys
         missing = required.reject { |k| data.key?(k) }
         unless missing.empty?
           raise ArgumentError,
-                "event #{kind.inspect} is missing required fields: #{missing.map(&:inspect).join(', ')}"
+            "event #{kind.inspect} is missing required fields: #{missing.map(&:inspect).join(", ")}"
         end
 
         fields.each do |field_name, field_spec|
@@ -461,8 +456,8 @@ module Plushie
           next if value.is_a?(expected_type)
 
           raise ArgumentError,
-                "event #{kind.inspect} field #{field_name.inspect} expects " \
-                "#{expected_type}, got #{value.class}: #{value.inspect}"
+            "event #{kind.inspect} field #{field_name.inspect} expects " \
+            "#{expected_type}, got #{value.class}: #{value.inspect}"
         end
       end
 
@@ -474,7 +469,7 @@ module Plushie
         forward = scope.reverse
         result = []
         forward.length.downto(1) do |n|
-          result << Array(forward[0...n]).join('/')
+          result << Array(forward[0...n]).join("/")
         end
         result
       end
@@ -483,7 +478,7 @@ module Plushie
       def scope_to_id(scope, id)
         return id if scope.empty?
 
-        (scope.reverse + [id]).join('/')
+        (scope.reverse + [id]).join("/")
       end
 
       def namespace_tag(sub, widget_id)
@@ -498,15 +493,15 @@ module Plushie
       end
 
       def extract_id(event)
-        event.respond_to?(:id) ? (event.id || '').to_s : ''
+        event.respond_to?(:id) ? (event.id || "").to_s : ""
       end
 
       def extract_window_id(event)
-        event.respond_to?(:window_id) ? event.window_id.to_s : ''
+        event.respond_to?(:window_id) ? event.window_id.to_s : ""
       end
 
       def split_widget_key(key)
-        key.split('#', 2)
+        key.split("#", 2)
       end
     end
   end

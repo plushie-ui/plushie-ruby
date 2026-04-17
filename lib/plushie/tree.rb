@@ -227,6 +227,17 @@ module Plushie
       # Expand table rows: prop to table_row/table_cell children.
       # If a table has a :rows prop (data shorthand) and no children,
       # convert each row map to a table_row node with text cell children.
+      # Combining rows: prop with block children is an error.
+      if node.type == 'table'
+        has_rows = node.props[:rows].is_a?(Array) && !node.props[:rows].empty?
+        has_children = !node.children.empty?
+        if has_rows && has_children
+          raise ArgumentError,
+                "table #{node.id.inspect}: cannot combine rows: prop with " \
+                'block children (table_row). Use one or the other.'
+        end
+      end
+
       table_children = if node.type == 'table' && node.children.empty? && node.props[:rows].is_a?(Array) && !node.props[:rows].empty?
                          expand_table_rows(node.props[:rows], node.props[:columns])
                        else
@@ -304,7 +315,16 @@ module Plushie
     # Requires an :id key in each row for stable row identity.
     def self.expand_table_rows(rows, columns)
       col_keys = if columns.is_a?(Array)
-                   columns.map { |col| (col[:key] || col['key']).to_s }
+                   columns.map do |col|
+                     case col
+                     in Hash
+                       (col[:key] || col['key']).to_s
+                     in String, Symbol
+                       col.to_s
+                     else
+                       col.to_s
+                     end
+                   end
                  else
                    []
                  end
