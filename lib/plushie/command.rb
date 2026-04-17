@@ -20,7 +20,7 @@ module Plushie
   # - *Text* ({Command::Text}): select_all, move_cursor_to, select_range, ...
   # - *Scroll* ({Command::Scroll}): scroll_to, snap_to, scroll_by, ...
   # - *Window* ({Command::Window}): resize_window, close_window, focus_window, ...
-  # - *Window queries* ({Command::WindowQuery}): get_window_size, get_mode, ...
+  # - *Window queries* ({Command::WindowQuery}): window_size, window_mode, ...
   # - *Image* ({Command::Image}): create_image, update_image, delete_image, ...
   # - *Widget command*: widget_command for native widget operations
   #
@@ -191,11 +191,11 @@ module Plushie
 
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.get_system_theme(tag) = Cmd.new(type: :system_query, payload: {op: "get_system_theme", tag: tag.to_s})
+    def self.system_theme(tag) = Cmd.new(type: :system_query, payload: {op: "get_system_theme", tag: tag.to_s})
 
     # @param tag [Symbol]
     # @return [Cmd]
-    def self.get_system_info(tag) = Cmd.new(type: :system_query, payload: {op: "get_system_info", tag: tag.to_s})
+    def self.system_info(tag) = Cmd.new(type: :system_query, payload: {op: "get_system_info", tag: tag.to_s})
 
     # -------------------------------------------------------------------
     # Widget queries (global, not targeted at a widget)
@@ -285,12 +285,12 @@ module Plushie
       def_delegator Window, :screenshot
 
       # Window queries
-      def_delegator WindowQuery, :get_window_size
-      def_delegator WindowQuery, :get_window_position
+      def_delegator WindowQuery, :window_size
+      def_delegator WindowQuery, :window_position
       def_delegator WindowQuery, :is_maximized
       def_delegator WindowQuery, :is_minimized
-      def_delegator WindowQuery, :get_mode
-      def_delegator WindowQuery, :get_scale_factor
+      def_delegator WindowQuery, :window_mode
+      def_delegator WindowQuery, :scale_factor
       def_delegator WindowQuery, :raw_id
       def_delegator WindowQuery, :monitor_size
 

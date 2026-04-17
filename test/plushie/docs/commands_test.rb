@@ -157,16 +157,16 @@ class DocsCommandsTest < Minitest::Test
 
   # -- Window queries --
 
-  def test_commands_get_window_size_construct
-    cmd = C.get_window_size('main', :got_size)
+  def test_commands_window_size_construct
+    cmd = C.window_size('main', :got_size)
     assert_equal :window_query, cmd.type
     assert_equal 'get_size', cmd.payload[:op]
     assert_equal 'main', cmd.payload[:window_id]
     assert_equal 'got_size', cmd.payload[:tag]
   end
 
-  def test_commands_get_system_theme_construct
-    cmd = C.get_system_theme(:theme_detected)
+  def test_commands_system_theme_construct
+    cmd = C.system_theme(:theme_detected)
     assert_equal :system_query, cmd.type
     assert_equal 'get_system_theme', cmd.payload[:op]
     assert_equal 'theme_detected', cmd.payload[:tag]

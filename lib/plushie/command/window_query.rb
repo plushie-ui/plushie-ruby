@@ -5,7 +5,7 @@ module Plushie
     # Window query commands. Responses arrive as Event::System.
     #
     # @example
-    #   Command::WindowQuery.get_window_size("main", :size_check)
+    #   Command::WindowQuery.window_size("main", :size_check)
     #
     module WindowQuery
       module_function
@@ -13,12 +13,12 @@ module Plushie
       # @param window_id [String]
       # @param tag [Symbol]
       # @return [Cmd]
-      def get_window_size(window_id, tag) = Cmd.new(type: :window_query, payload: {op: "get_size", window_id:, tag: tag.to_s})
+      def window_size(window_id, tag) = Cmd.new(type: :window_query, payload: {op: "get_size", window_id:, tag: tag.to_s})
 
       # @param window_id [String]
       # @param tag [Symbol]
       # @return [Cmd]
-      def get_window_position(window_id, tag) = Cmd.new(type: :window_query, payload: {op: "get_position", window_id:, tag: tag.to_s})
+      def window_position(window_id, tag) = Cmd.new(type: :window_query, payload: {op: "get_position", window_id:, tag: tag.to_s})
 
       # @param window_id [String]
       # @param tag [Symbol]
@@ -33,12 +33,12 @@ module Plushie
       # @param window_id [String]
       # @param tag [Symbol]
       # @return [Cmd]
-      def get_mode(window_id, tag) = Cmd.new(type: :window_query, payload: {op: "get_mode", window_id:, tag: tag.to_s})
+      def window_mode(window_id, tag) = Cmd.new(type: :window_query, payload: {op: "get_mode", window_id:, tag: tag.to_s})
 
       # @param window_id [String]
       # @param tag [Symbol]
       # @return [Cmd]
-      def get_scale_factor(window_id, tag) = Cmd.new(type: :window_query, payload: {op: "get_scale_factor", window_id:, tag: tag.to_s})
+      def scale_factor(window_id, tag) = Cmd.new(type: :window_query, payload: {op: "get_scale_factor", window_id:, tag: tag.to_s})
 
       # @param window_id [String]
       # @param tag [Symbol]

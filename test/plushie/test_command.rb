@@ -219,14 +219,14 @@ class TestCommand < Minitest::Test
 
   # -- Window queries ------------------------------------------------------
 
-  def test_get_window_size
-    cmd = C.get_window_size('main', :size_check)
+  def test_window_size
+    cmd = C.window_size('main', :size_check)
     assert_equal :window_query, cmd.type
     assert_equal 'get_size', cmd.payload[:op]
   end
 
-  def test_get_system_theme
-    cmd = C.get_system_theme(:theme)
+  def test_system_theme
+    cmd = C.system_theme(:theme)
     assert_equal :system_query, cmd.type
     assert_equal 'get_system_theme', cmd.payload[:op]
   end
@@ -292,8 +292,8 @@ class TestCommand < Minitest::Test
     assert_equal 'img_list', cmd.payload[:tag]
   end
 
-  def test_get_system_info
-    cmd = C.get_system_info(:info)
+  def test_system_info
+    cmd = C.system_info(:info)
     assert_equal :system_query, cmd.type
     assert_equal 'get_system_info', cmd.payload[:op]
   end
