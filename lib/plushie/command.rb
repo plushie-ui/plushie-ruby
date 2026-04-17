@@ -272,7 +272,7 @@ module Plushie
       def_delegator Window, :set_window_level
       def_delegator Window, :drag_window
       def_delegator Window, :drag_resize_window
-      def_delegator Window, :request_user_attention
+      def_delegator Window, :request_attention
       def_delegator Window, :set_resizable
       def_delegator Window, :set_min_size
       def_delegator Window, :set_max_size

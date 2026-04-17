@@ -17,7 +17,7 @@ module Plushie
     #
     # == Focus and interaction
     # focus_window, drag_window, drag_resize_window,
-    # request_user_attention, show_system_menu
+    # request_attention, show_system_menu
     #
     # == Input
     # enable_mouse_passthrough, disable_mouse_passthrough
@@ -89,7 +89,7 @@ module Plushie
       # @param window_id [String]
       # @param urgency [Symbol] :informational, :critical
       # @return [Cmd]
-      def request_user_attention(window_id, urgency) = Cmd.new(type: :window_op, payload: {op: "request_attention", window_id:, urgency: urgency&.to_s})
+      def request_attention(window_id, urgency) = Cmd.new(type: :window_op, payload: {op: "request_attention", window_id:, urgency: urgency&.to_s})
 
       # @param window_id [String]
       # @param tag [Symbol]
