@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'securerandom'
+require "securerandom"
 
 module Plushie
   module Test
@@ -35,14 +35,14 @@ module Plushie
       # Click a button widget.
       # @param selector [String] "#id" or "text content"
       def click(selector)
-        interact('click', selector)
+        interact("click", selector)
       end
 
       # Type text into a text_input or text_editor.
       # @param selector [String]
       # @param text [String]
       def type_text(selector, text)
-        interact('type_text', selector, text: text)
+        interact("type_text", selector, text: text)
       end
 
       # Submit a text_input (press Enter).
@@ -50,55 +50,55 @@ module Plushie
       def submit(selector)
         # Read current value from local tree
         node = find_in_local_tree(selector)
-        value = node_prop(node, 'value') || ''
-        interact('submit', selector, value: value)
+        value = node_prop(node, "value") || ""
+        interact("submit", selector, value: value)
       end
 
       # Toggle a checkbox or toggler.
       # @param selector [String]
       def toggle(selector)
         node = find_in_local_tree(selector)
-        current = node_prop(node, 'checked') || node_prop(node, 'active') || false
-        interact('toggle', selector, value: !current)
+        current = node_prop(node, "checked") || node_prop(node, "active") || false
+        interact("toggle", selector, value: !current)
       end
 
       # Select a value from pick_list, combo_box, or radio.
       # @param selector [String]
       # @param value [String]
       def select(selector, value)
-        interact('select', selector, value: value)
+        interact("select", selector, value: value)
       end
 
       # Slide a slider to a value.
       # @param selector [String]
       # @param value [Numeric]
       def slide(selector, value)
-        interact('slide', selector, value: value)
+        interact("slide", selector, value: value)
       end
 
       # Press a key (key down).
       # @param key [String] key combo string, e.g. "ctrl+s", "Enter", "a"
       def press(key)
-        interact('press', nil, combo: key)
+        interact("press", nil, combo: key)
       end
 
       # Release a key (key up).
       # @param key [String] key combo string
       def release(key)
-        interact('release', nil, combo: key)
+        interact("release", nil, combo: key)
       end
 
       # Type a key (press + release).
       # @param key [String] key combo string
       def type_key(key)
-        interact('type_key', nil, combo: key)
+        interact("type_key", nil, combo: key)
       end
 
       # Move cursor to coordinates.
       # @param x [Numeric]
       # @param y [Numeric]
       def move_to(x, y)
-        interact('move_to', nil, x: x, y: y)
+        interact("move_to", nil, x: x, y: y)
       end
 
       # -- Queries (inspect the tree) ------------------------------------------
@@ -109,11 +109,11 @@ module Plushie
       def find(selector)
         id = SecureRandom.hex(4)
         response = @pool.send_and_wait(
-          { type: 'query', id: id, target: 'find', selector: build_selector(selector) },
+          {type: "query", id: id, target: "find", selector: build_selector(selector)},
           @session_id, :query_response
         )
-        data = response[:data] || response['data']
-        data.nil? || data.empty? ? nil : data
+        data = response[:data] || response["data"]
+        (data.nil? || data.empty?) ? nil : data
       end
 
       # Find a widget by selector. Raises with a helpful error if not found,
@@ -126,12 +126,12 @@ module Plushie
         result = find(selector)
         unless result
           all_ids = Tree.ids(@tree)
-          target = selector.start_with?('#') ? selector[1..] : selector
+          target = selector.start_with?("#") ? selector[1..] : selector
           suggestions = find_similar_ids(target, all_ids)
 
           msg = "Widget not found: #{selector}\n"
-          msg << "\n  Did you mean: #{suggestions.map { "##{_1}" }.join(', ')}\n" if suggestions.any?
-          msg << "\n  Current tree IDs: #{all_ids.join(', ')}"
+          msg << "\n  Did you mean: #{suggestions.map { "##{_1}" }.join(", ")}\n" if suggestions.any?
+          msg << "\n  Current tree IDs: #{all_ids.join(", ")}"
           raise Plushie::Error, msg
         end
         result
@@ -142,10 +142,10 @@ module Plushie
       def tree
         id = SecureRandom.hex(4)
         response = @pool.send_and_wait(
-          { type: 'query', id: id, target: 'tree', selector: {} },
+          {type: "query", id: id, target: "tree", selector: {}},
           @session_id, :query_response
         )
-        response[:data] || response['data']
+        response[:data] || response["data"]
       end
 
       # Capture a structural tree hash.
@@ -154,7 +154,7 @@ module Plushie
       def tree_hash(name)
         id = SecureRandom.hex(4)
         @pool.send_and_wait(
-          { type: 'tree_hash', id: id, name: name },
+          {type: "tree_hash", id: id, name: name},
           @session_id, :tree_hash_response
         )
       end
@@ -167,7 +167,7 @@ module Plushie
       def screenshot(name, width: 1024, height: 768)
         id = SecureRandom.hex(4)
         @pool.send_and_wait(
-          { type: 'screenshot', id: id, name: name, width: width, height: height },
+          {type: "screenshot", id: id, name: name, width: width, height: height},
           @session_id, :screenshot_response
         )
       end
@@ -185,7 +185,7 @@ module Plushie
       # @param response [Object] canned response
       def register_effect_stub(kind, response)
         @pool.send_message(
-          { type: 'register_effect_stub', kind: kind.to_s, response: response },
+          {type: "register_effect_stub", kind: kind.to_s, response: response},
           @session_id
         )
         @pool.read_message(@session_id, timeout: 5)
@@ -196,7 +196,7 @@ module Plushie
       # @param kind [String] effect kind
       def unregister_effect_stub(kind)
         @pool.send_message(
-          { type: 'unregister_effect_stub', kind: kind.to_s },
+          {type: "unregister_effect_stub", kind: kind.to_s},
           @session_id
         )
         @pool.read_message(@session_id, timeout: 5)
@@ -214,7 +214,7 @@ module Plushie
       # Stop the session and release the renderer session.
       def stop
         @pool.unregister(@session_id)
-      rescue StandardError => e
+      rescue => e
         # Swallow errors during cleanup
         warn "plushie test: error during session cleanup: #{e.message}" if $DEBUG
       end
@@ -226,8 +226,8 @@ module Plushie
       def element_text(element)
         return nil unless element
 
-        props = element['props'] || element[:props] || {}
-        props['content'] || props['label'] || props['value'] || props['placeholder']
+        props = element["props"] || element[:props] || {}
+        props["content"] || props["label"] || props["value"] || props["placeholder"]
       end
 
       private
@@ -242,7 +242,7 @@ module Plushie
         # Send settings + initial snapshot
         settings = @app.settings
         @pool.send_message(
-          { type: 'settings', settings: settings.merge(protocol_version: Protocol::PROTOCOL_VERSION) },
+          {type: "settings", settings: settings.merge(protocol_version: Protocol::PROTOCOL_VERSION)},
           @session_id
         )
 
@@ -261,18 +261,18 @@ module Plushie
         # Scoped IDs like "#canvas/element" reference canvas interactive
         # elements. The element isn't a tree node, so validate the parent
         # canvas node instead. Element existence is verified renderer-side.
-        if selector&.start_with?('#')
+        if selector&.start_with?("#")
           lookup = scoped_parent_selector(selector) || selector
           unless find_in_local_tree(lookup)
             all_ids = @tree ? Tree.ids(@tree) : []
             err = "Widget not found: #{selector.inspect}. The #{action} action requires a valid widget selector."
-            err << "\n  Current tree IDs: #{all_ids.join(', ')}" if all_ids.any?
+            err << "\n  Current tree IDs: #{all_ids.join(", ")}" if all_ids.any?
             raise Plushie::Error, err
           end
         end
 
         id = SecureRandom.hex(4)
-        msg = { type: 'interact', id: id, action: action, payload: payload }
+        msg = {type: "interact", id: id, action: action, payload: payload}
         msg[:selector] = build_selector(selector) if selector
         @pool.send_message(msg, @session_id)
 
@@ -280,7 +280,7 @@ module Plushie
         begin
           loop do
             response = @pool.read_message(@session_id, timeout: 30)
-            response_type = (response[:type] || response['type'])&.to_sym
+            response_type = (response[:type] || response["type"])&.to_sym
 
             case response_type
             when :interact_step
@@ -298,7 +298,7 @@ module Plushie
             end
           end
         rescue Timeout::Error
-          sel_desc = selector ? " on #{selector.inspect}" : ''
+          sel_desc = selector ? " on #{selector.inspect}" : ""
           raise Timeout::Error, "interact timed out: action=#{action.inspect}#{sel_desc}"
         end
       end
@@ -312,7 +312,7 @@ module Plushie
           result = @app.update(@model, event)
           @model, commands = unwrap_result(result)
           process_commands_sync(commands)
-        rescue StandardError => e
+        rescue => e
           @model = saved
           warn "plushie test: error processing event: #{e.class}: #{e.message}" if $DEBUG
         end
@@ -329,7 +329,7 @@ module Plushie
           @model, commands = unwrap_result(result)
           process_commands_sync(commands)
           render_and_snapshot
-        rescue StandardError => e
+        rescue => e
           @model = saved
           warn "plushie test: error processing event: #{e.class}: #{e.message}" if $DEBUG
         end
@@ -350,7 +350,7 @@ module Plushie
 
       def send_snapshot
         wire = Tree.node_to_wire(@tree)
-        @pool.send_message({ type: 'snapshot', tree: wire }, @session_id)
+        @pool.send_message({type: "snapshot", tree: wire}, @session_id)
       end
 
       # -- Command processing (synchronous for tests) -------------------------
@@ -370,7 +370,7 @@ module Plushie
             r = @app.update(@model, event)
             @model, sub_cmds = unwrap_result(r)
             process_commands_sync(sub_cmds)
-          rescue StandardError
+          rescue
             @model = saved
           end
         when :stream
@@ -383,7 +383,7 @@ module Plushie
               r = @app.update(@model, event)
               @model, sub_cmds = unwrap_result(r)
               process_commands_sync(sub_cmds)
-            rescue StandardError
+            rescue
               @model = saved
             end
           }
@@ -394,7 +394,7 @@ module Plushie
             r = @app.update(@model, final_event)
             @model, sub_cmds = unwrap_result(r)
             process_commands_sync(sub_cmds)
-          rescue StandardError
+          rescue
             @model = saved
           end
         when :done
@@ -404,7 +404,7 @@ module Plushie
             r = @app.update(@model, event)
             @model, sub_cmds = unwrap_result(r)
             process_commands_sync(sub_cmds)
-          rescue StandardError
+          rescue
             @model = saved
           end
         else
@@ -441,8 +441,8 @@ module Plushie
         window_id = nil
         target = selector
 
-        if selector.include?('#') && !selector.start_with?('#')
-          parts = selector.split('#', 2)
+        if selector.include?("#") && !selector.start_with?("#")
+          parts = selector.split("#", 2)
           unless parts[0].empty?
             window_id = parts[0]
             target = parts[1]
@@ -450,20 +450,20 @@ module Plushie
         end
 
         # Strip leading # from ID selectors
-        target = target.delete_prefix('#') if target.start_with?('#')
+        target = target.delete_prefix("#") if target.start_with?("#")
 
-        resolved = if target.start_with?(':')
-                     # State pseudo-selector (:focused)
-                     { by: target.delete_prefix(':') }
-                   elsif target.start_with?('[') && target.end_with?(']')
-                     # Attribute selector [text=Save]
-                     inner = target[1..-2]
-                     attr, value = inner.split('=', 2)
-                     { by: attr, value: value || '' }
-                   else
-                     # ID selector
-                     { by: 'id', value: target }
-                   end
+        resolved = if target.start_with?(":")
+          # State pseudo-selector (:focused)
+          {by: target.delete_prefix(":")}
+        elsif target.start_with?("[") && target.end_with?("]")
+          # Attribute selector [text=Save]
+          inner = target[1..-2]
+          attr, value = inner.split("=", 2)
+          {by: attr, value: value || ""}
+        else
+          # ID selector
+          {by: "id", value: target}
+        end
 
         resolved[:window] = window_id if window_id
         resolved
@@ -472,39 +472,39 @@ module Plushie
       def build_selector(selector)
         case selector
         when String
-          if selector.start_with?('#')
+          if selector.start_with?("#")
             resolve_id_selector(selector)
-          elsif selector.start_with?(':', '[') || (selector.include?('#') && !selector.start_with?('#'))
+          elsif selector.start_with?(":", "[") || (selector.include?("#") && !selector.start_with?("#"))
             parse_selector(selector)
           else
             # Bare string: treat as ID
             resolve_id_selector("##{selector}")
           end
         when Hash then selector
-        when :focused then { by: 'focused' }
-        else { by: 'text', value: selector.to_s }
+        when :focused then {by: "focused"}
+        else {by: "text", value: selector.to_s}
         end
       end
 
       def resolve_id_selector(selector)
         window_id, widget_id = parse_id_selector(selector)
-        return { by: 'id', value: widget_id, window_id: window_id } unless @tree
+        return {by: "id", value: widget_id, window_id: window_id} unless @tree
 
         exact_matches = find_exact_id_targets(@tree, widget_id)
         exact_matches.select! { |match| match[:window_id] == window_id } if window_id
 
         if exact_matches.length == 1
           match = exact_matches.first
-          return { by: 'id', value: match[:id], window_id: match[:window_id] }
+          return {by: "id", value: match[:id], window_id: match[:window_id]}
         end
 
-        if widget_id.include?('/')
+        if widget_id.include?("/")
           if exact_matches.length > 1
             raise Plushie::Error,
-                  "Selector #{selector.inspect} matches multiple windows. Prefix it with \"#<window_id>::\"."
+              "Selector #{selector.inspect} matches multiple windows. Prefix it with \"#<window_id>::\"."
           end
 
-          return window_id ? { by: 'id', value: widget_id, window_id: window_id } : { by: 'id', value: widget_id }
+          return window_id ? {by: "id", value: widget_id, window_id: window_id} : {by: "id", value: widget_id}
         end
 
         local_matches = find_local_id_targets(@tree, widget_id)
@@ -512,33 +512,33 @@ module Plushie
 
         if local_matches.length == 1
           match = local_matches.first
-          return { by: 'id', value: match[:id], window_id: match[:window_id] }
+          return {by: "id", value: match[:id], window_id: match[:window_id]}
         end
 
         if local_matches.length > 1
           raise Plushie::Error,
-                "Selector #{selector.inspect} is ambiguous across windows. Prefix it with \"#<window_id>::\" or use the full scoped id."
+            "Selector #{selector.inspect} is ambiguous across windows. Prefix it with \"#<window_id>::\" or use the full scoped id."
         end
 
-        window_id ? { by: 'id', value: widget_id, window_id: window_id } : { by: 'id', value: widget_id }
+        window_id ? {by: "id", value: widget_id, window_id: window_id} : {by: "id", value: widget_id}
       end
 
       def parse_id_selector(selector)
         raw = selector[1..]
-        if raw.include?('::')
-          raw.split('::', 2)
+        if raw.include?("::")
+          raw.split("::", 2)
         else
           [nil, raw]
         end
       end
 
       def find_exact_id_targets(node, target_id, current_window_id = nil, matches = [])
-        node_window_id = if node.type == 'window'
-                           node.id
-                         else
-                           current_window_id
-                         end
-        matches << { id: node.id, window_id: node_window_id } if node_window_id && node.id == target_id
+        node_window_id = if node.type == "window"
+          node.id
+        else
+          current_window_id
+        end
+        matches << {id: node.id, window_id: node_window_id} if node_window_id && node.id == target_id
 
         node.children.each do |child|
           find_exact_id_targets(child, target_id, node_window_id, matches)
@@ -548,12 +548,12 @@ module Plushie
       end
 
       def find_local_id_targets(node, local_id, current_window_id = nil, matches = [])
-        node_window_id = if node.type == 'window'
-                           node.id
-                         else
-                           current_window_id
-                         end
-        matches << { id: node.id, window_id: node_window_id } if node_window_id && node.id.split('/').last == local_id
+        node_window_id = if node.type == "window"
+          node.id
+        else
+          current_window_id
+        end
+        matches << {id: node.id, window_id: node_window_id} if node_window_id && node.id.split("/").last == local_id
 
         node.children.each do |child|
           find_local_id_targets(child, local_id, node_window_id, matches)
@@ -565,15 +565,15 @@ module Plushie
       # For scoped selectors like "#canvas/element", returns "#canvas".
       # Returns nil for non-scoped selectors.
       def scoped_parent_selector(selector)
-        raw = selector.delete_prefix('#')
-        parts = raw.split('/', 2)
-        parts.length == 2 ? "##{parts[0]}" : nil
+        raw = selector.delete_prefix("#")
+        parts = raw.split("/", 2)
+        (parts.length == 2) ? "##{parts[0]}" : nil
       end
 
       def find_in_local_tree(selector)
         return nil unless @tree
 
-        _window_id, id = parse_id_selector(selector.start_with?('#') ? selector : "##{selector}")
+        _window_id, id = parse_id_selector(selector.start_with?("#") ? selector : "##{selector}")
         Tree.find(@tree, id) || begin
           matches = find_local_id_targets(@tree, id)
           match = matches.one? ? matches.first : nil
@@ -584,7 +584,7 @@ module Plushie
       def node_prop(node, key)
         return nil unless node
 
-        props = node.is_a?(Hash) ? (node[:props] || node['props'] || {}) : node.props
+        props = node.is_a?(Hash) ? (node[:props] || node["props"] || {}) : node.props
         props[key.to_sym] || props[key.to_s]
       end
 
@@ -604,7 +604,7 @@ module Plushie
       end
 
       def extract_events(response)
-        raw = response[:events] || response['events'] || []
+        raw = response[:events] || response["events"] || []
         raw.filter_map do |e|
           if e.is_a?(Hash)
             Protocol::Decode.decode_event(e.transform_keys(&:to_s))
@@ -624,13 +624,13 @@ module Plushie
         return [] if target.nil? || target.empty?
 
         scored = all_ids.filter_map do |id|
-          local = id.split('/').last
+          local = id.split("/").last
           # Exact substring match scores highest
           if local.include?(target) || target.include?(local)
             [id, 0]
           else
             dist = levenshtein(target.downcase, local.downcase)
-            dist <= [target.length / 2, 3].max ? [id, dist] : nil
+            (dist <= [target.length / 2, 3].max) ? [id, dist] : nil
           end
         end
 
@@ -657,7 +657,7 @@ module Plushie
 
         (1..a.length).each do |i|
           (1..b.length).each do |j|
-            cost = a[i - 1] == b[j - 1] ? 0 : 1
+            cost = (a[i - 1] == b[j - 1]) ? 0 : 1
             matrix[i][j] = [
               matrix[i - 1][j] + 1,     # deletion
               matrix[i][j - 1] + 1,     # insertion

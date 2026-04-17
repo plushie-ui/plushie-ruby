@@ -72,7 +72,7 @@ module Plushie
         case value
         when Spec then value.to_wire
         when Hash
-          mnemonic = value[:mnemonic] || value['mnemonic']
+          mnemonic = value[:mnemonic] || value["mnemonic"]
           validate_mnemonic!(mnemonic) if mnemonic
           value.compact
         when nil then nil
@@ -95,7 +95,7 @@ module Plushie
         return unless char.length != 1
 
         raise ArgumentError,
-              "mnemonic must be a single character, got: #{char.inspect}"
+          "mnemonic must be a single character, got: #{char.inspect}"
       end
     end
   end

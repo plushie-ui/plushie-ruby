@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'fileutils'
-require 'pathname'
+require "fileutils"
+require "pathname"
 
 module Plushie
   module Widget
@@ -41,15 +41,15 @@ module Plushie
         return filter_native(from_config) if from_config.is_a?(Array) && from_config.any?
 
         # Priority 2: env var (for CI / one-off builds)
-        env = ENV['PLUSHIE_WIDGETS'] || ENV['PLUSHIE_EXTENSIONS']
+        env = ENV["PLUSHIE_WIDGETS"] || ENV["PLUSHIE_EXTENSIONS"]
         return [] unless env && !env.strip.empty?
 
-        names = env.split(',').map(&:strip).reject(&:empty?)
+        names = env.split(",").map(&:strip).reject(&:empty?)
         classes = names.map do |name|
           Object.const_get(name)
         rescue NameError
           raise Error, "Widget class '#{name}' specified in PLUSHIE_WIDGETS could not be found. " \
-            'Ensure the class is defined and the file is required before running the build.'
+            "Ensure the class is defined and the file is required before running the build."
         end
         filter_native(classes)
       end
@@ -83,10 +83,10 @@ module Plushie
         return if dupes.empty?
 
         msgs = dupes.map do |type, entries|
-          "  #{type}: #{entries.map { |_, m| m.name }.join(', ')}"
+          "  #{type}: #{entries.map { |_, m| m.name }.join(", ")}"
         end
         raise Error, "Widget type name collision detected:\n#{msgs.join("\n")}\n\n" \
-          'Each type name must be handled by exactly one widget.'
+          "Each type name must be handled by exactly one widget."
       end
 
       # Validate no crate name collisions between widgets.
@@ -102,11 +102,11 @@ module Plushie
         return if dupes.empty?
 
         msgs = dupes.map do |name, entries|
-          "  #{name}: #{entries.map { |_, m| m.name }.join(', ')}"
+          "  #{name}: #{entries.map { |_, m| m.name }.join(", ")}"
         end
         raise Error, "Widget crate name collision detected:\n#{msgs.join("\n")}\n\n" \
           "Each widget's native_crate path must have a unique basename.\n" \
-          'Rename one of the crate directories to resolve the conflict.'
+          "Rename one of the crate directories to resolve the conflict."
       end
 
       # Resolve crate paths with directory traversal security check.
@@ -139,7 +139,7 @@ module Plushie
         return if constructor.match?(RUST_CONSTRUCTOR_PATTERN)
 
         raise Error, "Widget #{mod.name} rust_constructor #{constructor.inspect} " \
-          'contains invalid characters. Expected a Rust identifier, path (::), ' \
+          "contains invalid characters. Expected a Rust identifier, path (::), " \
           'or simple invocation (e.g. "MyWidget::new()" or "MyWidget::<Config>::new()")'
       end
 
@@ -151,10 +151,10 @@ module Plushie
       # @return [void]
       def check_widget_versions!(crate_paths)
         expected = Plushie::BINARY_VERSION
-        expected_parts = expected.split('.').map(&:to_i)
+        expected_parts = expected.split(".").map(&:to_i)
 
         crate_paths.each do |mod, crate_path|
-          cargo_toml = File.join(crate_path, 'Cargo.toml')
+          cargo_toml = File.join(crate_path, "Cargo.toml")
           next unless File.exist?(cargo_toml)
 
           content = File.read(cargo_toml)
@@ -162,22 +162,22 @@ module Plushie
           next unless dep_version
 
           # Strip leading operators (^, ~, >=, =)
-          base = dep_version.gsub(/\A[^0-9]*/, '')
-          dep_parts = base.split('.').map(&:to_i)
+          base = dep_version.gsub(/\A[^0-9]*/, "")
+          dep_parts = base.split(".").map(&:to_i)
 
           # Pre-1.0: major AND minor must match. 1.0+: major must match.
           compatible = if expected_parts[0] == 0
-                         dep_parts[0] == expected_parts[0] && dep_parts[1] == expected_parts[1]
-                       else
-                         dep_parts[0] == expected_parts[0]
-                       end
+            dep_parts[0] == expected_parts[0] && dep_parts[1] == expected_parts[1]
+          else
+            dep_parts[0] == expected_parts[0]
+          end
 
           next if compatible
 
           raise Error,
-                "widget #{mod.name} depends on plushie-widget-sdk #{dep_version}, " \
-                "but this project targets #{expected}. " \
-                "Update the widget's Rust crate to a compatible version."
+            "widget #{mod.name} depends on plushie-widget-sdk #{dep_version}, " \
+            "but this project targets #{expected}. " \
+            "Update the widget's Rust crate to a compatible version."
         end
       end
 
@@ -189,47 +189,47 @@ module Plushie
       #
       # When source_path is not set, uses crates.io version dependencies.
       def generate_cargo_toml(build_dir, bin_name, widgets, crate_paths)
-        source_path = ENV['PLUSHIE_SOURCE_PATH'] || Plushie.configuration.source_path
+        source_path = ENV["PLUSHIE_SOURCE_PATH"] || Plushie.configuration.source_path
 
         core_dep, bin_dep, patch_section = if source_path && File.directory?(source_path)
-                                             core_rel = relative_path(
-                                               File.join(source_path, 'crates', 'plushie-widget-sdk'), build_dir
-                                             )
-                                             bin_rel = relative_path(
-                                               File.join(source_path, 'crates', 'plushie-renderer'), build_dir
-                                             )
+          core_rel = relative_path(
+            File.join(source_path, "crates", "plushie-widget-sdk"), build_dir
+          )
+          bin_rel = relative_path(
+            File.join(source_path, "crates", "plushie-renderer"), build_dir
+          )
 
-                                             # Patch section redirects crates.io deps to local source so
-                                             # widget crates that depend on plushie-widget-sdk from crates.io get
-                                             # the same local checkout. Without this, Cargo treats them as
-                                             # different crates and trait impls don't match.
-                                             ext_abs = File.expand_path(File.join(source_path, 'crates',
-                                                                                  'plushie-widget-sdk'))
-                                             renderer_abs = File.expand_path(File.join(source_path, 'crates',
-                                                                                       'plushie-renderer'))
-                                             core_abs = File.expand_path(File.join(source_path, 'crates',
-                                                                                   'plushie-core'))
+          # Patch section redirects crates.io deps to local source so
+          # widget crates that depend on plushie-widget-sdk from crates.io get
+          # the same local checkout. Without this, Cargo treats them as
+          # different crates and trait impls don't match.
+          ext_abs = File.expand_path(File.join(source_path, "crates",
+            "plushie-widget-sdk"))
+          renderer_abs = File.expand_path(File.join(source_path, "crates",
+            "plushie-renderer"))
+          core_abs = File.expand_path(File.join(source_path, "crates",
+            "plushie-core"))
 
-                                             # Forward patches from the renderer workspace (e.g. vendored iced)
-                                             renderer_patches = parse_renderer_patches(source_path)
+          # Forward patches from the renderer workspace (e.g. vendored iced)
+          renderer_patches = parse_renderer_patches(source_path)
 
-                                             patch_lines = [
-                                               %(plushie-widget-sdk = { path = "#{ext_abs}" }),
-                                               %(plushie-renderer = { path = "#{renderer_abs}" }),
-                                               %(plushie-core = { path = "#{core_abs}" })
-                                             ] + renderer_patches
+          patch_lines = [
+            %(plushie-widget-sdk = { path = "#{ext_abs}" }),
+            %(plushie-renderer = { path = "#{renderer_abs}" }),
+            %(plushie-core = { path = "#{core_abs}" })
+          ] + renderer_patches
 
-                                             patch = "\n[patch.crates-io]\n#{patch_lines.join("\n")}\n"
+          patch = "\n[patch.crates-io]\n#{patch_lines.join("\n")}\n"
 
-                                             [%(plushie-widget-sdk = { path = "#{core_rel}" }),
-                                              %(plushie-renderer = { path = "#{bin_rel}" }),
-                                              patch]
-                                           else
-                                             version = Plushie::BINARY_VERSION
-                                             [%(plushie-widget-sdk = "#{version}"),
-                                              %(plushie-renderer = "#{version}"),
-                                              '']
-                                           end
+          [%(plushie-widget-sdk = { path = "#{core_rel}" }),
+            %(plushie-renderer = { path = "#{bin_rel}" }),
+            patch]
+        else
+          version = Plushie::BINARY_VERSION
+          [%(plushie-widget-sdk = "#{version}"),
+            %(plushie-renderer = "#{version}"),
+            ""]
+        end
 
         ext_deps = widgets.map do |mod|
           path = crate_paths[mod]
@@ -238,7 +238,7 @@ module Plushie
           %(#{name} = { path = "#{rel}" })
         end.join("\n")
 
-        package_name = bin_name.tr('-', '_')
+        package_name = bin_name.tr("-", "_")
 
         <<~TOML
           [package]
@@ -278,10 +278,10 @@ module Plushie
           next if collisions.empty?
 
           raise Error,
-                "Widget #{mod.name} uses type name(s) #{collisions.inspect} " \
-                'that shadow built-in widgets. The renderer dispatches built-ins ' \
-                'before native widgets, so these would be silently ignored. ' \
-                'Choose a different type name.'
+            "Widget #{mod.name} uses type name(s) #{collisions.inspect} " \
+            "that shadow built-in widgets. The renderer dispatches built-ins " \
+            "before native widgets, so these would be silently ignored. " \
+            "Choose a different type name."
         end
       end
 
@@ -290,15 +290,15 @@ module Plushie
         check_builtin_collisions!(widgets) unless widgets.empty?
 
         builder_expr = if widgets.empty?
-                         'PlushieAppBuilder::new()'
-                       else
-                         registrations = widgets.map do |mod|
-                           constructor = mod.rust_constructor_expr
-                           validate_rust_constructor!(mod, constructor)
-                           "        .widget(#{constructor})"
-                         end.join("\n")
-                         "PlushieAppBuilder::new()\n#{registrations}"
-                       end
+          "PlushieAppBuilder::new()"
+        else
+          registrations = widgets.map do |mod|
+            constructor = mod.rust_constructor_expr
+            validate_rust_constructor!(mod, constructor)
+            "        .widget(#{constructor})"
+          end.join("\n")
+          "PlushieAppBuilder::new()\n#{registrations}"
+        end
 
         <<~RUST
           // Auto-generated by rake plushie:build
@@ -316,7 +316,7 @@ module Plushie
       # Tracked Cargo.lock location (checked into version control).
       # Ensures reproducible builds across machines. Created automatically
       # on first build; updated after each successful build.
-      LOCK_FILE = File.join('native', 'plushie', 'Cargo.lock')
+      LOCK_FILE = File.join("native", "plushie", "Cargo.lock")
 
       # Build the renderer binary. Works for both stock builds (no native
       # widgets) and custom builds (with native widgets).
@@ -329,14 +329,14 @@ module Plushie
       # @return [String] path to the installed binary
       # @raise [Plushie::Error] on build failure
       def build_with_widgets(widgets, release: false, update: false, verbose: false, bin_name: nil)
-        build_dir = File.join('_build', 'plushie', 'workspace')
+        build_dir = File.join("_build", "plushie", "workspace")
         FileUtils.mkdir_p(build_dir)
 
         bin_name ||= if widgets.empty?
-                       'plushie-renderer'
-                     else
-                       ENV['PLUSHIE_BUILD_NAME'] || Plushie.configuration.build_name
-                     end
+          "plushie-renderer"
+        else
+          ENV["PLUSHIE_BUILD_NAME"] || Plushie.configuration.build_name
+        end
 
         crate_paths = resolve_crate_paths(widgets)
 
@@ -349,8 +349,8 @@ module Plushie
             next if File.directory?(path)
 
             raise Error,
-                  "widget #{mod.name} crate directory not found at #{path}. " \
-                  'Check the native_crate path configuration.'
+              "widget #{mod.name} crate directory not found at #{path}. " \
+              "Check the native_crate path configuration."
           end
         end
 
@@ -359,7 +359,7 @@ module Plushie
         # Cargo.lock lifecycle (matches Elixir SDK strategy):
         # - update mode: delete workspace lock to force re-resolution
         # - normal mode: validate version, copy tracked lock into workspace
-        workspace_lock = File.join(build_dir, 'Cargo.lock')
+        workspace_lock = File.join(build_dir, "Cargo.lock")
         if update
           FileUtils.rm_f(workspace_lock)
         else
@@ -367,28 +367,28 @@ module Plushie
           copy_lock_to_workspace(build_dir)
         end
 
-        source_path = ENV['PLUSHIE_SOURCE_PATH'] || Plushie.configuration.source_path
+        source_path = ENV["PLUSHIE_SOURCE_PATH"] || Plushie.configuration.source_path
         source_info = if source_path && File.directory?(source_path)
-                        'local source'
-                      else
-                        "crates.io v#{Plushie::BINARY_VERSION}"
-                      end
+          "local source"
+        else
+          "crates.io v#{Plushie::BINARY_VERSION}"
+        end
 
         puts "Source: #{source_info}"
-        puts "Widgets: #{widgets.map(&:name).join(', ')}" if widgets.any?
+        puts "Widgets: #{widgets.map(&:name).join(", ")}" if widgets.any?
 
-        release_flags = release ? ['--release'] : []
-        profile = release ? 'release' : 'debug'
+        release_flags = release ? ["--release"] : []
+        profile = release ? "release" : "debug"
 
-        label = release ? ' (release)' : ''
+        label = release ? " (release)" : ""
         puts "Building #{bin_name}#{label}..."
 
-        raise Error, 'cargo build failed' unless system('cargo', 'build', *release_flags, chdir: build_dir)
+        raise Error, "cargo build failed" unless system("cargo", "build", *release_flags, chdir: build_dir)
 
-        puts 'Build succeeded.'
+        puts "Build succeeded."
         copy_lock_from_workspace(build_dir)
 
-        binary_src = File.join(build_dir, 'target', profile, bin_name)
+        binary_src = File.join(build_dir, "target", profile, bin_name)
         raise Error, "Build succeeded but binary not found at #{binary_src}" unless File.exist?(binary_src)
 
         install_binary(binary_src)
@@ -398,12 +398,12 @@ module Plushie
       # @api private
       def generate_workspace(build_dir, bin_name, widgets, crate_paths)
         cargo = generate_cargo_toml(build_dir, bin_name, widgets, crate_paths)
-        write_if_changed(File.join(build_dir, 'Cargo.toml'), cargo)
+        write_if_changed(File.join(build_dir, "Cargo.toml"), cargo)
 
-        src_dir = File.join(build_dir, 'src')
+        src_dir = File.join(build_dir, "src")
         FileUtils.mkdir_p(src_dir)
         main = generate_main_rs(widgets)
-        write_if_changed(File.join(src_dir, 'main.rs'), main)
+        write_if_changed(File.join(src_dir, "main.rs"), main)
       end
 
       # Write content to a file only if it has changed.
@@ -420,13 +420,13 @@ module Plushie
       def copy_lock_to_workspace(build_dir)
         return unless File.exist?(LOCK_FILE)
 
-        FileUtils.cp(LOCK_FILE, File.join(build_dir, 'Cargo.lock'))
+        FileUtils.cp(LOCK_FILE, File.join(build_dir, "Cargo.lock"))
       end
 
       # Copy the workspace Cargo.lock back to the tracked location
       # after a successful build. Creates the directory if needed.
       def copy_lock_from_workspace(build_dir)
-        workspace_lock = File.join(build_dir, 'Cargo.lock')
+        workspace_lock = File.join(build_dir, "Cargo.lock")
         return unless File.exist?(workspace_lock)
 
         FileUtils.mkdir_p(File.dirname(LOCK_FILE))
@@ -450,31 +450,31 @@ module Plushie
         return if locked_version == expected
 
         raise Error,
-              "Cargo.lock version mismatch: plushie-widget-sdk #{locked_version} is locked " \
-              "but BINARY_VERSION is #{expected}.\n\n" \
-              'Run `rake plushie:build[update]` to re-resolve dependencies.'
+          "Cargo.lock version mismatch: plushie-widget-sdk #{locked_version} is locked " \
+          "but BINARY_VERSION is #{expected}.\n\n" \
+          "Run `rake plushie:build[update]` to re-resolve dependencies."
       end
 
       # Remove the build workspace and compiled artifacts.
       def clean!
-        build_dir = File.join('_build', 'plushie')
+        build_dir = File.join("_build", "plushie")
         if File.directory?(build_dir)
           FileUtils.rm_rf(build_dir)
           puts "Removed #{build_dir}"
         else
-          puts 'Nothing to clean'
+          puts "Nothing to clean"
         end
       end
 
       # Install the built binary.
       # @api private
       def install_binary(src)
-        bin_file = ENV['PLUSHIE_BIN_FILE'] || Plushie.configuration.bin_file
+        bin_file = ENV["PLUSHIE_BIN_FILE"] || Plushie.configuration.bin_file
         if bin_file
           dest = bin_file
           FileUtils.mkdir_p(File.dirname(dest))
         else
-          dest_dir = File.join('_build', 'plushie', 'bin')
+          dest_dir = File.join("_build", "plushie", "bin")
           FileUtils.mkdir_p(dest_dir)
           dest = File.join(dest_dir, Plushie::Binary.binary_name)
         end
@@ -489,7 +489,7 @@ module Plushie
       # @api private
       def relative_path(target, from)
         Pathname.new(File.expand_path(target))
-                .relative_path_from(Pathname.new(File.expand_path(from))).to_s
+          .relative_path_from(Pathname.new(File.expand_path(from))).to_s
       end
 
       # Extract plushie-widget-sdk version from a Cargo.toml content string.
@@ -497,7 +497,7 @@ module Plushie
       # Parse [patch.crates-io] entries from the renderer workspace's
       # Cargo.toml to forward vendored crate patches (e.g. iced fork).
       def parse_renderer_patches(source_path)
-        cargo_path = File.join(source_path, 'Cargo.toml')
+        cargo_path = File.join(source_path, "Cargo.toml")
         return [] unless File.exist?(cargo_path)
 
         content = File.read(cargo_path)
@@ -505,18 +505,18 @@ module Plushie
         patches = []
 
         content.each_line do |line|
-          if line.strip == '[patch.crates-io]'
+          if line.strip == "[patch.crates-io]"
             in_patch = true
             next
-          elsif line.strip.start_with?('[')
+          elsif line.strip.start_with?("[")
             in_patch = false
             next
           end
 
-          next unless in_patch && line.include?('=') && !line.strip.start_with?('#')
+          next unless in_patch && line.include?("=") && !line.strip.start_with?("#")
 
           # Skip our own crates (already included)
-          name = line.split('=').first.strip
+          name = line.split("=").first.strip
           next if %w[plushie-widget-sdk plushie-renderer plushie-core].include?(name)
 
           # Resolve relative paths to absolute (they're relative to the
@@ -546,7 +546,7 @@ module Plushie
 
         # Table with path: plushie-widget-sdk = { path = "..." }
         if (match = content.match(/plushie-widget-sdk\s*=\s*\{[^}]*path\s*=\s*"([^"]+)"/))
-          target_toml = File.join(File.expand_path(match[1], crate_path), 'Cargo.toml')
+          target_toml = File.join(File.expand_path(match[1], crate_path), "Cargo.toml")
           if File.exist?(target_toml)
             pkg_content = File.read(target_toml)
             if (pkg_match = pkg_content.match(/\[package\][^\[]*version\s*=\s*"([^"]+)"/m))

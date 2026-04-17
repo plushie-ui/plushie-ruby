@@ -106,7 +106,7 @@ module Plushie
         kind = opts.fetch(:kind, :widget)
         unless VALID_KINDS.include?(kind)
           raise ArgumentError,
-                "unsupported widget kind #{kind.inspect}. Supported: #{VALID_KINDS.inspect}"
+            "unsupported widget kind #{kind.inspect}. Supported: #{VALID_KINDS.inspect}"
         end
 
         @_widget_type = type_name
@@ -114,7 +114,7 @@ module Plushie
 
         return unless opts.key?(:container)
 
-        mode = opts[:container] == true ? :many : opts[:container]
+        mode = (opts[:container] == true) ? :many : opts[:container]
         children(mode)
       end
 
@@ -140,29 +140,29 @@ module Plushie
           name = names[0].to_sym
           if type && !KNOWN_PROP_TYPES.include?(type.to_sym)
             raise ArgumentError,
-                  "unsupported prop type #{type.inspect} for #{name.inspect}. " \
-                  "Known types: #{KNOWN_PROP_TYPES.inspect}"
+              "unsupported prop type #{type.inspect} for #{name.inspect}. " \
+              "Known types: #{KNOWN_PROP_TYPES.inspect}"
           end
           _check_prop_name!(name)
-          @_widget_props << { name: name, type: type, default: default }
-          (@_prop_meta ||= {})[name] = { type: type, doc: doc }.compact
+          @_widget_props << {name: name, type: type, default: default}
+          (@_prop_meta ||= {})[name] = {type: type, doc: doc}.compact
         elsif names.length == 2 && KNOWN_PROP_TYPES.include?(names[1].to_sym)
           # Typed form: prop :name, :string, default: 0
           name = names[0].to_sym
           type_val = names[1].to_sym
           _check_prop_name!(name)
-          @_widget_props << { name: name, type: type_val, default: default }
+          @_widget_props << {name: name, type: type_val, default: default}
         else
           # Simple form: prop :name1, :name2, ...
           if default
             raise ArgumentError,
-                  'default: cannot be used with the multi-name prop form. ' \
-                  "Use `prop :#{names.first}, type: :any, default: ...` for a single prop with a default"
+              "default: cannot be used with the multi-name prop form. " \
+              "Use `prop :#{names.first}, type: :any, default: ...` for a single prop with a default"
           end
           names.each do |n|
             sym = n.to_sym
             _check_prop_name!(sym)
-            @_widget_props << { name: sym, type: nil, default: nil }
+            @_widget_props << {name: sym, type: nil, default: nil}
           end
         end
       end
@@ -176,7 +176,7 @@ module Plushie
       # @param default [Object] default value (:_required_ means mandatory)
       # @return [void]
       def positional(name, default: :_required_)
-        @_widget_positionals << { name: name.to_sym, default: default }
+        @_widget_positionals << {name: name.to_sym, default: default}
       end
 
       # Declare children mode.
@@ -213,7 +213,7 @@ module Plushie
       # @param default [Object] initial value
       # @return [void]
       def state(name, default: nil)
-        @_widget_state_fields << { name: name.to_sym, default: default }
+        @_widget_state_fields << {name: name.to_sym, default: default}
       end
 
       # Declares a cache key function for view-level caching.
@@ -258,17 +258,17 @@ module Plushie
       def event(name, fields: nil)
         name = name.to_sym
         spec = if fields && !fields.empty?
-                 resolved_fields = fields.each_with_object({}) do |(k, v), h|
-                   h[k] = if v.is_a?(Hash)
-                            { type: v[:type], required: v.fetch(:required, true) }
-                          else
-                            { type: v, required: true }
-                          end
-                 end
-                 { name: name, fields: resolved_fields }
-               else
-                 { name: name, fields: nil }
-               end
+          resolved_fields = fields.each_with_object({}) do |(k, v), h|
+            h[k] = if v.is_a?(Hash)
+              {type: v[:type], required: v.fetch(:required, true)}
+            else
+              {type: v, required: true}
+            end
+          end
+          {name: name, fields: resolved_fields}
+        else
+          {name: name, fields: nil}
+        end
         @_widget_events << spec
       end
 
@@ -278,7 +278,7 @@ module Plushie
       # @param params [Hash{Symbol => Symbol}] parameter names to types
       # @return [void]
       def command(name, **params)
-        @_widget_commands << { name: name.to_sym, params: params }
+        @_widget_commands << {name: name.to_sym, params: params}
       end
 
       # Declares the relative path to the Rust crate directory.
@@ -394,27 +394,27 @@ module Plushie
         return unless RESERVED_PROP_NAMES.include?(name)
 
         raise ArgumentError,
-              "prop name #{name.inspect} is reserved. Reserved: #{RESERVED_PROP_NAMES.inspect}"
+          "prop name #{name.inspect} is reserved. Reserved: #{RESERVED_PROP_NAMES.inspect}"
       end
 
       def _validate!
-        raise ArgumentError, "missing `widget :type_name` declaration in #{name || '(anonymous)'}" unless @_widget_type
+        raise ArgumentError, "missing `widget :type_name` declaration in #{name || "(anonymous)"}" unless @_widget_type
 
         if @_widget_kind == :native_widget
           unless @_widget_native_crate
             raise ArgumentError,
-                  "native_widget #{name} requires a `rust_crate` declaration"
+              "native_widget #{name} requires a `rust_crate` declaration"
           end
           unless @_widget_rust_constructor
             raise ArgumentError,
-                  "native_widget #{name} requires a `rust_constructor` declaration"
+              "native_widget #{name} requires a `rust_constructor` declaration"
           end
         end
 
         return unless stateful? && !respond_to?(:view)
 
         raise ArgumentError,
-              "stateful widget #{name} requires a `def self.view(id, props, state)` class method"
+          "stateful widget #{name} requires a `def self.view(id, props, state)` class method"
       end
 
       # Provide default implementations for stateful callbacks.
@@ -516,22 +516,22 @@ module Plushie
         when Class, Module
           unless value.is_a?(type)
             raise ArgumentError,
-                  "#{name} expects #{type}, got #{value.class}: #{value.inspect}"
+              "#{name} expects #{type}, got #{value.class}: #{value.inspect}"
           end
         when :numeric
           unless value.is_a?(Numeric)
             raise ArgumentError,
-                  "#{name} expects a Numeric, got #{value.class}: #{value.inspect}"
+              "#{name} expects a Numeric, got #{value.class}: #{value.inspect}"
           end
         when :boolean
           unless [true, false].include?(value)
             raise ArgumentError,
-                  "#{name} expects true or false, got #{value.inspect}"
+              "#{name} expects true or false, got #{value.inspect}"
           end
         when :symbol
           unless value.is_a?(Symbol)
             raise ArgumentError,
-                  "#{name} expects a Symbol, got #{value.class}: #{value.inspect}"
+              "#{name} expects a Symbol, got #{value.class}: #{value.inspect}"
           end
         when Hash
           validate_composite_type(name, value, type)
@@ -542,8 +542,8 @@ module Plushie
         if (tuple_types = type_spec[:tuple])
           unless value.is_a?(Array) && value.length == tuple_types.length
             raise ArgumentError,
-                  "#{name} expects a #{tuple_types.length}-element Array, " \
-                  "got #{value.inspect}"
+              "#{name} expects a #{tuple_types.length}-element Array, " \
+              "got #{value.inspect}"
           end
           tuple_types.each_with_index do |elem_type, i|
             validate_prop_type("#{name}[#{i}]", value[i], elem_type)
@@ -551,7 +551,7 @@ module Plushie
         elsif (enum_values = type_spec[:enum])
           unless enum_values.include?(value)
             raise ArgumentError,
-                  "#{name} expects one of #{enum_values.inspect}, got #{value.inspect}"
+              "#{name} expects one of #{enum_values.inspect}, got #{value.inspect}"
           end
         elsif (list_type = type_spec[:list])
           raise ArgumentError, "#{name} expects an Array, got #{value.class}" unless value.is_a?(Array)
@@ -597,7 +597,7 @@ module Plushie
             CanvasWidget::META_KEY => widget_class,
             CanvasWidget::PROPS_KEY => props_hash
           }.freeze
-          node = Plushie::Node.new(id: @id, type: 'widget_placeholder', props: {}, meta: meta)
+          node = Plushie::Node.new(id: @id, type: "widget_placeholder", props: {}, meta: meta)
 
           parent = Plushie::UI::Context.current
           parent << node if parent
@@ -643,21 +643,21 @@ module Plushie
           props_hash[:event_rate] = @event_rate unless @event_rate.nil?
 
           node = if respond_to?(:view)
-                   view(@id, props_hash)
-                 elsif is_container
-                   Plushie::Node.new(
-                     id: @id,
-                     type: self.class.type_names.first.to_s,
-                     props: props_hash,
-                     children: Build.children_to_nodes(@children)
-                   )
-                 else
-                   Plushie::Node.new(
-                     id: @id,
-                     type: self.class.type_names.first.to_s,
-                     props: props_hash
-                   )
-                 end
+            view(@id, props_hash)
+          elsif is_container
+            Plushie::Node.new(
+              id: @id,
+              type: self.class.type_names.first.to_s,
+              props: props_hash,
+              children: Build.children_to_nodes(@children)
+            )
+          else
+            Plushie::Node.new(
+              id: @id,
+              type: self.class.type_names.first.to_s,
+              props: props_hash
+            )
+          end
 
           parent = Plushie::UI::Context.current
           parent << node if parent

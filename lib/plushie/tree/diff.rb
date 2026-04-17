@@ -17,18 +17,18 @@ module Plushie
         return [] if old_tree.nil? && new_tree.nil?
 
         if old_tree.nil?
-          return [{ 'op' => 'replace_node', 'path' => [], 'node' => Tree.node_to_wire(new_tree) }] if new_tree # : Node
+          return [{"op" => "replace_node", "path" => [], "node" => Tree.node_to_wire(new_tree)}] if new_tree # : Node
 
           return []
         end
 
         if new_tree.nil?
-          return [{ 'op' => 'replace_node', 'path' => [],
-                    'node' => Tree.node_to_wire(Node.new(id: 'root', type: 'container')) }]
+          return [{"op" => "replace_node", "path" => [],
+                   "node" => Tree.node_to_wire(Node.new(id: "root", type: "container"))}]
         end
         if old_tree.id != new_tree.id
-          return [{ 'op' => 'replace_node', 'path' => [],
-                    'node' => Tree.node_to_wire(new_tree) }]
+          return [{"op" => "replace_node", "path" => [],
+                   "node" => Tree.node_to_wire(new_tree)}]
         end
 
         diff_node(old_tree, new_tree, [])
@@ -39,7 +39,7 @@ module Plushie
         return [] if old.equal?(new_node)
 
         if old.type != new_node.type
-          return [{ 'op' => 'replace_node', 'path' => path, 'node' => Tree.node_to_wire(new_node) }]
+          return [{"op" => "replace_node", "path" => path, "node" => Tree.node_to_wire(new_node)}]
         end
 
         child_ops = diff_children(old.children, new_node.children, path)
@@ -71,7 +71,7 @@ module Plushie
 
         return [] if changed.empty?
 
-        [{ 'op' => 'update_props', 'path' => path, 'props' => Encode.encode_props(changed) }]
+        [{"op" => "update_props", "path" => path, "props" => Encode.encode_props(changed)}]
       end
       private_class_method :diff_props
 
@@ -112,8 +112,8 @@ module Plushie
         end
 
         remove_ops = removed_indices
-                     .sort.reverse
-                     .map { |idx| { 'op' => 'remove_child', 'path' => path, 'index' => idx } }
+          .sort.reverse
+          .map { |idx| {"op" => "remove_child", "path" => path, "index" => idx} }
 
         # @type var update_ops: Array[Hash[String, untyped]]
         update_ops = []
@@ -126,8 +126,8 @@ module Plushie
             adjusted = index_after_removals(old_idx, removed_indices)
             update_ops.concat(diff_node(old_child, child, path + [adjusted]))
           else
-            insert_ops << { 'op' => 'insert_child', 'path' => path, 'index' => new_idx,
-                            'node' => Tree.node_to_wire(child) }
+            insert_ops << {"op" => "insert_child", "path" => path, "index" => new_idx,
+                            "node" => Tree.node_to_wire(child)}
           end
         end
 
@@ -160,7 +160,7 @@ module Plushie
 
           positions[lo] = i
           tails[lo] = val
-          predecessors[i] = lo > 0 ? positions[lo - 1] : -1
+          predecessors[i] = (lo > 0) ? positions[lo - 1] : -1
         end
 
         result = Set.new
@@ -194,13 +194,13 @@ module Plushie
         return false unless old_val.is_a?(Array) && new_val.is_a?(Array)
         return false if old_val.length != new_val.length
         return false if old_val.empty?
-        return false unless old_val.all? { |e| e.is_a?(Hash) && (e.key?(:id) || e.key?('id')) }
-        return false unless new_val.all? { |e| e.is_a?(Hash) && (e.key?(:id) || e.key?('id')) }
+        return false unless old_val.all? { |e| e.is_a?(Hash) && (e.key?(:id) || e.key?("id")) }
+        return false unless new_val.all? { |e| e.is_a?(Hash) && (e.key?(:id) || e.key?("id")) }
 
         # @type var old_by_id: Hash[untyped, untyped]
         old_by_id = {}
-        old_val.each { |e| old_by_id[e[:id] || e['id']] = e }
-        new_val.all? { |e| old_by_id[e[:id] || e['id']] == e }
+        old_val.each { |e| old_by_id[e[:id] || e["id"]] = e }
+        new_val.all? { |e| old_by_id[e[:id] || e["id"]] == e }
       end
       private_class_method :id_keyed_lists_equal?
     end

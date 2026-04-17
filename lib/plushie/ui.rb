@@ -114,12 +114,12 @@ module Plushie
     # @yield the subtree to cache
     def memo(deps, &block)
       # Generate a unique site ID based on caller location
-      site = block.source_location.join(':')
+      site = block.source_location.join(":")
 
       node = Node.new(
         id: "memo:#{site}",
-        type: '__memo__',
-        meta: { __memo_deps__: deps, __memo_block__: block }
+        type: "__memo__",
+        meta: {__memo_deps__: deps, __memo_block__: block}
       )
 
       ctx = Context.current
@@ -148,7 +148,7 @@ module Plushie
     #     column { text("Hello, world!") }
     #   end
     def window(id, **props, &block)
-      _plushie_container('window', id, props, &block)
+      _plushie_container("window", id, props, &block)
     end
 
     # =========================================================================
@@ -167,7 +167,7 @@ module Plushie
     #     button("save", "Save")
     #   end
     def column(id = nil, **props, &block)
-      _plushie_container('column', id || _plushie_auto_id, props, &block)
+      _plushie_container("column", id || _plushie_auto_id, props, &block)
     end
 
     # Horizontal layout container. Children are placed left to right.
@@ -182,7 +182,7 @@ module Plushie
     #     button("cancel", "Cancel")
     #   end
     def row(id = nil, **props, &block)
-      _plushie_container('row', id || _plushie_auto_id, props, &block)
+      _plushie_container("row", id || _plushie_auto_id, props, &block)
     end
 
     # Generic single-child container for styling and positioning.
@@ -196,7 +196,7 @@ module Plushie
     #     text("content", "Card body")
     #   end
     def container(id, **props, &block)
-      _plushie_container('container', id, props, &block)
+      _plushie_container("container", id, props, &block)
     end
 
     # Layered container. Children are stacked on top of each other (z-axis).
@@ -211,7 +211,7 @@ module Plushie
     #     column(align_x: :center) { text("overlay", "On top") }
     #   end
     def stack(id = nil, **props, &block)
-      _plushie_container('stack', id || _plushie_auto_id, props, &block)
+      _plushie_container("stack", id || _plushie_auto_id, props, &block)
     end
 
     # Scrollable container. Wraps children in a scrollable viewport.
@@ -227,7 +227,7 @@ module Plushie
     #     column { messages.each { |m| text(m.id, m.body) } }
     #   end
     def scrollable(id, **props, &block)
-      _plushie_container('scrollable', id, props, &block)
+      _plushie_container("scrollable", id, props, &block)
     end
 
     # Responsive container. Receives the available width in the block.
@@ -241,7 +241,7 @@ module Plushie
     #     column { text("info", "Responsive content") }
     #   end
     def responsive(id, **props, &block)
-      _plushie_container('responsive', id, props, &block)
+      _plushie_container("responsive", id, props, &block)
     end
 
     # =========================================================================
@@ -264,9 +264,9 @@ module Plushie
     #   text("greeting", "Hello", size: 24, color: "#333")
     def text(id_or_content, content = nil, **props)
       if content.nil?
-        _plushie_leaf('text', _plushie_auto_id, props.merge(content: id_or_content))
+        _plushie_leaf("text", _plushie_auto_id, props.merge(content: id_or_content))
       else
-        _plushie_leaf('text', id_or_content, props.merge(content:))
+        _plushie_leaf("text", id_or_content, props.merge(content:))
       end
     end
 
@@ -279,7 +279,7 @@ module Plushie
     # @example
     #   button("submit", "Submit", style: :primary)
     def button(id, label = nil, **props)
-      _plushie_leaf('button', id, props.merge(label:))
+      _plushie_leaf("button", id, props.merge(label:))
     end
 
     # Single-line text input field.
@@ -292,8 +292,8 @@ module Plushie
     # @return [Node]
     # @example
     #   text_input("email", model.email, placeholder: "you@example.com")
-    def text_input(id, value = '', **props)
-      _plushie_leaf('text_input', id, props.merge(value:))
+    def text_input(id, value = "", **props)
+      _plushie_leaf("text_input", id, props.merge(value:))
     end
 
     # Multi-line text editor.
@@ -306,8 +306,8 @@ module Plushie
     # @return [Node]
     # @example
     #   text_editor("notes", model.notes)
-    def text_editor(id, content = '', **props)
-      _plushie_leaf('text_editor', id, props.merge(content:))
+    def text_editor(id, content = "", **props)
+      _plushie_leaf("text_editor", id, props.merge(content:))
     end
 
     # Checkbox toggle widget.
@@ -319,7 +319,7 @@ module Plushie
     # @example
     #   checkbox("agree", model.agreed, label: "I agree to the terms")
     def checkbox(id, checked = false, **props)
-      _plushie_leaf('checkbox', id, props.merge(checked:))
+      _plushie_leaf("checkbox", id, props.merge(checked:))
     end
 
     # Toggle switch widget.
@@ -331,7 +331,7 @@ module Plushie
     # @example
     #   toggler("dark_mode", model.dark_mode, label: "Dark mode")
     def toggler(id, active = false, **props)
-      _plushie_leaf('toggler', id, props.merge(active:))
+      _plushie_leaf("toggler", id, props.merge(active:))
     end
 
     # Horizontal slider for numeric input.
@@ -345,7 +345,7 @@ module Plushie
     #   slider("volume", [0, 100], model.volume, step: 5)
     def slider(id, range, value, **props)
       min, max = range
-      _plushie_leaf('slider', id, props.merge(min:, max:, value:))
+      _plushie_leaf("slider", id, props.merge(min:, max:, value:))
     end
 
     # Vertical slider for numeric input.
@@ -359,7 +359,7 @@ module Plushie
     #   vertical_slider("eq_band_1", [0, 100], 75)
     def vertical_slider(id, range, value, **props)
       min, max = range
-      _plushie_leaf('vertical_slider', id, props.merge(min:, max:, value:))
+      _plushie_leaf("vertical_slider", id, props.merge(min:, max:, value:))
     end
 
     # Dropdown select widget.
@@ -372,7 +372,7 @@ module Plushie
     # @example
     #   pick_list("color", ["Red", "Green", "Blue"], model.color)
     def pick_list(id, options, selected = nil, **props)
-      _plushie_leaf('pick_list', id, props.merge(options:, selected:))
+      _plushie_leaf("pick_list", id, props.merge(options:, selected:))
     end
 
     # Searchable dropdown widget.
@@ -386,8 +386,8 @@ module Plushie
     # @return [Node]
     # @example
     #   combo_box("country", countries, model.country_search, placeholder: "Search...")
-    def combo_box(id, options, value = '', **props)
-      _plushie_leaf('combo_box', id, props.merge(options:, value:))
+    def combo_box(id, options, value = "", **props)
+      _plushie_leaf("combo_box", id, props.merge(options:, value:))
     end
 
     # Radio button group for single-select choices.
@@ -400,7 +400,7 @@ module Plushie
     # @example
     #   radio("size", ["S", "M", "L", "XL"], model.size)
     def radio(id, options, selected = nil, **props)
-      _plushie_leaf('radio', id, props.merge(options:, selected:))
+      _plushie_leaf("radio", id, props.merge(options:, selected:))
     end
 
     # Progress bar widget.
@@ -414,7 +414,7 @@ module Plushie
     #   progress_bar("upload", [0, 100], model.upload_pct)
     def progress_bar(id, range, value, **props)
       min, max = range
-      _plushie_leaf('progress_bar', id, props.merge(min:, max:, value:))
+      _plushie_leaf("progress_bar", id, props.merge(min:, max:, value:))
     end
 
     # Image display widget.
@@ -426,7 +426,7 @@ module Plushie
     # @example
     #   image("avatar", "assets/avatar.png", width: 64, height: 64)
     def image(id, source, **props)
-      _plushie_leaf('image', id, props.merge(source:))
+      _plushie_leaf("image", id, props.merge(source:))
     end
 
     # SVG display widget.
@@ -438,7 +438,7 @@ module Plushie
     # @example
     #   svg("icon", File.read("icon.svg"), width: 24, height: 24)
     def svg(id, data, **props)
-      _plushie_leaf('svg', id, props.merge(data:))
+      _plushie_leaf("svg", id, props.merge(data:))
     end
 
     # Markdown rendering widget.
@@ -450,7 +450,7 @@ module Plushie
     # @example
     #   markdown("docs", "# Welcome\n\nHello **world**.")
     def markdown(id, content, **props)
-      _plushie_leaf('markdown', id, props.merge(content:))
+      _plushie_leaf("markdown", id, props.merge(content:))
     end
 
     # Empty space filler widget.
@@ -465,7 +465,7 @@ module Plushie
     #     text("right", "Right")
     #   end
     def space(id = nil, **props)
-      _plushie_leaf('space', id || _plushie_auto_id, props)
+      _plushie_leaf("space", id || _plushie_auto_id, props)
     end
 
     # Horizontal rule (divider line).
@@ -480,7 +480,7 @@ module Plushie
     #     text("below", "Section B")
     #   end
     def rule(id = nil, **props)
-      _plushie_leaf('rule', id || _plushie_auto_id, props)
+      _plushie_leaf("rule", id || _plushie_auto_id, props)
     end
 
     # QR code display widget.
@@ -492,7 +492,7 @@ module Plushie
     # @example
     #   qr_code("link", "https://example.com")
     def qr_code(id, data, **props)
-      _plushie_leaf('qr_code', id, props.merge(data:))
+      _plushie_leaf("qr_code", id, props.merge(data:))
     end
 
     # Tooltip wrapper. Displays a tooltip over its child widget.
@@ -507,7 +507,7 @@ module Plushie
     #     button("save", "Save")
     #   end
     def tooltip(id, content, **props, &block)
-      _plushie_container('tooltip', id, props.merge(content:), &block)
+      _plushie_container("tooltip", id, props.merge(content:), &block)
     end
 
     # =========================================================================
@@ -525,7 +525,7 @@ module Plushie
     #     9.times { |i| button("cell_#{i}", "#{i}") }
     #   end
     def grid(id = nil, **props, &block)
-      _plushie_container('grid', id || _plushie_auto_id, props, &block)
+      _plushie_container("grid", id || _plushie_auto_id, props, &block)
     end
 
     # Column with keyed children for stable reordering.
@@ -542,7 +542,7 @@ module Plushie
     #     model.items.each { |item| text(item.id, item.name) }
     #   end
     def keyed_column(id = nil, **props, &block)
-      _plushie_container('keyed_column', id || _plushie_auto_id, props, &block)
+      _plushie_container("keyed_column", id || _plushie_auto_id, props, &block)
     end
 
     # Absolute positioning container. Children are placed at explicit coordinates.
@@ -556,7 +556,7 @@ module Plushie
     #     container("badge", x: 100, y: 50) { text("!", "!") }
     #   end
     def pin(id = nil, **props, &block)
-      _plushie_container('pin', id || _plushie_auto_id, props, &block)
+      _plushie_container("pin", id || _plushie_auto_id, props, &block)
     end
 
     # Floating overlay container.
@@ -566,7 +566,7 @@ module Plushie
     # @yield children to float
     # @return [Node]
     def floating(id = nil, **props, &block)
-      _plushie_container('floating', id || _plushie_auto_id, props, &block)
+      _plushie_container("floating", id || _plushie_auto_id, props, &block)
     end
 
     # Mouse area container. Tracks mouse events over its children.
@@ -580,7 +580,7 @@ module Plushie
     #     canvas("drawing", width: 400, height: 300)
     #   end
     def pointer_area(id, **props, &block)
-      _plushie_container('mouse_area', id, props, &block)
+      _plushie_container("mouse_area", id, props, &block)
     end
 
     # Sensor container. Tracks layout and size changes of its children.
@@ -594,7 +594,7 @@ module Plushie
     #     column { text("content", "Measured content") }
     #   end
     def sensor(id, **props, &block)
-      _plushie_container('sensor', id, props, &block)
+      _plushie_container("sensor", id, props, &block)
     end
 
     # Theme override container. Applies theme changes to its children.
@@ -608,7 +608,7 @@ module Plushie
     #     column { text("msg", "Dark-themed section") }
     #   end
     def themer(id = nil, **props, &block)
-      _plushie_container('themer', id || _plushie_auto_id, props, &block)
+      _plushie_container("themer", id || _plushie_auto_id, props, &block)
     end
 
     # Resizable pane grid container.
@@ -625,7 +625,7 @@ module Plushie
     #     container("right") { text("content", "Content") }
     #   end
     def pane_grid(id, **props, &block)
-      _plushie_container('pane_grid', id, props, &block)
+      _plushie_container("pane_grid", id, props, &block)
     end
 
     # Overlay container. Renders children above the normal widget tree.
@@ -635,7 +635,7 @@ module Plushie
     # @yield children to render as overlay
     # @return [Node]
     def overlay(id = nil, **props, &block)
-      _plushie_container('overlay', id || _plushie_auto_id, props, &block)
+      _plushie_container("overlay", id || _plushie_auto_id, props, &block)
     end
 
     # =========================================================================
@@ -654,7 +654,7 @@ module Plushie
     #     { content: "OK", size: 14, color: "#0a0" }
     #   ])
     def rich_text(id, spans, **props)
-      _plushie_leaf('rich_text', id, props.merge(spans:))
+      _plushie_leaf("rich_text", id, props.merge(spans:))
     end
 
     # =========================================================================
@@ -680,7 +680,7 @@ module Plushie
     #     end
     #   end
     def canvas(id, **props, &block)
-      _plushie_container('canvas', id, props, &block)
+      _plushie_container("canvas", id, props, &block)
     end
 
     # Named layer inside a canvas block.
@@ -698,7 +698,7 @@ module Plushie
     #     layer("foreground") { canvas_circle(100, 100, 20, fill: "#f00") }
     #   end
     def layer(name, &block)
-      _plushie_container('__layer__', name, { name: name }, &block)
+      _plushie_container("__layer__", name, {name: name}, &block)
     end
 
     # Structural group inside a canvas or layer block.
@@ -721,7 +721,7 @@ module Plushie
       props[:transforms] = xforms.map { |t| t.respond_to?(:to_wire) ? t.to_wire : t } unless xforms.empty?
 
       group_id = id || "auto:group_#{_plushie_canvas_counter}"
-      _plushie_container('group', group_id, props, &block)
+      _plushie_container("group", group_id, props, &block)
     end
 
     # Interactive canvas element.
@@ -743,14 +743,14 @@ module Plushie
     #     canvas_rect(0, 0, 100, 40, fill: "#3498db")
     #   end
     def canvas_interactive(id, x: nil, y: nil, transforms: nil, **opts, &block)
-      raise ArgumentError, 'canvas_interactive requires an explicit ID' if id.nil? || id.empty?
+      raise ArgumentError, "canvas_interactive requires an explicit ID" if id.nil? || id.empty?
 
       props = opts.dup
       xforms = Array(transforms)
       xforms.unshift(Canvas::Shape.translate(x, y)) if x || y
       props[:transforms] = xforms.map { |t| t.respond_to?(:to_wire) ? t.to_wire : t } unless xforms.empty?
 
-      _plushie_container('group', id, props, &block)
+      _plushie_container("group", id, props, &block)
     end
 
     # Draw a rectangle on the canvas.
@@ -764,7 +764,7 @@ module Plushie
     # @example
     #   canvas_rect(10, 10, 80, 40, fill: "#07f", radius: 4)
     def canvas_rect(x, y, w, h, **opts)
-      _plushie_canvas_shape('rect', { x: x, y: y, w: w, h: h }.merge(opts))
+      _plushie_canvas_shape("rect", {x: x, y: y, w: w, h: h}.merge(opts))
     end
 
     # Draw a circle on the canvas.
@@ -774,7 +774,7 @@ module Plushie
     # @param opts [Hash] :fill, :stroke, :stroke_width, :opacity
     # @return [Node]
     def canvas_circle(x, y, r, **opts)
-      _plushie_canvas_shape('circle', { x: x, y: y, r: r }.merge(opts))
+      _plushie_canvas_shape("circle", {x: x, y: y, r: r}.merge(opts))
     end
 
     # Draw a line on the canvas.
@@ -785,7 +785,7 @@ module Plushie
     # @param opts [Hash] :stroke, :stroke_width, :dash, :opacity
     # @return [Node]
     def canvas_line(x1, y1, x2, y2, **opts)
-      _plushie_canvas_shape('line', { x1: x1, y1: y1, x2: x2, y2: y2 }.merge(opts))
+      _plushie_canvas_shape("line", {x1: x1, y1: y1, x2: x2, y2: y2}.merge(opts))
     end
 
     # Draw text on the canvas.
@@ -795,7 +795,7 @@ module Plushie
     # @param opts [Hash] :size, :color, :font, :align, :opacity
     # @return [Node]
     def canvas_text(x, y, content, **opts)
-      _plushie_canvas_shape('text', { x: x, y: y, content: content }.merge(opts))
+      _plushie_canvas_shape("text", {x: x, y: y, content: content}.merge(opts))
     end
 
     # Draw a path on the canvas.
@@ -803,7 +803,7 @@ module Plushie
     # @param opts [Hash] :fill, :stroke, :stroke_width, :close, :opacity
     # @return [Node]
     def canvas_path(commands, **opts)
-      _plushie_canvas_shape('path', { commands: commands }.merge(opts))
+      _plushie_canvas_shape("path", {commands: commands}.merge(opts))
     end
 
     # Draw an image on the canvas.
@@ -815,7 +815,7 @@ module Plushie
     # @param opts [Hash] :opacity, :rotation, :filter_method
     # @return [Node]
     def canvas_image(source, x, y, w, h, **opts)
-      _plushie_canvas_shape('image', { source: source, x: x, y: y, w: w, h: h }.merge(opts))
+      _plushie_canvas_shape("image", {source: source, x: x, y: y, w: w, h: h}.merge(opts))
     end
 
     # Draw an SVG on the canvas.
@@ -827,7 +827,7 @@ module Plushie
     # @param opts [Hash] :opacity
     # @return [Node]
     def canvas_svg(source, x, y, w, h, **opts)
-      _plushie_canvas_shape('svg', { source: source, x: x, y: y, w: w, h: h }.merge(opts))
+      _plushie_canvas_shape("svg", {source: source, x: x, y: y, w: w, h: h}.merge(opts))
     end
 
     # =========================================================================
@@ -854,7 +854,7 @@ module Plushie
     #   table("users", columns: cols, rows: [{id: "u1", name: "Alice"}])
     def table(id = nil, **props, &block)
       id ||= _plushie_auto_id
-      _plushie_container('table', id, props, &block)
+      _plushie_container("table", id, props, &block)
     end
 
     # Table row element inside a table.
@@ -864,7 +864,7 @@ module Plushie
     # @yield cell children
     # @return [Node]
     def table_row(id, **props, &block)
-      _plushie_container('table_row', id, props, &block)
+      _plushie_container("table_row", id, props, &block)
     end
 
     # Table cell element inside a table_row.
@@ -881,9 +881,9 @@ module Plushie
         props[:column] = id unless props.key?(:column)
       elsif content_or_props && !content_or_props.is_a?(Hash)
         children = [content_or_props]
-        return _plushie_container('table_cell', id, props.merge(children: children))
+        return _plushie_container("table_cell", id, props.merge(children: children))
       end
-      _plushie_container('table_cell', id, props, &block)
+      _plushie_container("table_cell", id, props, &block)
     end
 
     # =========================================================================
@@ -900,17 +900,17 @@ module Plushie
     # @return [Node]
     def _plushie_container(type, id, props, &block)
       children = if block
-                   child_list = []
-                   UI::Context.push(child_list)
-                   begin
-                     block.call
-                   ensure
-                     UI::Context.pop
-                   end
-                   child_list
-                 else
-                   props.delete(:children) || []
-                 end
+        child_list = []
+        UI::Context.push(child_list)
+        begin
+          block.call
+        ensure
+          UI::Context.pop
+        end
+        child_list
+      else
+        props.delete(:children) || []
+      end
 
       node = Node.new(id:, type:, props:, children:)
 
