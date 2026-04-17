@@ -16,11 +16,28 @@ module Plushie
 
     private
 
+    WIDGET_ROLE_DEFAULTS: Hash[String, String]
+    A11Y_SINGLE_REF_KEYS: Array[String]
+    NAMED_INTERACTIVE_TYPES: Array[String]
+
     def self.normalize_node: (Node node, String scope, Hash[String, CanvasWidget::RegistryEntry]? registry, String? window_id, ?Integer depth) -> Node
     def self.infer_radio_groups: (Array[Node] children) -> Array[Node]
     def self.expand_table_rows: (Array[untyped] rows, untyped columns) -> Array[Node]
     def self.check_duplicate_ids!: (Array[Node] children) -> void
     def self.validate_user_id!: (String? id) -> void
     def self.normalize_memo: (Node node, String scope, Hash[String, CanvasWidget::RegistryEntry]? registry, String? window_id, Integer depth) -> Node
+    def self.post_normalize: (Node tree) -> Node
+    def self.collect_declared_ids: (Node node, Set[String] out) -> void
+    def self.collect_radio_groups: (Node node, String scope, Hash[[String, String], Array[String]] out) -> void
+    def self.child_scope_for: (Node node, String scope) -> String
+    def self.rewrite_a11y: (Node node, String scope, Set[String] declared, Hash[[String, String], Array[String]] radio_groups) -> Node
+    def self.apply_a11y_rewrites: (Node node, String scope, Set[String] declared, Hash[[String, String], Array[String]] radio_groups) -> Hash[Symbol | String, untyped]
+    def self.has_role?: (Hash[Symbol | String, untyped] a11y) -> bool
+    def self.has_any_ref?: (Hash[Symbol | String, untyped] a11y) -> bool
+    def self.scope_ref: (String ref, String scope) -> String
+    def self.warn_a11y_unresolved: (String key, String ref, String? owner_id) -> void
+    def self.check_missing_accessible_name: (Node node) -> void
+    def self.accessible_name?: (Node node) -> bool
+    def self.text_descendant?: (Array[Node] children) -> bool
   end
 end

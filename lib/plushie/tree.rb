@@ -53,7 +53,7 @@ module Plushie
       trees = (tree.is_a?(Array) ? tree : [tree]).compact
       normalized = trees.map { |node| normalize_node(node, "", registry, nil, 0) }
       check_duplicate_ids!(normalized)
-      normalized
+      normalized.map { |node| post_normalize(node) }
     end
 
     # Normalize a top-level app view and require explicit windows.
@@ -255,6 +255,220 @@ module Plushie
       Node.new(id: scoped_id, type: node.type, props: props, children: children)
     end
     private_class_method :normalize_node
+
+    # -----------------------------------------------------------------
+    # Post-normalize a11y pass
+    # -----------------------------------------------------------------
+    #
+    # Mirrors the Rust SDK. After the main normalize pass produces a
+    # fully scoped tree:
+    #   - Auto-populate a11y.role from the widget type when unset.
+    #   - Rewrite active_descendant and radio_group list refs through
+    #     the same scope-prefix logic already applied to labelled_by,
+    #     described_by, error_message.
+    #   - Populate implicit a11y.radio_group when radios share a
+    #     :group prop in the same enclosing scope.
+    #   - Emit a11y_ref_unresolved warnings for dangling refs.
+    #   - Emit missing_accessible_name warnings for interactive
+    #     widgets carrying no accessible name source.
+
+    WIDGET_ROLE_DEFAULTS = {
+      "button" => "button", "checkbox" => "check_box", "toggler" => "switch",
+      "radio" => "radio_button", "text_input" => "text_input",
+      "text_editor" => "multiline_text_input", "text" => "label",
+      "rich_text" => "label", "slider" => "slider", "vertical_slider" => "slider",
+      "pick_list" => "combo_box", "combo_box" => "combo_box",
+      "progress_bar" => "progress_indicator", "image" => "image", "svg" => "image",
+      "qr_code" => "image", "scrollable" => "scroll_view",
+      "container" => "generic_container", "column" => "generic_container",
+      "row" => "generic_container", "stack" => "generic_container",
+      "grid" => "generic_container", "pane_grid" => "generic_container",
+      "table" => "table", "canvas" => "canvas", "rule" => "separator"
+    }.freeze
+    private_constant :WIDGET_ROLE_DEFAULTS
+
+    A11Y_SINGLE_REF_KEYS = %w[labelled_by described_by error_message active_descendant].freeze
+    private_constant :A11Y_SINGLE_REF_KEYS
+
+    NAMED_INTERACTIVE_TYPES = %w[button toggler checkbox pointer_area].freeze
+    private_constant :NAMED_INTERACTIVE_TYPES
+
+    def self.post_normalize(tree)
+      declared = Set.new
+      collect_declared_ids(tree, declared)
+      # @type var radio_groups: Hash[[String, String], Array[String]]
+      radio_groups = {}
+      collect_radio_groups(tree, "", radio_groups)
+      rewritten = rewrite_a11y(tree, "", declared, radio_groups)
+      check_missing_accessible_name(rewritten)
+      rewritten
+    end
+    private_class_method :post_normalize
+
+    def self.collect_declared_ids(node, out)
+      id = node.id
+      if id.is_a?(String) && !id.empty? && !id.start_with?("auto:")
+        out.add(id)
+      end
+      node.children.each { |c| collect_declared_ids(c, out) }
+    end
+    private_class_method :collect_declared_ids
+
+    def self.collect_radio_groups(node, scope, out)
+      if node.type == "radio"
+        group = node.props[:group] || node.props["group"]
+        if group.is_a?(String) && !group.empty?
+          (out[[scope, group]] ||= []) << node.id
+        end
+      end
+      child_scope = child_scope_for(node, scope)
+      node.children.each { |c| collect_radio_groups(c, child_scope, out) }
+    end
+    private_class_method :collect_radio_groups
+
+    def self.child_scope_for(node, scope)
+      if node.type == "window"
+        "#{node.id}#"
+      elsif node.id.is_a?(String) && (node.id.empty? || node.id.start_with?("auto:"))
+        scope
+      else
+        node.id
+      end
+    end
+    private_class_method :child_scope_for
+
+    def self.rewrite_a11y(node, scope, declared, radio_groups)
+      new_props = apply_a11y_rewrites(node, scope, declared, radio_groups)
+      child_scope = child_scope_for(node, scope)
+      new_children = node.children.map { |c| rewrite_a11y(c, child_scope, declared, radio_groups) }
+      node.with(props: new_props, children: new_children)
+    end
+    private_class_method :rewrite_a11y
+
+    def self.apply_a11y_rewrites(node, scope, declared, radio_groups)
+      props = node.props
+      role_default = WIDGET_ROLE_DEFAULTS[node.type]
+
+      radio_ids = nil
+      if node.type == "radio"
+        group = props[:group] || props["group"]
+        if group.is_a?(String) && !group.empty?
+          radio_ids = radio_groups[[scope, group]]
+        end
+      end
+
+      a11y_in = props[:a11y] || props["a11y"]
+      a11y_hash = a11y_in.is_a?(Hash) ? a11y_in.dup : nil
+
+      needs_update = (role_default && !(a11y_hash && has_role?(a11y_hash))) ||
+        !radio_ids.nil? ||
+        (a11y_hash && has_any_ref?(a11y_hash))
+
+      return props if a11y_hash.nil? && !needs_update
+
+      a11y = a11y_hash || {}
+
+      if role_default && !has_role?(a11y)
+        a11y["role"] = role_default
+      end
+
+      A11Y_SINGLE_REF_KEYS.each do |key|
+        ref = a11y[key] || a11y[key.to_sym]
+        if ref.is_a?(String) && !ref.empty?
+          rewritten = scope_ref(ref, scope)
+          unless declared.include?(rewritten)
+            warn_a11y_unresolved(key, ref, node.id)
+          end
+          a11y.delete(key.to_sym)
+          a11y[key] = rewritten
+        end
+      end
+
+      existing_group = a11y["radio_group"] || a11y[:radio_group]
+      if existing_group.is_a?(Array)
+        rewritten_group = existing_group.map do |item|
+          if item.is_a?(String) && !item.empty?
+            r = scope_ref(item, scope)
+            unless declared.include?(r)
+              warn_a11y_unresolved("radio_group", item, node.id)
+            end
+            r
+          else
+            item
+          end
+        end
+        a11y.delete(:radio_group)
+        a11y["radio_group"] = rewritten_group
+      elsif radio_ids
+        a11y["radio_group"] = radio_ids.dup
+      end
+
+      props.merge(a11y: a11y)
+    end
+    private_class_method :apply_a11y_rewrites
+
+    def self.has_role?(a11y)
+      role = a11y["role"] || a11y[:role]
+      !role.nil?
+    end
+    private_class_method :has_role?
+
+    def self.has_any_ref?(a11y)
+      A11Y_SINGLE_REF_KEYS.any? { |k| a11y.key?(k) || a11y.key?(k.to_sym) } ||
+        a11y.key?("radio_group") || a11y.key?(:radio_group)
+    end
+    private_class_method :has_any_ref?
+
+    def self.scope_ref(ref, scope)
+      return ref if scope.empty? || ref.empty?
+      return ref if ref.include?("/") || ref.include?("#")
+      separator = scope.end_with?("#") ? "" : "/"
+      "#{scope}#{separator}#{ref}"
+    end
+    private_class_method :scope_ref
+
+    def self.warn_a11y_unresolved(key, ref, owner_id)
+      warn "plushie a11y: a11y_ref_unresolved: a11y.#{key} #{ref.inspect} on #{owner_id.inspect} does not match any declared widget ID"
+    end
+    private_class_method :warn_a11y_unresolved
+
+    def self.check_missing_accessible_name(node)
+      if NAMED_INTERACTIVE_TYPES.include?(node.type) && !accessible_name?(node)
+        warn "plushie a11y: missing_accessible_name: #{node.type} #{node.id.inspect} " \
+             "has no label, text child, a11y.label, or a11y.labelled_by; screen readers " \
+             "will announce no name"
+      end
+      node.children.each { |c| check_missing_accessible_name(c) }
+    end
+    private_class_method :check_missing_accessible_name
+
+    def self.accessible_name?(node)
+      label = node.props[:label] || node.props["label"]
+      return true if label.is_a?(String) && !label.empty?
+
+      a11y = node.props[:a11y] || node.props["a11y"]
+      if a11y.is_a?(Hash)
+        l = a11y["label"] || a11y[:label]
+        return true if l.is_a?(String) && !l.empty?
+        lb = a11y["labelled_by"] || a11y[:labelled_by]
+        return true if lb.is_a?(String) && !lb.empty?
+      end
+
+      text_descendant?(node.children)
+    end
+    private_class_method :accessible_name?
+
+    def self.text_descendant?(children)
+      children.any? do |child|
+        if child.type == "text"
+          content = child.props[:content] || child.props["content"]
+          (content.is_a?(String) && !content.empty?) || text_descendant?(child.children)
+        else
+          text_descendant?(child.children)
+        end
+      end
+    end
+    private_class_method :text_descendant?
 
     # Scan normalized children for radio widgets sharing a group prop and
     # inject position_in_set / size_of_set into their a11y props. Respects
