@@ -33,7 +33,8 @@ module Plushie
       prop :content, :placeholder, :width, :height, :min_height, :max_height,
         :font, :size, :line_height, :padding, :wrapping, :input_purpose,
         :highlight_syntax, :highlight_theme, :style, :key_bindings,
-        :placeholder_color, :selection_color
+        :placeholder_color, :selection_color,
+        :required, :validation
       default_a11y role: :multiline_text_input, label_from: :placeholder
     end
   end

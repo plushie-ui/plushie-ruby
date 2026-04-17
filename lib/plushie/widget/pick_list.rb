@@ -31,7 +31,8 @@ module Plushie
       positional :options, default: []
       prop :options, :selected, :placeholder, :width, :padding, :text_size,
         :font, :line_height, :menu_height, :shaping, :handle, :ellipsis,
-        :menu_style, :style, :on_open, :on_close
+        :menu_style, :style, :on_open, :on_close,
+        :required, :validation
       default_a11y role: :combo_box, label_from: :placeholder
     end
   end

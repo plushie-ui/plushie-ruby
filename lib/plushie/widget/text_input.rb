@@ -16,7 +16,8 @@ module Plushie
       positional :value, default: ""
       prop :value, :placeholder, :padding, :width, :size, :font, :line_height,
         :align_x, :icon, :on_submit, :on_paste, :secure, :input_purpose,
-        :style, :placeholder_color, :selection_color
+        :style, :placeholder_color, :selection_color,
+        :required, :validation
       default_a11y role: :text_input, label_from: :placeholder
     end
   end

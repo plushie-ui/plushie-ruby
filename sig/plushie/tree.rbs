@@ -19,6 +19,8 @@ module Plushie
     WIDGET_ROLE_DEFAULTS: Hash[String, String]
     A11Y_SINGLE_REF_KEYS: Array[String]
     NAMED_INTERACTIVE_TYPES: Array[String]
+    PLACEHOLDER_DESCRIPTION_WIDGETS: Array[String]
+    VALIDATABLE_WIDGETS: Array[String]
 
     def self.normalize_node: (Node node, String scope, Hash[String, CanvasWidget::RegistryEntry]? registry, String? window_id, ?Integer depth) -> Node
     def self.infer_radio_groups: (Array[Node] children) -> Array[Node]
@@ -30,8 +32,11 @@ module Plushie
     def self.collect_declared_ids: (Node node, Set[String] out) -> void
     def self.collect_radio_groups: (Node node, String scope, Hash[[String, String], Array[String]] out) -> void
     def self.child_scope_for: (Node node, String scope) -> String
-    def self.rewrite_a11y: (Node node, String scope, Set[String] declared, Hash[[String, String], Array[String]] radio_groups) -> Node
-    def self.apply_a11y_rewrites: (Node node, String scope, Set[String] declared, Hash[[String, String], Array[String]] radio_groups) -> Hash[Symbol | String, untyped]
+    def self.rewrite_a11y: (Node node, String scope, Set[String] declared, Hash[[String, String], Array[String]] radio_groups, ?String? tooltip_parent_id) -> Node
+    def self.apply_a11y_rewrites: (Node node, String scope, Set[String] declared, Hash[[String, String], Array[String]] radio_groups, ?String? tooltip_parent_id) -> Hash[Symbol | String, untyped]
+    def self.placeholder_description: (String node_type, Hash[Symbol | String, untyped] props) -> String?
+    def self.required_from_props: (String node_type, Hash[Symbol | String, untyped] props) -> bool?
+    def self.invalid_from_props: (String node_type, Hash[Symbol | String, untyped] props) -> [bool?, String?]
     def self.has_role?: (Hash[Symbol | String, untyped] a11y) -> bool
     def self.has_any_ref?: (Hash[Symbol | String, untyped] a11y) -> bool
     def self.scope_ref: (String ref, String scope) -> String

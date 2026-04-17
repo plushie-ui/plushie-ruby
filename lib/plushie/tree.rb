@@ -337,15 +337,75 @@ module Plushie
     end
     private_class_method :child_scope_for
 
-    def self.rewrite_a11y(node, scope, declared, radio_groups)
-      new_props = apply_a11y_rewrites(node, scope, declared, radio_groups)
+    def self.rewrite_a11y(node, scope, declared, radio_groups, tooltip_parent_id = nil)
+      new_props = apply_a11y_rewrites(node, scope, declared, radio_groups, tooltip_parent_id)
       child_scope = child_scope_for(node, scope)
-      new_children = node.children.map { |c| rewrite_a11y(c, child_scope, declared, radio_groups) }
+      tooltip_for_children = (node.type == "tooltip") ? node.id : nil
+      new_children = node.children.map do |c|
+        rewrite_a11y(c, child_scope, declared, radio_groups, tooltip_for_children)
+      end
       node.with(props: new_props, children: new_children)
     end
     private_class_method :rewrite_a11y
 
-    def self.apply_a11y_rewrites(node, scope, declared, radio_groups)
+    PLACEHOLDER_DESCRIPTION_WIDGETS = %w[text_input text_editor combo_box pick_list].freeze
+    VALIDATABLE_WIDGETS = %w[text_input text_editor checkbox pick_list combo_box].freeze
+    private_constant :PLACEHOLDER_DESCRIPTION_WIDGETS, :VALIDATABLE_WIDGETS
+
+    def self.placeholder_description(node_type, props)
+      return nil unless PLACEHOLDER_DESCRIPTION_WIDGETS.include?(node_type)
+      ph = props[:placeholder] || props["placeholder"]
+      (ph.is_a?(String) && !ph.empty?) ? ph : nil
+    end
+    private_class_method :placeholder_description
+
+    def self.required_from_props(node_type, props)
+      return nil unless VALIDATABLE_WIDGETS.include?(node_type)
+      req = props[:required]
+      req = props["required"] if req.nil?
+      (req == true || req == false) ? req : nil
+    end
+    private_class_method :required_from_props
+
+    # Project :validation onto [invalid, error_message]. Accepts the
+    # builder-idiomatic shapes (symbols, arrays, hashes) plus their
+    # wire-encoded siblings (all-string shapes).
+    def self.invalid_from_props(node_type, props)
+      return [nil, nil] unless VALIDATABLE_WIDGETS.include?(node_type)
+      v = props[:validation] || props["validation"]
+      return [nil, nil] if v.nil?
+      case v
+      when :valid, "valid"
+        [false, nil]
+      when :pending, "pending"
+        [nil, nil]
+      when Array
+        if v.length == 2 && (v[0] == :invalid || v[0] == "invalid")
+          msg = v[1]
+          [true, msg.is_a?(String) ? msg : nil]
+        else
+          [nil, nil]
+        end
+      when Hash
+        state = v[:state] || v["state"]
+        case state
+        when :valid, "valid"
+          [false, nil]
+        when :pending, "pending"
+          [nil, nil]
+        when :invalid, "invalid"
+          msg = v[:message] || v["message"]
+          [true, msg.is_a?(String) ? msg : nil]
+        else
+          [nil, nil]
+        end
+      else
+        [nil, nil]
+      end
+    end
+    private_class_method :invalid_from_props
+
+    def self.apply_a11y_rewrites(node, scope, declared, radio_groups, tooltip_parent_id = nil)
       props = node.props
       role_default = WIDGET_ROLE_DEFAULTS[node.type]
 
@@ -357,12 +417,21 @@ module Plushie
         end
       end
 
+      placeholder_desc = placeholder_description(node.type, props)
+      required_prop = required_from_props(node.type, props)
+      invalid_prop, error_text = invalid_from_props(node.type, props)
+
       a11y_in = props[:a11y] || props["a11y"]
       a11y_hash = a11y_in.is_a?(Hash) ? a11y_in.dup : nil
 
       needs_update = (role_default && !(a11y_hash && has_role?(a11y_hash))) ||
         !radio_ids.nil? ||
-        (a11y_hash && has_any_ref?(a11y_hash))
+        (a11y_hash && has_any_ref?(a11y_hash)) ||
+        !placeholder_desc.nil? ||
+        !required_prop.nil? ||
+        !invalid_prop.nil? ||
+        !error_text.nil? ||
+        !tooltip_parent_id.nil?
 
       return props if a11y_hash.nil? && !needs_update
 
@@ -401,6 +470,26 @@ module Plushie
         a11y["radio_group"] = rewritten_group
       elsif radio_ids
         a11y["radio_group"] = radio_ids.dup
+      end
+
+      if placeholder_desc && !a11y.key?("description") && !a11y.key?(:description)
+        a11y["description"] = placeholder_desc
+      end
+
+      if required_prop == true && !a11y.key?("required") && !a11y.key?(:required)
+        a11y["required"] = true
+      end
+
+      if !invalid_prop.nil? && !a11y.key?("invalid") && !a11y.key?(:invalid)
+        a11y["invalid"] = invalid_prop
+      end
+
+      if error_text && !a11y.key?("error_message") && !a11y.key?(:error_message)
+        a11y["error_message"] = error_text
+      end
+
+      if tooltip_parent_id && !a11y.key?("described_by") && !a11y.key?(:described_by)
+        a11y["described_by"] = tooltip_parent_id
       end
 
       props.merge(a11y: a11y)

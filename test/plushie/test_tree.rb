@@ -180,4 +180,65 @@ class TestTree < Minitest::Test
     tree = Plushie::Node.new(id: "root", type: "column", children: [shape])
     assert_raises(ArgumentError) { Plushie::Tree.normalize(tree) }
   end
+
+  # -- Builder-default projections into a11y ---------------------------------
+
+  def test_placeholder_flows_into_a11y_description
+    tree = container("form") { text_input("email", "", placeholder: "Your email") }
+    normalized = Plushie::Tree.normalize(tree).first
+    input = Plushie::Tree.find(normalized, "form/email")
+    a11y = input.props["a11y"] || input.props[:a11y]
+    assert_equal "Your email", a11y["description"] || a11y[:description]
+  end
+
+  def test_explicit_description_wins_over_placeholder_default
+    tree = container("form") do
+      text_input("email", "", placeholder: "Ph", a11y: {description: "Explicit"})
+    end
+    normalized = Plushie::Tree.normalize(tree).first
+    input = Plushie::Tree.find(normalized, "form/email")
+    a11y = input.props["a11y"] || input.props[:a11y]
+    assert_equal "Explicit", a11y["description"] || a11y[:description]
+  end
+
+  def test_required_prop_flows_into_a11y_required
+    tree = container("form") { text_input("email", "", required: true) }
+    normalized = Plushie::Tree.normalize(tree).first
+    input = Plushie::Tree.find(normalized, "form/email")
+    a11y = input.props["a11y"] || input.props[:a11y]
+    assert_equal true, a11y["required"] || a11y[:required]
+  end
+
+  def test_validation_invalid_flows_into_a11y
+    tree = container("form") do
+      text_input("email", "", validation: [:invalid, "Not valid"])
+    end
+    normalized = Plushie::Tree.normalize(tree).first
+    input = Plushie::Tree.find(normalized, "form/email")
+    a11y = input.props["a11y"] || input.props[:a11y]
+    assert_equal true, a11y["invalid"] || a11y[:invalid]
+    assert_equal "Not valid", a11y["error_message"] || a11y[:error_message]
+  end
+
+  def test_validation_valid_sets_invalid_false
+    tree = container("form") { text_input("email", "", validation: :valid) }
+    normalized = Plushie::Tree.normalize(tree).first
+    input = Plushie::Tree.find(normalized, "form/email")
+    a11y = input.props["a11y"] || input.props[:a11y]
+    invalid = a11y.key?("invalid") ? a11y["invalid"] : a11y[:invalid]
+    assert_equal false, invalid
+  end
+
+  def test_tooltip_scopes_described_by_onto_trigger_child
+    tree = container("form") do
+      tooltip("help", "Enter your email") do
+        text_input("email", "")
+      end
+    end
+    normalized = Plushie::Tree.normalize(tree).first
+    email = Plushie::Tree.find(normalized, "form/help/email")
+    refute_nil email
+    a11y = email.props["a11y"] || email.props[:a11y]
+    assert_equal "form/help", a11y["described_by"] || a11y[:described_by]
+  end
 end

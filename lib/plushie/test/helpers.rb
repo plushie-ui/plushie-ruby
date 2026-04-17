@@ -245,6 +245,37 @@ module Plushie
         assert_equal expected, model
       end
 
+      # Return the resolved a11y hash for a widget.
+      #
+      # Layers render-pipeline inference (placeholder -> description for
+      # text-entry widgets, alt -> label for media widgets) on top of
+      # the normalized `a11y` prop so tests see what assistive
+      # technology will see. Normalizer-populated defaults (role,
+      # implicit radio_group, required/validation projections, tooltip
+      # described_by) are already carried on the tree.
+      #
+      # @param selector [String]
+      # @return [Hash] symbol-keyed a11y map (empty if no state)
+      def resolved_a11y(selector)
+        element = find!(selector)
+        ::Plushie::Test::Helpers.resolve_a11y_for_element(element)
+      end
+
+      # Assert that a widget's resolved a11y matches expected values.
+      # Reads through {#resolved_a11y} so inferred defaults compose
+      # with the author's explicit overrides.
+      #
+      # @param selector [String]
+      # @param expected [Hash] expected key-value pairs
+      def assert_a11y(selector, expected)
+        a11y = resolved_a11y(selector)
+        expected.each do |key, value|
+          actual = a11y[key] || a11y[key.to_s]
+          assert_equal value, actual,
+            "a11y #{key.inspect} mismatch for #{selector}\nFull a11y: #{a11y.inspect}"
+        end
+      end
+
       # -- Session lifecycle (for non-Case usage) ------------------------------
 
       # Start a test session manually.
@@ -259,6 +290,43 @@ module Plushie
       def plushie_stop
         Thread.current[:_plushie_test_session]&.stop
         Thread.current[:_plushie_test_session] = nil
+      end
+    end
+
+    module Helpers
+      PLACEHOLDER_A11Y_WIDGETS = %w[text_input text_editor combo_box pick_list].freeze
+      ALT_A11Y_WIDGETS = %w[image svg qr_code].freeze
+
+      # Apply widget-sdk-equivalent a11y inference on top of the
+      # normalized `a11y` prop. Kept aligned with the Rust SDK's
+      # `resolve_a11y_for_node` so cross-SDK parity holds.
+      #
+      # @param element [Hash] renderer node (string or symbol keyed)
+      # @return [Hash] resolved a11y map with symbol keys
+      def self.resolve_a11y_for_element(element)
+        type = (element[:type] || element["type"]).to_s
+        props = element[:props] || element["props"] || {}
+        explicit = symbolize_keys(props[:a11y] || props["a11y"] || {})
+        inferred = infer_a11y(type, props)
+        inferred.merge(explicit)
+      end
+
+      def self.infer_a11y(type, props)
+        if PLACEHOLDER_A11Y_WIDGETS.include?(type)
+          ph = props[:placeholder] || props["placeholder"]
+          return {description: ph} if ph.is_a?(String) && !ph.empty?
+        elsif ALT_A11Y_WIDGETS.include?(type)
+          alt = props[:alt] || props["alt"]
+          return {label: alt} if alt.is_a?(String) && !alt.empty?
+        end
+        {}
+      end
+
+      def self.symbolize_keys(map)
+        return {} unless map.is_a?(Hash)
+        out = {}
+        map.each { |k, v| out[k.is_a?(String) ? k.to_sym : k] = v }
+        out
       end
     end
   end

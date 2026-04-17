@@ -7,7 +7,8 @@ module Plushie
       positional :label
       positional :is_toggled, default: false
       prop :label, :is_toggled, :spacing, :width, :size, :text_size, :font,
-        :line_height, :shaping, :wrapping, :style, :icon, :disabled
+        :line_height, :shaping, :wrapping, :style, :icon, :disabled,
+        :required, :validation
       default_a11y role: :check_box, label_from: :label
     end
 
