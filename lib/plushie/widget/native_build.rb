@@ -494,34 +494,49 @@ module Plushie
 
       # Extract plushie-widget-sdk version from a Cargo.toml content string.
       # @api private
-      # Parse [patch.crates-io] entries from the renderer workspace's
-      # Cargo.toml to forward vendored crate patches (e.g. iced fork).
+      # Parse [patch.crates-io] entries from the renderer workspace so they
+      # get forwarded into the generated downstream workspace (e.g. vendored
+      # iced fork). Reads both `Cargo.toml` and `.cargo/config.toml`, since
+      # local-only dev overrides (gitignored) live in the latter.
       def parse_renderer_patches(source_path)
-        cargo_path = File.join(source_path, "Cargo.toml")
-        return [] unless File.exist?(cargo_path)
+        sources = [
+          File.join(source_path, "Cargo.toml"),
+          File.join(source_path, ".cargo", "config.toml")
+        ]
 
-        content = File.read(cargo_path)
+        sources.select { |p| File.exist?(p) }.flat_map do |path|
+          extract_patch_lines(File.read(path), source_path)
+        end
+      end
+
+      # Extract [patch.crates-io] lines from a toml string, resolving any
+      # relative `path = "..."` values against `source_path` so the emitted
+      # entries work from the generated downstream workspace.
+      # @api private
+      def extract_patch_lines(content, source_path)
         in_patch = false
         patches = []
 
         content.each_line do |line|
-          if line.strip == "[patch.crates-io]"
+          stripped = line.strip
+
+          if stripped == "[patch.crates-io]"
             in_patch = true
             next
-          elsif line.strip.start_with?("[")
+          elsif stripped.start_with?("[")
             in_patch = false
             next
           end
 
-          next unless in_patch && line.include?("=") && !line.strip.start_with?("#")
+          next unless in_patch && line.include?("=") && !stripped.start_with?("#")
 
-          # Skip our own crates (already included)
+          # Skip our own crates (already included by the caller)
           name = line.split("=").first.strip
           next if %w[plushie-widget-sdk plushie-renderer plushie-core].include?(name)
 
           # Resolve relative paths to absolute (they're relative to the
           # renderer workspace, not the generated build workspace)
-          resolved = line.strip.gsub(/path\s*=\s*"([^"]+)"/) do
+          resolved = stripped.gsub(/path\s*=\s*"([^"]+)"/) do
             abs = File.expand_path(::Regexp.last_match(1), source_path)
             %(path = "#{abs}")
           end
