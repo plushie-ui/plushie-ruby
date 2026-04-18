@@ -43,7 +43,7 @@ module Plushie
     def self.find_focused: (Symbol tag) -> Cmd
 
     # Font
-    def self.load_font: (String data) -> Cmd
+    def self.load_font: (String family, String data) -> Cmd
 
     # Accessibility
     def self.announce: (String text) -> Cmd

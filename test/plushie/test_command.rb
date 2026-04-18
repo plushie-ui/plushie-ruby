@@ -137,8 +137,8 @@ class TestCommand < Minitest::Test
 
   def test_close_window
     cmd = C.close_window("settings")
-    assert_equal :widget_op, cmd.type
-    assert_equal "close_window", cmd.payload[:op]
+    assert_equal :window_op, cmd.type
+    assert_equal "close", cmd.payload[:op]
     assert_equal "settings", cmd.payload[:window_id]
   end
 
@@ -301,8 +301,10 @@ class TestCommand < Minitest::Test
   # -- Font ----------------------------------------------------------------
 
   def test_load_font
-    cmd = C.load_font("ttf_bytes")
+    cmd = C.load_font("Inter", "ttf_bytes")
     assert_equal "load_font", cmd.payload[:op]
+    assert_equal "Inter", cmd.payload[:family]
+    assert_equal "ttf_bytes", cmd.payload[:data]
   end
 
   # -- Accessibility -------------------------------------------------------

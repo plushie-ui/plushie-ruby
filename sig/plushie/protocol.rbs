@@ -85,6 +85,8 @@ module Plushie
       def decode_tree_hash_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
       def decode_screenshot_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
       def decode_reset_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def decode_diagnostic: (Hash[String, untyped] msg) -> Event::System
+      def human_readable_diagnostic: (Hash[String, untyped] diag) -> String
       def split_scoped_id: (String? full_id) -> [String, Array[String]]
       def split_scoped_id_with_window: (String? full_id, String? window_id) -> [String, Array[String]]
       def parse_modifiers: (Hash[String, untyped]? mods) -> Hash[Symbol, bool]
@@ -112,6 +114,8 @@ module Plushie
       def self.decode_tree_hash_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
       def self.decode_screenshot_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
       def self.decode_reset_response: (Hash[String, untyped] msg) -> Hash[Symbol, untyped]
+      def self.decode_diagnostic: (Hash[String, untyped] msg) -> Event::System
+      def self.human_readable_diagnostic: (Hash[String, untyped] diag) -> String
 
       # Helpers
       def self.split_scoped_id: (String? full_id) -> [String, Array[String]]

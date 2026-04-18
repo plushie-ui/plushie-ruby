@@ -59,8 +59,8 @@ class DocsCommandsTest < Minitest::Test
 
   def test_commands_close_window_construct
     cmd = C.close_window("main")
-    assert_equal :widget_op, cmd.type
-    assert_equal "close_window", cmd.payload[:op]
+    assert_equal :window_op, cmd.type
+    assert_equal "close", cmd.payload[:op]
     assert_equal "main", cmd.payload[:window_id]
   end
 

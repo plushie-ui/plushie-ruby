@@ -234,9 +234,10 @@ module Plushie
     # -------------------------------------------------------------------
 
     # Load a font at runtime from TTF/OTF data.
+    # @param family [String] font family name the app will refer to this font by
     # @param data [String] font file bytes
     # @return [Cmd]
-    def self.load_font(data) = Cmd.new(type: :widget_op, payload: {op: "load_font", data:})
+    def self.load_font(family, data) = Cmd.new(type: :widget_op, payload: {op: "load_font", family:, data:})
 
     # -------------------------------------------------------------------
     # Accessibility

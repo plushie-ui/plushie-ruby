@@ -544,6 +544,23 @@ class TestProtocolDecode < Minitest::Test
     assert_equal "prop_validation", event.value["kind"]
   end
 
+  def test_decode_top_level_diagnostic
+    event = D.dispatch_message({
+      "type" => "diagnostic",
+      "session" => "s1",
+      "level" => "warn",
+      "diagnostic" => {"kind" => "font_family_not_found", "family" => "Inter"}
+    })
+    assert_instance_of Plushie::Event::System, event
+    assert_equal :diagnostic, event.type
+    assert_equal "warn", event.value["level"]
+    assert_equal "font_family_not_found", event.value["kind"]
+    assert_equal "Inter", event.value["diagnostic"]["family"]
+    # A human-readable message is synthesized when the diagnostic payload
+    # has no explicit message field.
+    refute_nil event.value["message"]
+  end
+
   def test_decode_extension_command_error
     event = D.decode_event({
       "family" => "error",

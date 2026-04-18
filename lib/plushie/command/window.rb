@@ -30,7 +30,7 @@ module Plushie
 
       # @param window_id [String]
       # @return [Cmd]
-      def close_window(window_id) = Cmd.new(type: :widget_op, payload: {op: "close_window", window_id: window_id})
+      def close_window(window_id) = Cmd.new(type: :window_op, payload: {op: "close", window_id:})
 
       # @param window_id [String]
       # @param width [Integer]
