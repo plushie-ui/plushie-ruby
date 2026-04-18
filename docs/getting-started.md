@@ -52,8 +52,10 @@ bundle exec rake plushie:download
 ```
 
 The precompiled binary requires no Rust toolchain. To build from
-source instead, install [rustup](https://rustup.rs/) and run
-`bundle exec rake plushie:build`.
+source instead, install [rustup](https://rustup.rs/), install
+`cargo-plushie` (`cargo install cargo-plushie --version <PLUSHIE_RUST_VERSION> --locked`),
+and run `bundle exec rake plushie:build`. See
+[docs/versioning.md](versioning.md) for the pin rules.
 
 ### 4. (Optional) Configure the SDK
 

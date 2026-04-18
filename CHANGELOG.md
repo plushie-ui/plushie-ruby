@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Breaking changes
+
+- Environment variable `PLUSHIE_SOURCE_PATH` renamed to
+  `PLUSHIE_RUST_SOURCE_PATH`. Update shell profiles and CI configs.
+- Constant `Plushie::BINARY_VERSION` renamed to
+  `Plushie::PLUSHIE_RUST_VERSION` to match the plushie-rust release
+  identifier. Anything referencing the old name needs updating.
+
+### Changed
+
+- Native widget builds now delegate workspace generation and
+  `cargo build` to [cargo-plushie](https://crates.io/crates/cargo-plushie).
+  The Ruby SDK writes a minimal virtual app manifest under
+  `_build/plushie-renderer-spec/` and shells out to
+  `cargo plushie build`. Widget discovery, [patch.crates-io] forwarding,
+  collision checks, and constructor validation now live in
+  cargo-plushie and are shared across host SDKs.
+- Native widget crates must now declare
+  `[package.metadata.plushie.widget] { type_name, constructor }` in
+  their Cargo.toml. cargo-plushie uses that table for discovery.
+
+### Added
+
+- `Plushie::CargoPlushie.resolve` helper that locates a usable
+  cargo-plushie via `PLUSHIE_RUST_SOURCE_PATH`, falling back to a
+  version-matched binary on `PATH`, otherwise raising with
+  `cargo install cargo-plushie --version <version> --locked`
+  guidance.
+- `docs/versioning.md` documenting the `PLUSHIE_RUST_VERSION` pin and
+  SDK-vs-plushie-rust versioning rules.
+
+### Removed
+
+- The checked-in `native/plushie/Cargo.lock` stash. cargo-plushie
+  manages the scratch workspace's lock file.
+
 ## [0.5.0] - 2026-03-23
 
 Initial release. Targets plushie-renderer 0.5.0.

@@ -26,7 +26,12 @@ Plushie.run(MyApp)
 The renderer is resolved automatically. For most projects,
 `bundle exec rake plushie:download` fetches a precompiled renderer and
 you're done. If you have native Rust extensions,
-`bundle exec rake plushie:build` compiles a custom renderer.
+`bundle exec rake plushie:build` shells out to
+[`cargo-plushie`](https://crates.io/crates/cargo-plushie) to compile
+a custom renderer. Install cargo-plushie once at the version your
+gem pins to (`Plushie::PLUSHIE_RUST_VERSION`) or set
+`PLUSHIE_RUST_SOURCE_PATH` to a local plushie-rust checkout; see
+[docs/versioning.md](versioning.md).
 
 Configure which artifacts to install and where they go:
 
