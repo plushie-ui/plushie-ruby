@@ -708,9 +708,12 @@ module Plushie
         else
           if msg["id"]
             id, scope = split_scoped_id(msg["id"])
+            # Renderer-internal events (e.g. prop_validation in debug
+            # builds) may omit window_id, so unknown families always use
+            # the optional lookup rather than raising.
             Event::Widget.new(
               type: family&.to_sym, id: id,
-              value: wire_value, window_id: window_id_fn.call(msg, family),
+              value: wire_value, window_id: optional_window_id(msg, family),
               scope: scope
             )
           end
