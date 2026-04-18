@@ -212,6 +212,7 @@ namespace :plushie do
 
   desc "Run all CI checks (mirrors .github/workflows/ci.yml)"
   task :preflight do
+    require "plushie"
     sh "bundle exec rake standard"
     sh "bundle exec rake test"
     # Run headless backend tests to catch renderer integration bugs
