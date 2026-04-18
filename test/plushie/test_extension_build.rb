@@ -3,7 +3,7 @@
 require "test_helper"
 require "plushie/widget/native_build"
 
-# A fake native extension for testing the build pipeline.
+# A fake native widget for testing the build pipeline.
 class FakeSparkline
   include Plushie::Widget
 
@@ -15,7 +15,7 @@ class FakeSparkline
   prop :color, :color, default: :blue
 end
 
-# A second native extension for collision testing.
+# A second native widget for multi-widget coverage.
 class FakeChart
   include Plushie::Widget
 
@@ -26,58 +26,8 @@ class FakeChart
   prop :series, :any, default: []
 end
 
-# Extension with a duplicate type name (sparkline) for collision testing.
-class FakeSparklineDupe
-  include Plushie::Widget
-
-  widget :sparkline, kind: :native_widget
-  rust_crate "native/sparkline_v2"
-  rust_constructor "sparkline_v2::SparklineExt::new()"
-
-  prop :data, :any, default: []
-end
-
-# Extension with duplicate crate basename for crate collision testing.
-class FakeChartSameCrate
-  include Plushie::Widget
-
-  widget :pie_chart, kind: :native_widget
-  rust_crate "other/chart"
-  rust_constructor "other_chart::PieChartExt::new()"
-
-  prop :slices, :any, default: []
-end
-
 class TestExtensionBuild < Minitest::Test
   Build = Plushie::Widget::NativeBuild
-
-  # -- Collision detection --
-
-  def test_check_collisions_passes_with_unique_types
-    Build.check_collisions!([FakeSparkline, FakeChart])
-  end
-
-  def test_check_collisions_raises_on_duplicate_type_names
-    err = assert_raises(Plushie::Error) do
-      Build.check_collisions!([FakeSparkline, FakeSparklineDupe])
-    end
-    assert_includes err.message, "sparkline"
-    assert_includes err.message, "FakeSparkline"
-    assert_includes err.message, "FakeSparklineDupe"
-  end
-
-  def test_check_crate_name_collisions_passes_with_unique_names
-    Build.check_crate_name_collisions!([FakeSparkline, FakeChart])
-  end
-
-  def test_check_crate_name_collisions_raises_on_duplicate_basenames
-    err = assert_raises(Plushie::Error) do
-      Build.check_crate_name_collisions!([FakeChart, FakeChartSameCrate])
-    end
-    assert_includes err.message, "chart"
-    assert_includes err.message, "FakeChart"
-    assert_includes err.message, "FakeChartSameCrate"
-  end
 
   # -- Crate path resolution --
 
@@ -86,8 +36,9 @@ class TestExtensionBuild < Minitest::Test
     assert_equal "/home/user/project/native/sparkline", paths[FakeSparkline]
   end
 
+  # Path traversal is blocked before we hand anything to cargo-plushie
+  # so a malicious widget config can't point cargo at arbitrary files.
   def test_resolve_crate_paths_rejects_traversal_outside_project
-    # Create a class with a crate path that escapes the base dir
     escape_ext = Class.new do
       include Plushie::Widget
 
@@ -102,123 +53,7 @@ class TestExtensionBuild < Minitest::Test
     assert_includes err.message, "outside the allowed directory"
   end
 
-  # -- Rust constructor validation --
-
-  def test_validate_rust_constructor_accepts_simple_path
-    Build.validate_rust_constructor!(FakeSparkline, "MyExt::new()")
-  end
-
-  def test_validate_rust_constructor_accepts_identifier
-    Build.validate_rust_constructor!(FakeSparkline, "MyExt")
-  end
-
-  def test_validate_rust_constructor_accepts_nested_path
-    Build.validate_rust_constructor!(FakeSparkline, "sparkline::ext::SparklineExt::new()")
-  end
-
-  def test_validate_rust_constructor_rejects_semicolons
-    err = assert_raises(Plushie::Error) do
-      Build.validate_rust_constructor!(FakeSparkline, "MyExt::new(); drop_tables()")
-    end
-    assert_includes err.message, "invalid characters"
-  end
-
-  def test_validate_rust_constructor_rejects_braces
-    err = assert_raises(Plushie::Error) do
-      Build.validate_rust_constructor!(FakeSparkline, "MyExt { field: 1 }")
-    end
-    assert_includes err.message, "invalid characters"
-  end
-
-  def test_validate_rust_constructor_rejects_empty_string
-    err = assert_raises(Plushie::Error) do
-      Build.validate_rust_constructor!(FakeSparkline, "")
-    end
-    assert_includes err.message, "invalid characters"
-  end
-
-  # -- Cargo.toml generation --
-
-  def test_generate_cargo_toml_with_source_path
-    Dir.mktmpdir do |tmpdir|
-      # Create fake source dirs so the check passes
-      FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie-widget-sdk"))
-      FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie-renderer"))
-      FileUtils.mkdir_p(File.join(tmpdir, "native", "sparkline"))
-
-      build_dir = File.join(tmpdir, "_build", "plushie", "custom")
-      FileUtils.mkdir_p(build_dir)
-
-      crate_paths = {FakeSparkline => File.join(tmpdir, "native", "sparkline")}
-
-      ENV["PLUSHIE_RUST_SOURCE_PATH"] = File.join(tmpdir, "source")
-      begin
-        toml = Build.generate_cargo_toml(build_dir, "plushie-custom", [FakeSparkline], crate_paths)
-      ensure
-        ENV.delete("PLUSHIE_RUST_SOURCE_PATH")
-      end
-
-      assert_includes toml, "[package]"
-      assert_includes toml, "plushie_custom"
-      assert_includes toml, 'edition = "2024"'
-      assert_includes toml, "plushie-custom"
-      assert_includes toml, "plushie-widget-sdk = { path ="
-      assert_includes toml, "plushie-renderer = { path ="
-      assert_includes toml, "sparkline = { path ="
-    end
-  end
-
-  def test_generate_cargo_toml_without_source_path
-    build_dir = "/tmp/test_build"
-    crate_paths = {FakeSparkline => "/home/user/project/native/sparkline"}
-
-    old_val = ENV.delete("PLUSHIE_RUST_SOURCE_PATH")
-    begin
-      toml = Build.generate_cargo_toml(build_dir, "plushie-custom", [FakeSparkline], crate_paths)
-    ensure
-      ENV["PLUSHIE_RUST_SOURCE_PATH"] = old_val if old_val
-    end
-
-    assert_includes toml, %(plushie-widget-sdk = "#{Plushie::PLUSHIE_RUST_VERSION}")
-    assert_includes toml, %(plushie-renderer = "#{Plushie::PLUSHIE_RUST_VERSION}")
-  end
-
-  def test_generate_cargo_toml_uses_project_version
-    build_dir = "/tmp/test_build"
-    crate_paths = {FakeSparkline => "/home/user/project/native/sparkline"}
-
-    old_val = ENV.delete("PLUSHIE_RUST_SOURCE_PATH")
-    begin
-      toml = Build.generate_cargo_toml(build_dir, "plushie-custom", [FakeSparkline], crate_paths)
-    ensure
-      ENV["PLUSHIE_RUST_SOURCE_PATH"] = old_val if old_val
-    end
-
-    assert_includes toml, %(version = "#{Plushie::VERSION}")
-  end
-
-  # -- main.rs generation --
-
-  def test_generate_main_rs_contains_builder
-    rs = Build.generate_main_rs([FakeSparkline])
-    assert_includes rs, "PlushieAppBuilder::new()"
-    assert_includes rs, "plushie_renderer::run(builder)"
-    assert_includes rs, ".widget(sparkline::SparklineExt::new())"
-  end
-
-  def test_generate_main_rs_with_multiple_extensions
-    rs = Build.generate_main_rs([FakeSparkline, FakeChart])
-    assert_includes rs, ".widget(sparkline::SparklineExt::new())"
-    assert_includes rs, ".widget(chart::ChartExt::new())"
-  end
-
-  def test_generate_main_rs_includes_comment
-    rs = Build.generate_main_rs([FakeSparkline])
-    assert_includes rs, "Auto-generated by rake plushie:build"
-    assert_includes rs, "Do not edit manually"
-  end
-
-  # -- Extension class declarations --
+  # -- Widget class declarations --
 
   def test_native_widget_class_reports_native
     assert FakeSparkline.native?
@@ -314,7 +149,6 @@ class TestExtensionBuild < Minitest::Test
       widget :gauge
       prop :value, :number, default: 0
     end
-    # Assign a name we can look up
     Object.const_set(:TestPureGaugeForBuild, klass) unless defined?(TestPureGaugeForBuild)
 
     ENV["PLUSHIE_WIDGETS"] = "TestPureGaugeForBuild"
@@ -327,69 +161,135 @@ class TestExtensionBuild < Minitest::Test
     end
   end
 
-  # -- Rust constructor validation --
+  # -- Widget metadata verification --
 
-  def test_validate_rust_constructor_accepts_turbofish
-    Build.validate_rust_constructor!(FakeSparkline, "MyExt::<Config>::new()")
-  end
-
-  def test_validate_rust_constructor_accepts_turbofish_with_multiple_params
-    Build.validate_rust_constructor!(FakeSparkline, "MyExt::<Config, State>::new()")
-  end
-
-  # -- main.rs generation for stock build --
-
-  def test_generate_main_rs_without_widgets
-    rs = Build.generate_main_rs([])
-    assert_includes rs, "PlushieAppBuilder::new();"
-    assert_includes rs, "plushie_renderer::run(builder)"
-    refute_includes rs, ".widget("
-  end
-
-  # -- Version compatibility --
-
-  def test_check_widget_versions_raises_on_mismatch
+  # cargo-plushie discovers widgets via `cargo metadata` and the
+  # [package.metadata.plushie.widget] table. The Ruby SDK's pre-flight
+  # fails with the widget class name (not a cargo_metadata dump) when
+  # a crate is missing that table so the author knows exactly where to
+  # add it.
+  def test_verify_widget_metadata_passes_when_table_present
     Dir.mktmpdir do |tmpdir|
-      crate_dir = File.join(tmpdir, "native", "sparkline")
+      crate_dir = File.join(tmpdir, "sparkline")
       FileUtils.mkdir_p(crate_dir)
       File.write(File.join(crate_dir, "Cargo.toml"), <<~TOML)
         [package]
         name = "sparkline"
         version = "0.1.0"
 
-        [dependencies]
-        plushie-widget-sdk = "0.1.0"
+        [package.metadata.plushie.widget]
+        type_name = "sparkline"
+        constructor = "sparkline::SparklineExt::new()"
       TOML
 
-      error = assert_raises(Plushie::Error) do
-        Build.check_widget_versions!({FakeSparkline => crate_dir})
-      end
-      assert_match(/depends on plushie-widget-sdk/, error.message)
+      # Should not raise
+      Build.verify_widget_metadata!({FakeSparkline => crate_dir})
     end
   end
 
-  # -- Cargo.toml generation with patch section --
-
-  def test_generate_cargo_toml_with_source_path_includes_patch
+  def test_verify_widget_metadata_raises_when_table_missing
     Dir.mktmpdir do |tmpdir|
-      FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie-widget-sdk"))
-      FileUtils.mkdir_p(File.join(tmpdir, "source", "plushie-renderer"))
-      FileUtils.mkdir_p(File.join(tmpdir, "native", "sparkline"))
+      crate_dir = File.join(tmpdir, "sparkline")
+      FileUtils.mkdir_p(crate_dir)
+      File.write(File.join(crate_dir, "Cargo.toml"), <<~TOML)
+        [package]
+        name = "sparkline"
+        version = "0.1.0"
+      TOML
 
-      build_dir = File.join(tmpdir, "_build", "plushie", "workspace")
-      FileUtils.mkdir_p(build_dir)
-
-      crate_paths = {FakeSparkline => File.join(tmpdir, "native", "sparkline")}
-
-      ENV["PLUSHIE_RUST_SOURCE_PATH"] = File.join(tmpdir, "source")
-      begin
-        toml = Build.generate_cargo_toml(build_dir, "plushie-custom", [FakeSparkline], crate_paths)
-      ensure
-        ENV.delete("PLUSHIE_RUST_SOURCE_PATH")
+      err = assert_raises(Plushie::Error) do
+        Build.verify_widget_metadata!({FakeSparkline => crate_dir})
       end
+      assert_includes err.message, "FakeSparkline"
+      assert_includes err.message, "[package.metadata.plushie.widget]"
+    end
+  end
 
-      assert_includes toml, "[patch.crates-io]"
-      assert_includes toml, "plushie-widget-sdk = { path ="
+  def test_verify_widget_metadata_raises_when_required_keys_missing
+    Dir.mktmpdir do |tmpdir|
+      crate_dir = File.join(tmpdir, "sparkline")
+      FileUtils.mkdir_p(crate_dir)
+      # Header present but missing `constructor`
+      File.write(File.join(crate_dir, "Cargo.toml"), <<~TOML)
+        [package]
+        name = "sparkline"
+        version = "0.1.0"
+
+        [package.metadata.plushie.widget]
+        type_name = "sparkline"
+      TOML
+
+      err = assert_raises(Plushie::Error) do
+        Build.verify_widget_metadata!({FakeSparkline => crate_dir})
+      end
+      assert_includes err.message, "FakeSparkline"
+    end
+  end
+
+  def test_verify_widget_metadata_raises_when_crate_missing
+    err = assert_raises(Plushie::Error) do
+      Build.verify_widget_metadata!({FakeSparkline => "/definitely/not/here"})
+    end
+    assert_includes err.message, "FakeSparkline"
+    assert_includes err.message, "not found"
+  end
+
+  # -- Virtual manifest generation --
+
+  # The virtual manifest hands cargo-plushie a dep graph it can walk.
+  # Widget crates show up as path deps, and the binary name override
+  # travels through [package.metadata.plushie].
+  def test_write_virtual_manifest_lists_widget_path_deps
+    Dir.mktmpdir do |tmpdir|
+      crate_paths = {FakeSparkline => File.join(tmpdir, "native", "sparkline")}
+      FileUtils.mkdir_p(crate_paths[FakeSparkline])
+
+      Build.write_virtual_manifest(tmpdir, "plushie-custom", crate_paths)
+
+      toml = File.read(File.join(tmpdir, "Cargo.toml"))
+      assert_includes toml, "[package]"
+      assert_includes toml, %(name = "plushie_custom")
+      assert_includes toml, "[dependencies]"
+      assert_includes toml, "sparkline = { path ="
+      assert_includes toml, "[package.metadata.plushie]"
+      assert_includes toml, %(binary_name = "plushie-custom")
+
+      # An empty lib.rs lets cargo compile the virtual crate.
+      assert File.exist?(File.join(tmpdir, "src", "lib.rs"))
+    end
+  end
+
+  def test_write_virtual_manifest_handles_zero_widgets
+    Dir.mktmpdir do |tmpdir|
+      Build.write_virtual_manifest(tmpdir, "plushie-renderer", {})
+      toml = File.read(File.join(tmpdir, "Cargo.toml"))
+      assert_includes toml, "[dependencies]"
+      refute_match(/= \{ path =/, toml)
+    end
+  end
+
+  # -- Binary location --
+
+  # cargo-plushie writes the renderer workspace under
+  # `target/plushie-renderer/` and builds into that workspace's own
+  # `target/` so the final path is nested. Keep this in sync with
+  # cargo-plushie's cmd_run / cmd_build output.
+  def test_locate_built_binary_uses_cargo_plushie_layout
+    path = Build.locate_built_binary("/scratch", "plushie-custom", true)
+    assert_equal "/scratch/target/plushie-renderer/target/release/plushie-custom",
+      path.sub(/\.exe\z/, "")
+
+    debug = Build.locate_built_binary("/scratch", "plushie-custom", false)
+    assert_includes debug, "/target/plushie-renderer/target/debug/"
+  end
+
+  def test_locate_built_binary_respects_cargo_target_dir
+    ENV["CARGO_TARGET_DIR"] = "/custom/target"
+    begin
+      path = Build.locate_built_binary("/scratch", "plushie-custom", true)
+      assert_includes path, "/custom/target/plushie-renderer/target/release/"
+    ensure
+      ENV.delete("CARGO_TARGET_DIR")
     end
   end
 end
