@@ -25,6 +25,11 @@ class TestRendererEnv < Minitest::Test
     assert RE.allowed?("GALLIUM_DRIVER")
   end
 
+  def test_allowed_plushie_prefix
+    assert RE.allowed?("PLUSHIE_NO_CATCH_UNWIND")
+    assert RE.allowed?("PLUSHIE_DEBUG_FOO")
+  end
+
   def test_disallowed_vars
     refute RE.allowed?("DATABASE_URL")
     refute RE.allowed?("AWS_SECRET_ACCESS_KEY")
@@ -58,17 +63,33 @@ class TestRendererEnv < Minitest::Test
   end
 
   def test_build_unsets_disallowed_vars
-    # Set a sensitive var temporarily and verify it's unset
-    original = ENV["PLUSHIE_TEST_SECRET"]
-    ENV["PLUSHIE_TEST_SECRET"] = "hunter2"
+    # Set a sensitive var temporarily and verify it's unset.
+    # NOTE: PLUSHIE_* is now on the whitelist, so use a non-plushie name.
+    original = ENV["SUPER_SECRET_TOKEN"]
+    ENV["SUPER_SECRET_TOKEN"] = "hunter2"
     begin
       env = RE.build
-      assert_nil env["PLUSHIE_TEST_SECRET"], "sensitive var should be nil (unset)"
+      assert_nil env["SUPER_SECRET_TOKEN"], "sensitive var should be nil (unset)"
     ensure
       if original
-        ENV["PLUSHIE_TEST_SECRET"] = original
+        ENV["SUPER_SECRET_TOKEN"] = original
       else
-        ENV.delete("PLUSHIE_TEST_SECRET")
+        ENV.delete("SUPER_SECRET_TOKEN")
+      end
+    end
+  end
+
+  def test_build_forwards_plushie_prefix_vars
+    original = ENV["PLUSHIE_SMOKE_TEST"]
+    ENV["PLUSHIE_SMOKE_TEST"] = "ok"
+    begin
+      env = RE.build
+      assert_equal "ok", env["PLUSHIE_SMOKE_TEST"]
+    ensure
+      if original
+        ENV["PLUSHIE_SMOKE_TEST"] = original
+      else
+        ENV.delete("PLUSHIE_SMOKE_TEST")
       end
     end
   end

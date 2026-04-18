@@ -45,6 +45,9 @@ module Plushie
 
     # Environment variable prefixes to pass through.
     # Any var starting with one of these prefixes is allowed.
+    #
+    # PLUSHIE_ is a catch-all for plushie-reserved debug/diagnostic
+    # toggles read by the renderer (e.g. PLUSHIE_NO_CATCH_UNWIND).
     ALLOWED_PREFIXES = %w[
       LC_
       MESA_
@@ -54,6 +57,7 @@ module Plushie
       GALLIUM_
       AT_SPI_
       FONTCONFIG_
+      PLUSHIE_
     ].freeze
 
     # Rust log level mapping from plushie log level symbols.
