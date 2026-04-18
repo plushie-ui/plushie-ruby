@@ -1,0 +1,11 @@
+module Plushie
+  module CargoPlushie
+    def self.resolve: () -> [String, Array[String]]
+    def self.source_path: () -> String?
+    def self.resolve_via_source: (String source) -> [String, Array[String]]
+    def self.check_path_version: () -> Symbol
+    def self.extract_version: (String? output) -> String?
+    def self.mismatch_message: () -> String
+    def self.missing_message: () -> String
+  end
+end

@@ -92,6 +92,7 @@ require_relative "plushie/connection"
 require_relative "plushie/bridge"
 require_relative "plushie/runtime"
 require_relative "plushie/binary"
+require_relative "plushie/cargo_plushie"
 
 # State helpers
 require_relative "plushie/animation"
