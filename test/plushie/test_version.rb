@@ -7,7 +7,7 @@ class TestVersion < Minitest::Test
     refute_nil Plushie::VERSION
   end
 
-  def test_has_a_binary_version
-    refute_nil Plushie::BINARY_VERSION
+  def test_has_a_plushie_rust_version
+    refute_nil Plushie::PLUSHIE_RUST_VERSION
   end
 end

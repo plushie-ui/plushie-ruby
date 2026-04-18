@@ -13,7 +13,7 @@ module Plushie
   end
 
   VERSION: String
-  BINARY_VERSION: String
+  PLUSHIE_RUST_VERSION: String
 
   class Error < StandardError
   end

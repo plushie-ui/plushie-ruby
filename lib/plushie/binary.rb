@@ -128,10 +128,10 @@ module Plushie
     # Download the precompiled binary for the current platform.
     # Verifies the SHA-256 checksum against a .sha256 sidecar file.
     #
-    # @param version [String] binary version (default: BINARY_VERSION)
+    # @param version [String] plushie-rust version (default: PLUSHIE_RUST_VERSION)
     # @param dest [String, nil] override destination path (default: _build/plushie/bin/{name})
     # @return [String] path to the downloaded binary
-    def download!(version: BINARY_VERSION, dest: nil)
+    def download!(version: PLUSHIE_RUST_VERSION, dest: nil)
       require "net/http"
       require "uri"
       require "fileutils"
@@ -215,11 +215,11 @@ module Plushie
 
     # Download the WASM renderer tarball and extract it.
     #
-    # @param version [String] binary version (default: BINARY_VERSION)
+    # @param version [String] plushie-rust version (default: PLUSHIE_RUST_VERSION)
     # @param force [Boolean] re-download even if files exist
     # @param dir [String, nil] override output directory (default: wasm_path)
     # @return [String] path to the WASM directory
-    def download_wasm!(version: BINARY_VERSION, force: false, dir: nil)
+    def download_wasm!(version: PLUSHIE_RUST_VERSION, force: false, dir: nil)
       require "net/http"
       require "uri"
       require "fileutils"

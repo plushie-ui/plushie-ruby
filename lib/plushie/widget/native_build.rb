@@ -12,12 +12,12 @@ module Plushie
     #
     # - **Stock build**: no native widgets. Generates a minimal workspace
     #   that depends on plushie-renderer from crates.io (or local source
-    #   if PLUSHIE_SOURCE_PATH is set).
+    #   if PLUSHIE_RUST_SOURCE_PATH is set).
     # - **Custom build**: with native widgets. Each widget's Rust crate is
     #   included in the workspace and registered in the generated main.rs.
     #
-    # Source checkout is optional. Without PLUSHIE_SOURCE_PATH, dependencies
-    # are pulled from crates.io using BINARY_VERSION.
+    # Source checkout is optional. Without PLUSHIE_RUST_SOURCE_PATH, dependencies
+    # are pulled from crates.io using PLUSHIE_RUST_VERSION.
     module NativeBuild
       # Matches Rust constructor expressions including turbofish generics.
       # Valid: MyExt::new(), sparkline::Ext::<Config>::new(), create()
@@ -145,12 +145,12 @@ module Plushie
 
       # Check that native widget crates depend on a compatible plushie-widget-sdk
       # version. Reads each crate's Cargo.toml and compares against
-      # BINARY_VERSION. Warns on mismatch to prevent confusing Cargo errors.
+      # PLUSHIE_RUST_VERSION. Warns on mismatch to prevent confusing Cargo errors.
       #
       # @param crate_paths [Hash{Class => String}]
       # @return [void]
       def check_widget_versions!(crate_paths)
-        expected = Plushie::BINARY_VERSION
+        expected = Plushie::PLUSHIE_RUST_VERSION
         expected_parts = expected.split(".").map(&:to_i)
 
         crate_paths.each do |mod, crate_path|
@@ -189,7 +189,7 @@ module Plushie
       #
       # When source_path is not set, uses crates.io version dependencies.
       def generate_cargo_toml(build_dir, bin_name, widgets, crate_paths)
-        source_path = ENV["PLUSHIE_SOURCE_PATH"] || Plushie.configuration.source_path
+        source_path = ENV["PLUSHIE_RUST_SOURCE_PATH"] || Plushie.configuration.source_path
 
         core_dep, bin_dep, patch_section = if source_path && File.directory?(source_path)
           core_rel = relative_path(
@@ -225,7 +225,7 @@ module Plushie
             %(plushie-renderer = { path = "#{bin_rel}" }),
             patch]
         else
-          version = Plushie::BINARY_VERSION
+          version = Plushie::PLUSHIE_RUST_VERSION
           [%(plushie-widget-sdk = "#{version}"),
             %(plushie-renderer = "#{version}"),
             ""]
@@ -367,11 +367,11 @@ module Plushie
           copy_lock_to_workspace(build_dir)
         end
 
-        source_path = ENV["PLUSHIE_SOURCE_PATH"] || Plushie.configuration.source_path
+        source_path = ENV["PLUSHIE_RUST_SOURCE_PATH"] || Plushie.configuration.source_path
         source_info = if source_path && File.directory?(source_path)
           "local source"
         else
-          "crates.io v#{Plushie::BINARY_VERSION}"
+          "crates.io v#{Plushie::PLUSHIE_RUST_VERSION}"
         end
 
         puts "Source: #{source_info}"
@@ -434,14 +434,14 @@ module Plushie
       end
 
       # Validate the tracked Cargo.lock's plushie-widget-sdk version
-      # matches BINARY_VERSION. Fails early with clear guidance if
+      # matches PLUSHIE_RUST_VERSION. Fails early with clear guidance if
       # they don't match (stale lock from a previous SDK version).
       # Skips silently if no lock file exists (first build).
       def check_lock_version!
         return unless File.exist?(LOCK_FILE)
 
         content = File.read(LOCK_FILE)
-        expected = Plushie::BINARY_VERSION
+        expected = Plushie::PLUSHIE_RUST_VERSION
 
         match = content.match(/name = "plushie-widget-sdk"\nversion = "(\d+\.\d+\.\d+)"/)
         return unless match
@@ -451,7 +451,7 @@ module Plushie
 
         raise Error,
           "Cargo.lock version mismatch: plushie-widget-sdk #{locked_version} is locked " \
-          "but BINARY_VERSION is #{expected}.\n\n" \
+          "but PLUSHIE_RUST_VERSION is #{expected}.\n\n" \
           "Run `rake plushie:build[update]` to re-resolve dependencies."
       end
 

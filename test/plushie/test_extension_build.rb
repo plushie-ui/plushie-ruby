@@ -151,11 +151,11 @@ class TestExtensionBuild < Minitest::Test
 
       crate_paths = {FakeSparkline => File.join(tmpdir, "native", "sparkline")}
 
-      ENV["PLUSHIE_SOURCE_PATH"] = File.join(tmpdir, "source")
+      ENV["PLUSHIE_RUST_SOURCE_PATH"] = File.join(tmpdir, "source")
       begin
         toml = Build.generate_cargo_toml(build_dir, "plushie-custom", [FakeSparkline], crate_paths)
       ensure
-        ENV.delete("PLUSHIE_SOURCE_PATH")
+        ENV.delete("PLUSHIE_RUST_SOURCE_PATH")
       end
 
       assert_includes toml, "[package]"
@@ -172,26 +172,26 @@ class TestExtensionBuild < Minitest::Test
     build_dir = "/tmp/test_build"
     crate_paths = {FakeSparkline => "/home/user/project/native/sparkline"}
 
-    old_val = ENV.delete("PLUSHIE_SOURCE_PATH")
+    old_val = ENV.delete("PLUSHIE_RUST_SOURCE_PATH")
     begin
       toml = Build.generate_cargo_toml(build_dir, "plushie-custom", [FakeSparkline], crate_paths)
     ensure
-      ENV["PLUSHIE_SOURCE_PATH"] = old_val if old_val
+      ENV["PLUSHIE_RUST_SOURCE_PATH"] = old_val if old_val
     end
 
-    assert_includes toml, %(plushie-widget-sdk = "#{Plushie::BINARY_VERSION}")
-    assert_includes toml, %(plushie-renderer = "#{Plushie::BINARY_VERSION}")
+    assert_includes toml, %(plushie-widget-sdk = "#{Plushie::PLUSHIE_RUST_VERSION}")
+    assert_includes toml, %(plushie-renderer = "#{Plushie::PLUSHIE_RUST_VERSION}")
   end
 
   def test_generate_cargo_toml_uses_project_version
     build_dir = "/tmp/test_build"
     crate_paths = {FakeSparkline => "/home/user/project/native/sparkline"}
 
-    old_val = ENV.delete("PLUSHIE_SOURCE_PATH")
+    old_val = ENV.delete("PLUSHIE_RUST_SOURCE_PATH")
     begin
       toml = Build.generate_cargo_toml(build_dir, "plushie-custom", [FakeSparkline], crate_paths)
     ensure
-      ENV["PLUSHIE_SOURCE_PATH"] = old_val if old_val
+      ENV["PLUSHIE_RUST_SOURCE_PATH"] = old_val if old_val
     end
 
     assert_includes toml, %(version = "#{Plushie::VERSION}")
@@ -381,11 +381,11 @@ class TestExtensionBuild < Minitest::Test
 
       crate_paths = {FakeSparkline => File.join(tmpdir, "native", "sparkline")}
 
-      ENV["PLUSHIE_SOURCE_PATH"] = File.join(tmpdir, "source")
+      ENV["PLUSHIE_RUST_SOURCE_PATH"] = File.join(tmpdir, "source")
       begin
         toml = Build.generate_cargo_toml(build_dir, "plushie-custom", [FakeSparkline], crate_paths)
       ensure
-        ENV.delete("PLUSHIE_SOURCE_PATH")
+        ENV.delete("PLUSHIE_RUST_SOURCE_PATH")
       end
 
       assert_includes toml, "[patch.crates-io]"

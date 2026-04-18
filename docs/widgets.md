@@ -1784,7 +1784,7 @@ end
 | Option | Type | Default | Description |
 |---|---|---|---|
 | `binary_path` | `String` | `nil` | Path to the plushie binary (overrides all resolution). Equivalent to `PLUSHIE_BINARY_PATH` env var. |
-| `source_path` | `String` | `nil` | Path to the plushie Rust source checkout. Used by `rake plushie:build`. Equivalent to `PLUSHIE_SOURCE_PATH` env var. |
+| `source_path` | `String` | `nil` | Path to the plushie Rust source checkout. Used by `rake plushie:build`. Equivalent to `PLUSHIE_RUST_SOURCE_PATH` env var. |
 | `build_name` | `String` | `"plushie-custom"` | Custom binary name for native widget builds. Used as the Cargo target name and installed filename. |
 | `widgets` | `Array<Class>` | `[]` | Widget classes to include in custom builds. |
 | `widget_config` | `Hash` | `{}` | Runtime config passed to native widgets via the Settings wire message, keyed by `config_key`. |
@@ -1813,7 +1813,7 @@ PLUSHIE_EXTENSIONS="MyGauge,MyChart" bundle exec rake plushie:build
 ### Stock build (no extensions)
 
 When no extensions are configured, the task builds the plushie binary
-from the Rust source checkout specified by `PLUSHIE_SOURCE_PATH`. This
+from the Rust source checkout specified by `PLUSHIE_RUST_SOURCE_PATH`. This
 is a plain `cargo build -p plushie-renderer`.
 
 ### Custom build (with extensions)

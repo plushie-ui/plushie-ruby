@@ -148,7 +148,7 @@ module Plushie
     attr_accessor :binary_path
 
     # Path to the plushie Rust source checkout. Used by `rake plushie:build`.
-    # Equivalent to PLUSHIE_SOURCE_PATH env var.
+    # Equivalent to PLUSHIE_RUST_SOURCE_PATH env var.
     # @return [String, nil]
     attr_accessor :source_path
 

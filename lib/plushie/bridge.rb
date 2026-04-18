@@ -187,7 +187,7 @@ module Plushie
     def check_renderer_version(hello)
       return unless hello.is_a?(Hash) && hello[:version]
 
-      expected = Plushie::BINARY_VERSION
+      expected = Plushie::PLUSHIE_RUST_VERSION
       actual = hello[:version]
 
       if actual != expected

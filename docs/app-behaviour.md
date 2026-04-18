@@ -343,7 +343,7 @@ end
 | Key | Type | Default | Description |
 |---|---|---|---|
 | `binary_path` | `String` | `nil` | Explicit path to the plushie binary. Overrides all resolution. Equivalent to `PLUSHIE_BINARY_PATH` env var. |
-| `source_path` | `String` | `nil` | Path to the plushie Rust source checkout. Used by `rake plushie:build`. Equivalent to `PLUSHIE_SOURCE_PATH` env var. |
+| `source_path` | `String` | `nil` | Path to the plushie Rust source checkout. Used by `rake plushie:build`. Equivalent to `PLUSHIE_RUST_SOURCE_PATH` env var. |
 | `build_name` | `String` | `"plushie-custom"` | Custom binary name for native widget builds. |
 | `widgets` | `Array<Class>` | `[]` | Widget classes to include in custom builds. |
 | `widget_config` | `Hash` | `{}` | Configuration hash passed to native widgets at runtime via the Settings wire message. |
