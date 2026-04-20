@@ -193,6 +193,52 @@ module Plushie
       def with: (**untyped) -> SessionError
     end
 
+    class DiagnosticMessage
+      attr_reader session: String
+      attr_reader level: Symbol
+      attr_reader diagnostic: untyped
+
+      def initialize: (session: String, level: Symbol, diagnostic: untyped) -> void
+      def with: (**untyped) -> DiagnosticMessage
+    end
+
+    # Typed diagnostic variants emitted via the renderer's diagnostic
+    # channel. Each constant is a Data class; Diagnostic.decode parses
+    # a wire payload into the matching variant.
+    module Diagnostic
+      KINDS: Hash[String, untyped]
+
+      DuplicateId: untyped
+      EmptyId: untyped
+      MultipleTopLevelWindows: untyped
+      UnknownWindow: untyped
+      UnrecognizedWidgetPlaceholder: untyped
+      TreeDepthExceeded: untyped
+      TooManyDuplicates: untyped
+      WidgetIdInvalid: untyped
+      MissingAccessibleName: untyped
+      A11yRefUnresolved: untyped
+      PropRangeExceeded: untyped
+      PropTypeMismatch: untyped
+      PropUnknown: untyped
+      ContentLengthExceeded: untyped
+      FontCacheCapExceeded: untyped
+      FontCapExceeded: untyped
+      FontFamilyNotFound: untyped
+      InvalidSettings: untyped
+      RequiredWidgetsMissing: untyped
+      WidgetPanic: untyped
+      SvgParseError: untyped
+      SvgDecodeTimeout: untyped
+      DashCacheCapExceeded: untyped
+      EmitterCoalesceCapExceeded: untyped
+      WidgetIdTypeCollision: untyped
+      ViewPanicked: untyped
+      UnknownMessageType: untyped
+
+      def self.decode: (Hash[String, untyped] payload) -> untyped
+    end
+
     class SessionClosed
       attr_reader session: String
       attr_reader reason: String

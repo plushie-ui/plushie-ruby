@@ -35,7 +35,7 @@ module Plushie
     @consecutive_view_errors: Integer
     @widget_statuses: Hash[String, String]
     @focused_widget_id: String?
-    @diagnostics: Array[Event::System]
+    @diagnostics: Array[Event::DiagnosticMessage]
     @diagnostics_mutex: Mutex
     @pending_stub_acks: Hash[String, Thread::Queue[untyped]]
     @pending_await_async: Hash[Symbol, Thread::Queue[untyped]]
@@ -60,7 +60,7 @@ module Plushie
     def stop: () -> void
     def register_effect_stub: (String kind, untyped response, ?timeout: Numeric) -> :ok
     def unregister_effect_stub: (String kind, ?timeout: Numeric) -> :ok
-    def get_diagnostics: () -> Array[Event::System]
+    def get_diagnostics: () -> Array[Event::DiagnosticMessage]
     def get_focused: () -> String?
     def view_error?: () -> bool
     def interact: (String action, ?untyped selector, ?Hash[Symbol, untyped] payload, ?timeout: Numeric) -> Array[untyped]
@@ -84,6 +84,7 @@ module Plushie
 
     # Event dispatch
     def dispatch_event: (untyped event) -> void
+    def describe_diagnostic: (untyped diag) -> String
     def handle_timer_tick: (untyped tag) -> void
     def handle_interact_step: (untyped response) -> void
     def handle_interact_response: (untyped response) -> void

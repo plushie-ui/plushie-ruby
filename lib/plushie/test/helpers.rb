@@ -148,7 +148,7 @@ module Plushie
         session.unregister_effect_stub(kind.to_s)
       end
 
-      # Assert that no prop validation diagnostics have been emitted.
+      # Assert that no diagnostics have been emitted by the renderer.
       # Clears the diagnostic list after checking.
       #
       # @raise [Minitest::Assertion] if diagnostics are pending
@@ -156,8 +156,8 @@ module Plushie
         diagnostics = session.get_diagnostics
         return if diagnostics.empty?
 
-        details = diagnostics.map { |d| "  - #{d.value.inspect}" }.join("\n")
-        flunk "Expected no prop validation diagnostics, but found:\n#{details}"
+        details = diagnostics.map { |d| "  - #{d.diagnostic.inspect}" }.join("\n")
+        flunk "Expected no diagnostics, but found:\n#{details}"
       end
 
       # Find a widget by accessibility role.

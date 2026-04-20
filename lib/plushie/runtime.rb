@@ -449,15 +449,15 @@ module Plushie
         return
       end
 
-      # Intercept prop validation diagnostics (never delivered to update).
-      # Log at the severity level specified by the renderer.
-      if event.is_a?(Event::System) && event.type == :diagnostic
-        diag = event.value
-        level = diag.is_a?(Hash) ? (diag["level"] || diag[:level] || "warning") : "warning"
-        msg = diag.is_a?(Hash) ? (diag["message"] || diag[:message] || diag.inspect) : diag.inspect
-        case level.to_s
-        when "error" then @logger.error("plushie: diagnostic: #{msg}")
-        when "info" then @logger.info("plushie: diagnostic: #{msg}")
+      # Intercept structured diagnostics from the renderer's diagnostic
+      # channel (never delivered to update). Log at the renderer's
+      # severity level; pattern-match on event.diagnostic for typed
+      # access to the variant payload.
+      if event.is_a?(Event::DiagnosticMessage)
+        msg = describe_diagnostic(event.diagnostic)
+        case event.level
+        when :error then @logger.error("plushie: diagnostic: #{msg}")
+        when :info then @logger.info("plushie: diagnostic: #{msg}")
         else @logger.warn("plushie: diagnostic: #{msg}")
         end
         @diagnostics_mutex.synchronize { @diagnostics << event }
@@ -752,6 +752,18 @@ module Plushie
 
     # Handle a status event from the renderer. Updates internal focus
     # tracking state and dispatches derived :focused/:blurred events
+    # Render a typed Diagnostic variant as a single-line summary for
+    # the log channel. Falls back to inspect for variants without a
+    # natural one-line form.
+    def describe_diagnostic(diag)
+      return diag.inspect unless diag.respond_to?(:to_h)
+      kind = diag.class.name.to_s.split("::").last.gsub(/([A-Z])/, '_\1').downcase.sub(/^_/, "")
+      fields = diag.to_h.reject { |_, v| v.nil? }
+      return kind if fields.empty?
+      pairs = fields.map { |k, v| "#{k}=#{v.inspect}" }.join(" ")
+      "#{kind}: #{pairs}"
+    end
+
     # through update. The raw :status event is not passed to user code.
     def handle_status_event(event)
       status = event.value

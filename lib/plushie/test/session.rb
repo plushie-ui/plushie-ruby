@@ -594,10 +594,10 @@ module Plushie
       # normalization (case-insensitive, strip underscores/hyphens,
       # alias resolution).
 
-      # Intercept diagnostic events, accumulate them instead of dispatching.
-      # Returns true if the event was intercepted.
+      # Intercept structured diagnostic messages, accumulate them
+      # instead of dispatching. Returns true if intercepted.
       def intercept_diagnostic(event)
-        return false unless event.is_a?(Event::System) && event.type == :diagnostic
+        return false unless event.is_a?(Event::DiagnosticMessage)
 
         @diagnostics << event
         true

@@ -555,14 +555,39 @@ class TestProtocolDecode < Minitest::Test
       "level" => "warn",
       "diagnostic" => {"kind" => "font_family_not_found", "family" => "Inter"}
     })
-    assert_instance_of Plushie::Event::System, event
-    assert_equal :diagnostic, event.type
-    assert_equal "warn", event.value["level"]
-    assert_equal "font_family_not_found", event.value["kind"]
-    assert_equal "Inter", event.value["diagnostic"]["family"]
-    # A human-readable message is synthesized when the diagnostic payload
-    # has no explicit message field.
-    refute_nil event.value["message"]
+    assert_instance_of Plushie::Event::DiagnosticMessage, event
+    assert_equal "s1", event.session
+    assert_equal :warn, event.level
+    assert_instance_of Plushie::Event::Diagnostic::FontFamilyNotFound, event.diagnostic
+    assert_equal "Inter", event.diagnostic.family
+  end
+
+  def test_decode_top_level_diagnostic_unknown_kind_raises
+    assert_raises(ArgumentError) do
+      D.dispatch_message({
+        "type" => "diagnostic",
+        "session" => "s1",
+        "level" => "warn",
+        "diagnostic" => {"kind" => "totally_made_up"}
+      })
+    end
+  end
+
+  def test_decode_top_level_diagnostic_duplicate_id_carries_window_id
+    event = D.dispatch_message({
+      "type" => "diagnostic",
+      "session" => "s1",
+      "level" => "warn",
+      "diagnostic" => {
+        "kind" => "duplicate_id",
+        "id" => "form/email",
+        "window_id" => "main"
+      }
+    })
+    diag = event.diagnostic
+    assert_instance_of Plushie::Event::Diagnostic::DuplicateId, diag
+    assert_equal "form/email", diag.id
+    assert_equal "main", diag.window_id
   end
 
   def test_decode_extension_command_error

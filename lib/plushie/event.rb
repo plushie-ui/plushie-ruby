@@ -1,5 +1,6 @@
 # frozen_string_literal: true
 
+require_relative "event/diagnostic"
 require_relative "event/specs"
 
 module Plushie

@@ -79,35 +79,24 @@ module Plushie
       #   {"type":"diagnostic","session":"...","level":"warn"|"info"|"error",
       #    "diagnostic":{"kind":"...", ...variant fields}}
       #
-      # Returned as Event::System[type: :diagnostic, value: {level:, diagnostic:}]
-      # so runtime and test-session diagnostic handling picks it up via the
-      # same code path that already handles this event.
+      # Returns a typed Event::DiagnosticMessage carrying one of the
+      # variants declared in Plushie::Event::Diagnostic.
       #
       # @param msg [Hash]
-      # @return [Event::System]
+      # @return [Event::DiagnosticMessage]
       def decode_diagnostic(msg)
         diag = msg["diagnostic"] || {}
-        level = msg["level"] || "warn"
-        kind = diag.is_a?(Hash) ? diag["kind"] : nil
-        value = {
-          "level" => level,
-          "kind" => kind,
-          "diagnostic" => diag,
-          "message" => diag.is_a?(Hash) ? (diag["message"] || human_readable_diagnostic(diag)) : diag.to_s
-        }
-        Event::System.new(type: :diagnostic, value: value)
-      end
+        level_str = msg["level"] || "warn"
+        level = case level_str
+        when "info", "warn", "error" then level_str.to_sym
+        else :warn
+        end
 
-      # Build a human-readable summary when the diagnostic payload has no
-      # explicit +message+ field. Falls back to "kind: field1=v1 field2=v2".
-      # @api private
-      def human_readable_diagnostic(diag)
-        kind = diag["kind"]
-        extras = diag.reject { |k, _| k == "kind" || k == "message" }
-        return kind.to_s if extras.empty?
-
-        pairs = extras.map { |k, v| "#{k}=#{v.inspect}" }.join(" ")
-        "#{kind}: #{pairs}"
+        Event::DiagnosticMessage.new(
+          session: msg["session"].to_s,
+          level: level,
+          diagnostic: Event::Diagnostic.decode(diag)
+        )
       end
 
       # -------------------------------------------------------------------
