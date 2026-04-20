@@ -250,12 +250,12 @@ class TestWidgetBuildersComplete < Minitest::Test
   end
 
   def test_grid_new_and_build
-    g = Plushie::Widget::Grid.new("items", columns: 3, spacing: 8)
+    g = Plushie::Widget::Grid.new("items", num_columns: 3, spacing: 8)
       .push(Plushie::Widget::Text.new("a", "A"))
       .push(Plushie::Widget::Text.new("b", "B"))
     node = g.build
     assert_equal "grid", node.type
-    assert_equal 3, node.props[:columns]
+    assert_equal 3, node.props[:num_columns]
     assert_equal 8, node.props[:spacing]
     assert_equal 2, node.children.length
   end

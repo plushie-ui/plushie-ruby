@@ -517,11 +517,11 @@ module Plushie
     # Grid layout container. Children are arranged in a grid.
     #
     # @param id [String, nil] widget ID (auto-generated if nil)
-    # @param props [Hash] grid options (:columns, :column_spacing, :row_spacing, :padding, etc.)
+    # @param props [Hash] grid options (:num_columns, :column_spacing, :row_spacing, :padding, etc.)
     # @yield children to arrange in the grid
     # @return [Node]
     # @example
-    #   grid(columns: 3, column_spacing: 8, row_spacing: 8) do
+    #   grid(num_columns: 3, column_spacing: 8, row_spacing: 8) do
     #     9.times { |i| button("cell_#{i}", "#{i}") }
     #   end
     def grid(id = nil, **props, &block)

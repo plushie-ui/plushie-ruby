@@ -165,7 +165,7 @@ class DocsLayoutTest < Minitest::Test
   # -- Grid --
 
   def test_layout_grid
-    node = @b.grid("gallery", columns: 3, spacing: 8) do
+    node = @b.grid("gallery", num_columns: 3, spacing: 8) do
       @b.image("img_1", "a.png", width: :fill)
       @b.image("img_2", "b.png", width: :fill)
       @b.image("img_3", "c.png", width: :fill)
@@ -173,7 +173,7 @@ class DocsLayoutTest < Minitest::Test
     tree = Plushie::Tree.normalize(node).first
     assert_equal "grid", tree.type
     assert_equal "gallery", tree.id
-    assert_equal 3, tree.props[:columns]
+    assert_equal 3, tree.props[:num_columns]
     assert_equal 8, tree.props[:spacing]
     assert_equal 3, tree.children.length
   end

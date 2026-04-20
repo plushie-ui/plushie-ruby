@@ -5,13 +5,13 @@ module Plushie
     # Grid layout: arranges children in a fixed-column grid.
     #
     # @example
-    #   g = Plushie::Widget::Grid.new("items", columns: 3, spacing: 8)
+    #   g = Plushie::Widget::Grid.new("items", num_columns: 3, spacing: 8)
     #     .push(Plushie::Widget::Text.new("a", "A"))
     #     .push(Plushie::Widget::Text.new("b", "B"))
     #   node = g.build
     #
     # Props:
-    # - columns (integer): number of columns.
+    # - num_columns (integer): number of columns.
     # - spacing (number): spacing between cells in pixels.
     # - width (number): grid width in pixels.
     # - height (number): grid height in pixels.
@@ -20,7 +20,7 @@ module Plushie
     # - fluid (number): fluid mode max cell width in pixels.
     Grid = Plushie::Widget.define(:grid) do
       children :many
-      prop :columns, :spacing, :width, :height, :column_width,
+      prop :num_columns, :spacing, :width, :height, :column_width,
         :row_height, :fluid
     end
   end
