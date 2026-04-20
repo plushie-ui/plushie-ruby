@@ -686,6 +686,7 @@ module Plushie
         when "session_error"
           Event::SessionError.new(
             session: msg["session"].to_s,
+            code: data["code"].is_a?(String) ? data["code"] : "",
             error: data["error"].is_a?(String) ? data["error"] : ""
           )
 

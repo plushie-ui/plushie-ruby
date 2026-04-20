@@ -363,12 +363,16 @@ module Plushie
     # renderer is run with `--max-sessions > 1`.
     #
     # @!attribute [r] session [String] the session ID that errored
-    # @!attribute [r] error [String] error description from the renderer
+    # @!attribute [r] code [String] stable diagnostic code: `session_panic`,
+    #   `max_sessions_reached`, `session_channel_closed`, `writer_dead`,
+    #   `font_cap_exceeded`, `renderer_panic`, `session_reset_in_progress`,
+    #   `session_backpressure_overflow`
+    # @!attribute [r] error [String] human-readable error description
     #
     # @example
-    #   in Event::SessionError[session:, error:]
-    #     logger.error("session #{session} failed: #{error}")
-    SessionError = Data.define(:session, :error)
+    #   in Event::SessionError[session:, code:, error:]
+    #     logger.error("session #{session} failed (#{code}): #{error}")
+    SessionError = Data.define(:session, :code, :error)
 
     # A multiplexed session was closed by the renderer.
     #

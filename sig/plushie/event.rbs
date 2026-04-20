@@ -187,9 +187,10 @@ module Plushie
 
     class SessionError
       attr_reader session: String
+      attr_reader code: String
       attr_reader error: String
 
-      def initialize: (session: String, error: String) -> void
+      def initialize: (session: String, code: String, error: String) -> void
       def with: (**untyped) -> SessionError
     end
 

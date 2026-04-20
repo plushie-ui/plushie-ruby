@@ -370,10 +370,19 @@ class TestProtocolDecode < Minitest::Test
   # -- Session events ------------------------------------------------------
 
   def test_decode_session_error_with_session_id
-    event = D.decode_event({"family" => "session_error", "session" => "test_1", "value" => {"error" => "invalid state"}})
+    event = D.decode_event({"family" => "session_error", "session" => "test_1",
+                            "value" => {"code" => "session_panic", "error" => "invalid state"}})
     assert_instance_of Plushie::Event::SessionError, event
     assert_equal "test_1", event.session
+    assert_equal "session_panic", event.code
     assert_equal "invalid state", event.error
+  end
+
+  def test_decode_session_error_without_code_defaults_to_empty_string
+    event = D.decode_event({"family" => "session_error", "session" => "test_1",
+                            "value" => {"error" => "invalid state"}})
+    assert_instance_of Plushie::Event::SessionError, event
+    assert_equal "", event.code
   end
 
   def test_decode_session_closed_with_session_id
