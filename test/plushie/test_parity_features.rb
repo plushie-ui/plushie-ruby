@@ -512,7 +512,7 @@ class TestParityFeatures < Minitest::Test
   end
 
   # ======================================================================
-  # Decoder: CommandError (renamed from WidgetCommandError)
+  # Decoder: CommandError
   # ======================================================================
 
   def test_decode_command_error
