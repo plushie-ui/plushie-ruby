@@ -234,6 +234,7 @@ module Plushie
       EmitterCoalesceCapExceeded: untyped
       WidgetIdTypeCollision: untyped
       ViewPanicked: untyped
+      UpdatePanicked: untyped
       UnknownMessageType: untyped
 
       def self.decode: (Hash[String, untyped] payload) -> untyped

@@ -590,6 +590,25 @@ class TestProtocolDecode < Minitest::Test
     assert_equal "main", diag.window_id
   end
 
+  def test_decode_top_level_diagnostic_update_panicked
+    event = D.dispatch_message({
+      "type" => "diagnostic",
+      "session" => "s1",
+      "level" => "error",
+      "diagnostic" => {
+        "kind" => "update_panicked",
+        "consecutive" => 2,
+        "message" => "nil dereference"
+      }
+    })
+    assert_instance_of Plushie::Event::DiagnosticMessage, event
+    assert_equal :error, event.level
+    diag = event.diagnostic
+    assert_instance_of Plushie::Event::Diagnostic::UpdatePanicked, diag
+    assert_equal 2, diag.consecutive
+    assert_equal "nil dereference", diag.message
+  end
+
   def test_decode_extension_command_error
     event = D.decode_event({
       "family" => "error",
