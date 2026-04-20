@@ -834,11 +834,12 @@ module Plushie
       return unless @consecutive_view_errors == VIEW_ERROR_WARN_THRESHOLD
 
       @logger.warn("plushie: view has failed #{VIEW_ERROR_WARN_THRESHOLD} consecutive times; UI is stale")
-      inject_frozen_ui_overlay if @dev
+      inject_frozen_ui_overlay
     end
 
-    # In dev mode, inject a red error bar into the stale tree to alert
-    # the developer that the UI is frozen due to view errors.
+    # Inject a red error bar into the stale tree to alert the user
+    # that the UI is frozen due to view errors. Runs in every mode;
+    # the overlay is a production safety net, not a dev-only banner.
     def inject_frozen_ui_overlay
       tree = @previous_tree
       return unless tree && @bridge

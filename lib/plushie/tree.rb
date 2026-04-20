@@ -58,10 +58,17 @@ module Plushie
 
     # Normalize a top-level app view and require explicit windows.
     #
+    # A `nil` tree is treated as "no UI": returns a root container
+    # with no child windows so the renderer still has a structurally
+    # valid snapshot to diff. Useful for transition, loading, or
+    # error states where the app has nothing to display yet.
+    #
     # @param tree [Node, Array<Node>, nil]
     # @param registry [Hash, nil]
     # @return [Node] normalized synthetic root or window node
     def self.normalize_view(tree, registry: nil)
+      return Node.new(id: "root", type: "root", children: []) if tree.nil?
+
       windows = normalize(tree, registry: registry)
 
       if windows.empty? || !windows.all? { |node| node.type == "window" }

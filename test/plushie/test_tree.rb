@@ -78,6 +78,20 @@ class TestTree < Minitest::Test
     assert_equal "form/label_node", a11y["labelled_by"] || a11y[:labelled_by]
   end
 
+  # -- Nil view is allowed ---------------------------------------------------
+
+  def test_normalize_view_accepts_nil
+    # View returning nil is treated as "no UI" so apps can render a
+    # transition, loading, or error state without constructing any
+    # windows. The normalized root carries no children and the
+    # renderer just draws nothing.
+    normalized = Plushie::Tree.normalize_view(nil)
+
+    refute_nil normalized
+    assert_equal "root", normalized.type
+    assert_empty normalized.children
+  end
+
   # -- Search: exact vs suffix matching --------------------------------------
 
   def test_find_exact_with_window_qualifier

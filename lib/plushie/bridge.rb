@@ -16,11 +16,13 @@ module Plushie
   # - +[:renderer_exited, reason]+ when the connection drops
   # - +[:renderer_restarted]+ after a successful reconnect
   class Bridge
-    # Exponential backoff parameters
+    # Exponential backoff parameters. Shared with the other host
+    # SDKs (Elixir, Rust, Gleam, Python, TypeScript) so renderer
+    # restart behavior is consistent across implementations.
     BACKOFF_BASE_MS = 100
     # Maximum backoff delay in milliseconds.
     # @api private
-    BACKOFF_MAX_MS = 1600
+    BACKOFF_MAX_MS = 5000
     # Maximum retry attempts before giving up.
     # @api private
     MAX_RETRIES = 5
