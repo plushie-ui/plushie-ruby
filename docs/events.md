@@ -557,7 +557,7 @@ Where `tag` is the symbol you passed to `Command.async`.
 
 ```ruby
 in Event::Widget[type: :click, id: "fetch"]
-  [model, Command.async(-> { HTTP.get!("/api/data") }, :data_loaded)]
+  [model, Command.task(-> { HTTP.get!("/api/data") }, :data_loaded)]
 
 in Event::Async[tag: :data_loaded, result: [:ok, body]]
   model.with(data: body)

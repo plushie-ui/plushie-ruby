@@ -21,7 +21,7 @@ in Event::Widget[type: :click, id: "simple"]
 
 # With commands, return an array:
 in Event::Widget[type: :click, id: "save"]
-  [model, Command.async(-> { save_to_disk(model) }, :save_result)]
+  [model, Command.task(-> { save_to_disk(model) }, :save_result)]
 ```
 
 ### Available commands
@@ -31,7 +31,7 @@ in Event::Widget[type: :click, id: "save"]
 <!-- test: commands_async_construct -- keep this code block in sync with the test -->
 ```ruby
 # Run a lambda asynchronously. Result is delivered as an event.
-Command.async(callable, event_tag)
+Command.task(callable, event_tag)
 
 # The callable runs in a thread. When it returns, the runtime calls:
 #   update(model, Event::Async[tag: event_tag, result: [:ok, result]])
@@ -39,7 +39,7 @@ Command.async(callable, event_tag)
 
 ```ruby
 in Event::Widget[type: :click, id: "fetch"]
-  cmd = Command.async(-> {
+  cmd = Command.task(-> {
     resp = Net::HTTP.get(URI("https://api.example.com/data"))
     resp
   }, :data_fetched)
@@ -114,12 +114,12 @@ pipeline.
 
 <!-- test: commands_done_construct -- keep this code block in sync with the test -->
 ```ruby
-Command.done(value, msg_fn)
+Command.dispatch(value, msg_fn)
 ```
 
 ```ruby
 in Event::Widget[type: :click, id: "reset"]
-  [model, Command.done(:defaults, ->(v) { [:config_loaded, v] })]
+  [model, Command.dispatch(:defaults, ->(v) { [:config_loaded, v] })]
 ```
 
 #### Exit
@@ -344,7 +344,7 @@ Example:
 
 ```ruby
 in Event::Widget[type: :click, id: "load_preview"]
-  cmd = Command.async(-> {
+  cmd = Command.task(-> {
     File.binread("preview.png")
   }, :preview_loaded)
   [model, cmd]
@@ -443,7 +443,7 @@ streaming log lines.
 Command.widget_command("term-1", "write", {data: output})
 
 # Batch (all processed before next view cycle)
-Command.widget_commands([
+Command.widget_batch([
   {id: "term-1", family: "write", value: {data: line1}},
   {id: "log-1", family: "append", value: {line: entry}}
 ])
@@ -473,12 +473,12 @@ updates and UI refreshes at every link in the chain, not just at the end.
 ```ruby
 # Step 1: user clicks "deploy", validate first
 in Event::Widget[type: :click, id: "deploy"]
-  cmd = Command.async(-> { validate_config(model.config) }, :validated)
+  cmd = Command.task(-> { validate_config(model.config) }, :validated)
   [model.with(status: :validating), cmd]
 
 # Step 2: validation result arrives; if OK, start the build
 in Event::Async[tag: :validated, result: [:ok, :ok]]
-  cmd = Command.async(-> { build_release(model.config) }, :built)
+  cmd = Command.task(-> { build_release(model.config) }, :built)
   [model.with(status: :building), cmd]
 
 in Event::Async[tag: :validated, result: [:ok, [:error, reason]]]
@@ -486,7 +486,7 @@ in Event::Async[tag: :validated, result: [:ok, [:error, reason]]]
 
 # Step 3: build result arrives; if OK, push it
 in Event::Async[tag: :built, result: [:ok, artifact]]
-  cmd = Command.async(-> { push_artifact(artifact) }, :deployed)
+  cmd = Command.task(-> { push_artifact(artifact) }, :deployed)
   [model.with(status: :deploying), cmd]
 
 # Step 4: done
@@ -820,7 +820,7 @@ in Event::Widget[type: :click, id: "stop_polling"]
   model.with(polling: false)
 
 in Event::Timer[tag: :poll]
-  [model, Command.async(-> { fetch_data }, :data_received)]
+  [model, Command.task(-> { fetch_data }, :data_received)]
 
 in Event::Async[tag: :data_received, result: [:ok, data]]
   model.with(data: data)

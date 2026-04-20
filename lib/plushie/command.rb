@@ -29,7 +29,7 @@ module Plushie
   #   Command::Scroll.scroll_to("list", 0, 100)  # directly
   #
   # @example Async work
-  #   [model, Command.async(-> { fetch_data }, :data_loaded)]
+  #   [model, Command.task(-> { fetch_data }, :data_loaded)]
   #
   # @example Focus a widget
   #   [model, Command.focus("input_field")]
@@ -52,7 +52,7 @@ module Plushie
     # @param callable [Proc, Lambda] the work to run
     # @param tag [Symbol] event tag for the result
     # @return [Cmd]
-    def self.async(callable, tag) = Cmd.new(type: :async, payload: {callable:, tag:})
+    def self.task(callable, tag) = Cmd.new(type: :task, payload: {callable:, tag:})
 
     # Run a callable that emits multiple values via an emit callback.
     # Each emit delivers Event::Stream; the final return delivers Event::Async.
@@ -70,7 +70,7 @@ module Plushie
     # @param value [Object] the resolved value
     # @param mapper_fn [Proc] function that wraps value into an event
     # @return [Cmd]
-    def self.done(value, mapper_fn) = Cmd.new(type: :done, payload: {value:, mapper: mapper_fn})
+    def self.dispatch(value, mapper_fn) = Cmd.new(type: :dispatch, payload: {value:, mapper: mapper_fn})
 
     # Send an event to update after a delay.
     # @param delay_ms [Integer] delay in milliseconds
@@ -115,7 +115,7 @@ module Plushie
     #
     # @param commands [Array<Hash>] each with :id, :family, :value keys
     # @return [Cmd]
-    def self.widget_commands(commands)
+    def self.widget_batch(commands)
       Cmd.new(type: :commands, payload: {commands: commands})
     end
 

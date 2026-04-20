@@ -13,8 +13,8 @@ class TestCommand < Minitest::Test
   end
 
   def test_async
-    cmd = C.async(-> { "result" }, :fetch)
-    assert_equal :async, cmd.type
+    cmd = C.task(-> { "result" }, :fetch)
+    assert_equal :task, cmd.type
     assert_equal :fetch, cmd.payload[:tag]
   end
 
@@ -30,8 +30,8 @@ class TestCommand < Minitest::Test
   end
 
   def test_done
-    cmd = C.done(42, ->(v) { [:result, v] })
-    assert_equal :done, cmd.type
+    cmd = C.dispatch(42, ->(v) { [:result, v] })
+    assert_equal :dispatch, cmd.type
     assert_equal 42, cmd.payload[:value]
   end
 
@@ -326,7 +326,7 @@ class TestCommand < Minitest::Test
   end
 
   def test_widget_commands
-    cmd = C.widget_commands([{id: "a", family: "push", value: {}}])
+    cmd = C.widget_batch([{id: "a", family: "push", value: {}}])
     assert_equal :commands, cmd.type
   end
 

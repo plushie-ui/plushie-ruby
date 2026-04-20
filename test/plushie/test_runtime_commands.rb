@@ -71,7 +71,7 @@ class TestRuntimeCommands < Minitest::Test
   # -- :async spawns a thread and delivers result via queue ----------------
 
   def test_async_delivers_result_to_queue
-    cmd = C.async(-> { 42 }, :fetch)
+    cmd = C.task(-> { 42 }, :fetch)
     @runner.execute_commands(cmd)
 
     # The async thread pushes [:async_result, tag, nonce, result]
@@ -85,7 +85,7 @@ class TestRuntimeCommands < Minitest::Test
 
   def test_cancel_kills_task
     # Start a long-running async task
-    cmd = C.async(-> { sleep(60) }, :slow)
+    cmd = C.task(-> { sleep(60) }, :slow)
     @runner.execute_commands(cmd)
 
     assert @runner.async_tasks.key?(:slow)
@@ -103,7 +103,7 @@ class TestRuntimeCommands < Minitest::Test
 
   def test_done_dispatches_immediately
     mapper = ->(v) { [:got, v] }
-    cmd = C.done("payload", mapper)
+    cmd = C.dispatch("payload", mapper)
     @runner.execute_commands(cmd)
 
     msg = @runner.event_queue.pop

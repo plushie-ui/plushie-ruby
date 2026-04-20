@@ -6,8 +6,8 @@ class DocsCommandsTest < Minitest::Test
   C = Plushie::Command
 
   def test_commands_async_construct
-    cmd = C.async(-> { "result" }, :data_fetched)
-    assert_equal :async, cmd.type
+    cmd = C.task(-> { "result" }, :data_fetched)
+    assert_equal :task, cmd.type
     assert_equal :data_fetched, cmd.payload[:tag]
     assert_respond_to cmd.payload[:callable], :call
   end
@@ -25,8 +25,8 @@ class DocsCommandsTest < Minitest::Test
   end
 
   def test_commands_done_construct
-    cmd = C.done(:defaults, ->(v) { [:config_loaded, v] })
-    assert_equal :done, cmd.type
+    cmd = C.dispatch(:defaults, ->(v) { [:config_loaded, v] })
+    assert_equal :dispatch, cmd.type
     assert_equal :defaults, cmd.payload[:value]
     assert_respond_to cmd.payload[:mapper], :call
   end

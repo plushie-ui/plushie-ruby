@@ -19,10 +19,10 @@ module Plushie
         case cmd.type
         when :none then nil
         when :batch then cmd.payload[:commands]&.each { |c| execute_commands(c) }
-        when :async then execute_async(cmd.payload[:callable], cmd.payload[:tag])
+        when :task then execute_async(cmd.payload[:callable], cmd.payload[:tag])
         when :stream then execute_stream(cmd.payload[:callable], cmd.payload[:tag])
         when :cancel then cancel_task(cmd.payload[:tag])
-        when :done then execute_done(cmd.payload[:value], cmd.payload[:mapper])
+        when :dispatch then execute_done(cmd.payload[:value], cmd.payload[:mapper])
         when :send_after then execute_send_after(cmd.payload[:delay], cmd.payload[:event])
         when :exit then @running = false
 

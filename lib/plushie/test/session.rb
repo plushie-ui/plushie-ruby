@@ -361,7 +361,7 @@ module Plushie
         case cmd.type
         when :none then nil
         when :batch then cmd.payload[:commands]&.each { |c| process_commands_sync(c) }
-        when :async
+        when :task
           # Execute synchronously in tests
           result = cmd.payload[:callable].call
           event = Event::Async.new(tag: cmd.payload[:tag], result: result)
@@ -397,7 +397,7 @@ module Plushie
           rescue
             @model = saved
           end
-        when :done
+        when :dispatch
           event = cmd.payload[:mapper].call(cmd.payload[:value])
           saved = @model
           begin

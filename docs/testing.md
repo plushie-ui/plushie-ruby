@@ -508,7 +508,7 @@ visual issues, demos, and onboarding.
 
 The mock backend executes `async`, `stream`, and `done` commands
 synchronously. When `update` returns a command like
-`Command.async(-> { fetch_data }, :data_loaded)`, the backend
+`Command.task(-> { fetch_data }, :data_loaded)`, the backend
 immediately calls the callable, gets the result, and dispatches
 `Event::Async[tag: :data_loaded, result: [:ok, result]]` through
 `update`, all within the same call.

@@ -12,7 +12,7 @@ module Plushie
   #   in Event::Widget[type: :click, id: "save"]
   #     model.with(saved: true)
   #   in Event::Key[type: :press, key: "s", modifiers: { command: true }]
-  #     [model, Command.async(-> { save(model) }, :save_result)]
+  #     [model, Command.task(-> { save(model) }, :save_result)]
   #   end
   #
   module Event

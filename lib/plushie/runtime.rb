@@ -603,7 +603,7 @@ module Plushie
 
             Valid return shapes:
               model                        # bare model, no commands
-              [model, Command.async(...)]  # model + single command
+              [model, Command.task(...)]  # model + single command
               [model, [cmd1, cmd2]]        # model + command list
           MSG
         end

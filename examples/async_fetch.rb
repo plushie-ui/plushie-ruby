@@ -20,7 +20,7 @@ class AsyncFetch
   def update(model, event)
     case event
     in Event::Widget[type: :click, id: "fetch"]
-      cmd = Command.async(
+      cmd = Command.task(
         -> {
           # Simulate a slow network call
           sleep(0.5)

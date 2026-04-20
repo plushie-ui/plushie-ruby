@@ -16,7 +16,7 @@ class DocsAppBehaviourTest < Minitest::Test
 
     def init_with_command(_opts)
       model = Model.new(todos: [], input: "", filter: :all, loading: true, auto_refresh: false)
-      [model, Command.async(-> { [] }, :todos_loaded)]
+      [model, Command.task(-> { [] }, :todos_loaded)]
     end
 
     def update(model, event)
@@ -94,7 +94,7 @@ class DocsAppBehaviourTest < Minitest::Test
   def test_app_behaviour_init_with_command
     model, cmd = @app.init_with_command({})
     assert_equal true, model.loading
-    assert_equal :async, cmd.type
+    assert_equal :task, cmd.type
     assert_equal :todos_loaded, cmd.payload[:tag]
   end
 

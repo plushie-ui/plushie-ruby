@@ -36,7 +36,7 @@ end
 # Or with a command:
 def init(_opts)
   model = Model.new(todos: [], loading: true)
-  [model, Command.async(-> { load_todos_from_disk }, :todos_loaded)]
+  [model, Command.task(-> { load_todos_from_disk }, :todos_loaded)]
 end
 ```
 
