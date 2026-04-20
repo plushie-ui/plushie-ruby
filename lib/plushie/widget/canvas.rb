@@ -8,6 +8,7 @@ module Plushie
         :on_press, :on_release, :on_move, :on_scroll,
         :interactive, :alt, :description,
         :role, :arrow_mode
+      prop :a11y, :event_rate
       default_a11y role: :canvas
     end
 

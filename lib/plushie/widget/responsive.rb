@@ -15,6 +15,7 @@ module Plushie
     Responsive = Plushie::Widget.define(:responsive) do
       children :single
       prop :width, :height
+      prop :a11y, :event_rate
     end
   end
 end

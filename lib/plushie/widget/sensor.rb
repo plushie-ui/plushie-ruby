@@ -16,6 +16,7 @@ module Plushie
     Sensor = Plushie::Widget.define(:sensor) do
       children :single
       prop :delay, :anticipate, :on_resize
+      prop :a11y, :event_rate
     end
   end
 end

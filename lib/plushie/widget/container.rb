@@ -7,6 +7,7 @@ module Plushie
       prop :padding, :width, :height, :max_width, :max_height, :center,
         :clip, :align_x, :align_y, :background, :color, :border,
         :shadow, :style
+      prop :a11y, :event_rate
     end
 
     # Single-child container widget with alignment and styling.

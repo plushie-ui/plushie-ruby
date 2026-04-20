@@ -22,6 +22,7 @@ module Plushie
       children :many
       prop :num_columns, :spacing, :width, :height, :column_width,
         :row_height, :fluid
+      prop :a11y, :event_rate
     end
   end
 end

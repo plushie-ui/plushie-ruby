@@ -23,6 +23,7 @@ module Plushie
       children :many
       prop :panes, :spacing, :width, :height, :min_size, :divider_color,
         :divider_width, :leeway, :split_axis
+      prop :a11y, :event_rate
       default_a11y role: :group
     end
   end

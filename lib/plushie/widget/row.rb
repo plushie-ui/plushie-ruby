@@ -10,6 +10,7 @@ module Plushie
       children :many
       prop :spacing, :padding, :width, :height, :align_y,
         :max_width, :clip, :wrap
+      prop :a11y, :event_rate
     end
   end
 end

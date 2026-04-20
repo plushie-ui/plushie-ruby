@@ -17,6 +17,7 @@ module Plushie
     Stack = Plushie::Widget.define(:stack) do
       children :many
       prop :width, :height, :clip
+      prop :a11y, :event_rate
     end
   end
 end

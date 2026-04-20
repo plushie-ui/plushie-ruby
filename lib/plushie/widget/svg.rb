@@ -25,6 +25,7 @@ module Plushie
       positional :source, default: nil
       prop :source, :width, :height, :content_fit, :rotation, :opacity,
         :color, :alt, :description, :decorative
+      prop :a11y, :event_rate
       default_a11y role: :image
     end
   end

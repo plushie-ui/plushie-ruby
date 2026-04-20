@@ -29,6 +29,7 @@ module Plushie
       positional :selected
       prop :value, :selected, :label, :group, :spacing, :width, :size,
         :text_size, :font, :line_height, :shaping, :wrapping, :style
+      prop :a11y, :event_rate
       default_a11y role: :radio_button, label_from: :label
     end
   end

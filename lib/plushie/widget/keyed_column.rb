@@ -18,6 +18,7 @@ module Plushie
     KeyedColumn = Plushie::Widget.define(:keyed_column) do
       children :many
       prop :spacing, :padding, :width, :height, :align_x, :max_width
+      prop :a11y, :event_rate
     end
   end
 end

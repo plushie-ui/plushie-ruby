@@ -18,6 +18,7 @@ module Plushie
     Floating = Plushie::Widget.define(:float) do
       children :single
       prop :translate_x, :translate_y, :scale, :width, :height
+      prop :a11y, :event_rate
     end
   end
 end

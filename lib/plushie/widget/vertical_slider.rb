@@ -26,6 +26,7 @@ module Plushie
       positional :value
       prop :range, :value, :step, :shift_step, :default, :width, :height,
         :rail_color, :rail_width, :style, :label
+      prop :a11y, :event_rate
       default_a11y role: :slider, label_from: :label
     end
   end

@@ -9,6 +9,7 @@ module Plushie
       prop :label, :is_toggled, :spacing, :width, :size, :text_size, :font,
         :line_height, :shaping, :wrapping, :style, :icon, :disabled,
         :required, :validation
+      prop :a11y, :event_rate
       default_a11y role: :check_box, label_from: :label
     end
 

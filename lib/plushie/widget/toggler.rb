@@ -28,6 +28,7 @@ module Plushie
       prop :is_toggled, :label, :spacing, :width, :size, :text_size, :font,
         :line_height, :shaping, :wrapping, :text_alignment, :style,
         :disabled
+      prop :a11y, :event_rate
       default_a11y role: :switch, label_from: :label
     end
   end

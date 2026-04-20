@@ -27,6 +27,7 @@ module Plushie
       prop :width, :height, :direction, :spacing, :scrollbar_width,
         :scrollbar_margin, :scroller_width, :anchor, :on_scroll,
         :auto_scroll, :scrollbar_color, :scroller_color
+      prop :a11y, :event_rate
       default_a11y role: :scroll_view
     end
   end

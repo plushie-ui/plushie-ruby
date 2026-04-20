@@ -35,6 +35,7 @@ module Plushie
         :highlight_syntax, :highlight_theme, :style, :key_bindings,
         :placeholder_color, :selection_color,
         :required, :validation
+      prop :a11y, :event_rate
       default_a11y role: :multiline_text_input, label_from: :placeholder
     end
   end

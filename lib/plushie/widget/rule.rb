@@ -18,6 +18,7 @@ module Plushie
     Rule = Plushie::Widget.define(:rule) do
       children :none
       prop :height, :width, :thickness, :direction, :style
+      prop :a11y, :event_rate
     end
   end
 end

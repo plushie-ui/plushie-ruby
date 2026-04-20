@@ -33,6 +33,7 @@ module Plushie
         :font, :line_height, :menu_height, :shaping, :handle, :ellipsis,
         :menu_style, :style, :on_open, :on_close,
         :required, :validation
+      prop :a11y, :event_rate
       default_a11y role: :combo_box, label_from: :placeholder
     end
   end

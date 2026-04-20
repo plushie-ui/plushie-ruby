@@ -22,6 +22,7 @@ module Plushie
       positional :range
       positional :value
       prop :range, :value, :width, :height, :style, :vertical, :label
+      prop :a11y, :event_rate
       default_a11y role: :progress_indicator, label_from: :label
     end
   end

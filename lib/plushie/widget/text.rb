@@ -11,6 +11,7 @@ module Plushie
       positional :content, default: nil
       prop :content, :size, :color, :font, :width, :height, :line_height,
         :align_x, :align_y, :wrapping, :ellipsis, :shaping, :style
+      prop :a11y, :event_rate
       default_a11y role: :label, label_from: :content
     end
   end

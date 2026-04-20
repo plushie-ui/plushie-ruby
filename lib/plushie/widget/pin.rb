@@ -17,6 +17,7 @@ module Plushie
     Pin = Plushie::Widget.define(:pin) do
       children :single
       prop :x, :y, :width, :height
+      prop :a11y, :event_rate
     end
   end
 end

@@ -32,6 +32,7 @@ module Plushie
       prop :cursor, :on_press, :on_release, :on_right_press, :on_right_release,
         :on_middle_press, :on_middle_release, :on_double_click, :on_enter,
         :on_exit, :on_move, :on_scroll
+      prop :a11y, :event_rate
     end
   end
 end

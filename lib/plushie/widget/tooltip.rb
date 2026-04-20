@@ -22,6 +22,7 @@ module Plushie
       positional :tip, default: nil
       prop :tip, :position, :gap, :padding, :snap_within_viewport, :delay,
         :style
+      prop :a11y, :event_rate
       default_a11y role: :tooltip
     end
   end

@@ -22,6 +22,7 @@ module Plushie
     Overlay = Plushie::Widget.define(:overlay) do
       children 2
       prop :position, :gap, :offset_x, :offset_y, :flip, :align, :width
+      prop :a11y, :event_rate
     end
   end
 end

@@ -11,6 +11,7 @@ module Plushie
       positional :label
       prop :label, :width, :height, :padding,
         :clip, :style, :disabled
+      prop :a11y, :event_rate
       default_a11y role: :button, label_from: :label
     end
   end

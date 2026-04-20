@@ -30,6 +30,7 @@ module Plushie
       prop :source, :width, :height, :content_fit, :rotation, :opacity,
         :border_radius, :filter_method, :expand, :scale, :crop,
         :alt, :description, :decorative
+      prop :a11y, :event_rate
       default_a11y role: :image
     end
   end

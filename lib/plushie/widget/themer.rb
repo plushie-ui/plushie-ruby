@@ -15,6 +15,7 @@ module Plushie
       children :single
       positional :theme, default: nil
       prop :theme
+      prop :a11y, :event_rate
     end
   end
 end

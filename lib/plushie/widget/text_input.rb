@@ -18,6 +18,7 @@ module Plushie
         :align_x, :icon, :on_submit, :on_paste, :secure, :input_purpose,
         :style, :placeholder_color, :selection_color,
         :required, :validation
+      prop :a11y, :event_rate
       default_a11y role: :text_input, label_from: :placeholder
     end
   end

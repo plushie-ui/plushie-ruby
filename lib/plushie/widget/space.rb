@@ -14,6 +14,7 @@ module Plushie
     Space = Plushie::Widget.define(:space) do
       children :none
       prop :width, :height
+      prop :a11y, :event_rate
     end
   end
 end

@@ -23,6 +23,7 @@ module Plushie
       children :none
       prop :spans, :width, :height, :size, :font, :color, :line_height,
         :wrapping, :ellipsis
+      prop :a11y, :event_rate
       default_a11y role: :label
     end
   end

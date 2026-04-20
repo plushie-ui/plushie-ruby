@@ -49,9 +49,14 @@ module Plushie
       alignment style font atom map any
     ].freeze
 
-    # Property names reserved by the framework (auto-added to all widgets).
-    # @api private
-    RESERVED_PROP_NAMES = %i[id type children a11y event_rate].freeze
+    # Property names reserved by the framework that the DSL rejects when
+    # declared via `prop`. `:id`, `:type`, and `:children` are structural
+    # fields, not props. `:a11y` and `:event_rate` are auto-wired on
+    # every widget but callers may also list them in `prop :...` for
+    # discoverability; the DSL accepts those declarations as no-ops.
+    STRUCTURAL_PROP_NAMES = %i[id type children].freeze
+    AUTO_WIRED_PROP_NAMES = %i[a11y event_rate].freeze
+    RESERVED_PROP_NAMES = (STRUCTURAL_PROP_NAMES + AUTO_WIRED_PROP_NAMES).freeze
 
     # Create a widget class from declarative block.
     #
@@ -143,15 +148,19 @@ module Plushie
               "unsupported prop type #{type.inspect} for #{name.inspect}. " \
               "Known types: #{KNOWN_PROP_TYPES.inspect}"
           end
-          _check_prop_name!(name)
-          @_widget_props << {name: name, type: type, default: default}
-          (@_prop_meta ||= {})[name] = {type: type, doc: doc}.compact
+          is_auto = _check_prop_name!(name)
+          unless is_auto
+            @_widget_props << {name: name, type: type, default: default}
+            (@_prop_meta ||= {})[name] = {type: type, doc: doc}.compact
+          end
         elsif names.length == 2 && KNOWN_PROP_TYPES.include?(names[1].to_sym)
           # Typed form: prop :name, :string, default: 0
           name = names[0].to_sym
           type_val = names[1].to_sym
-          _check_prop_name!(name)
-          @_widget_props << {name: name, type: type_val, default: default}
+          is_auto = _check_prop_name!(name)
+          unless is_auto
+            @_widget_props << {name: name, type: type_val, default: default}
+          end
         else
           # Simple form: prop :name1, :name2, ...
           if default
@@ -161,7 +170,9 @@ module Plushie
           end
           names.each do |n|
             sym = n.to_sym
-            _check_prop_name!(sym)
+            is_auto = _check_prop_name!(sym)
+            next if is_auto
+
             @_widget_props << {name: sym, type: nil, default: nil}
           end
         end
@@ -390,11 +401,19 @@ module Plushie
 
       private
 
+      # Check that a declared prop name is legal. Structural names
+      # (`:id`, `:type`, `:children`) are always rejected. Auto-wired
+      # names (`:a11y`, `:event_rate`) are allowed as no-op declarations
+      # for discoverability; the macro still handles them internally.
+      #
+      # @return [Boolean] true if the name is an auto-wired declaration
+      #   that should be silently dropped from `@_widget_props`.
       def _check_prop_name!(name)
-        return unless RESERVED_PROP_NAMES.include?(name)
-
-        raise ArgumentError,
-          "prop name #{name.inspect} is reserved. Reserved: #{RESERVED_PROP_NAMES.inspect}"
+        if STRUCTURAL_PROP_NAMES.include?(name)
+          raise ArgumentError,
+            "prop name #{name.inspect} is reserved. Structural props: #{STRUCTURAL_PROP_NAMES.inspect}"
+        end
+        AUTO_WIRED_PROP_NAMES.include?(name)
       end
 
       def _validate!

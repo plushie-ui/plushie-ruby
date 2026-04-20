@@ -25,6 +25,7 @@ module Plushie
       positional :content, default: nil
       prop :content, :width, :text_size, :h1_size, :h2_size, :h3_size,
         :code_size, :spacing, :link_color, :code_theme
+      prop :a11y, :event_rate
       default_a11y role: :document
     end
   end

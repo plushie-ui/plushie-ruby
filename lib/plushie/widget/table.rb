@@ -17,6 +17,7 @@ module Plushie
     TableCell = Plushie::Widget.define(:table_cell) do
       children :many
       prop :column
+      prop :a11y, :event_rate
     end
 
     # Data table with column definitions and optional sorting.

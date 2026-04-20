@@ -22,6 +22,7 @@ module Plushie
       positional :data, default: nil
       prop :data, :cell_size, :total_size, :cell_color, :background,
         :error_correction, :alt, :description
+      prop :a11y, :event_rate
       default_a11y role: :image
     end
   end

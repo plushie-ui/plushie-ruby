@@ -17,6 +17,7 @@ module Plushie
         :maximized, :fullscreen, :visible, :resizable, :closeable,
         :minimizable, :decorations, :transparent, :blur, :level,
         :exit_on_close_request, :scale_factor, :theme
+      prop :a11y, :event_rate
       default_a11y role: :window
     end
   end
