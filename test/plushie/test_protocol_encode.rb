@@ -21,6 +21,17 @@ class TestProtocolEncode < Minitest::Test
     assert_equal true, result["settings"]["antialiasing"]
   end
 
+  def test_encode_settings_includes_required_widgets_when_present
+    result = JSON.parse(E.encode_settings({required_widgets: ["gauge", "custom_chart"]}, :json))
+    assert_equal ["gauge", "custom_chart"], result["settings"]["required_widgets"]
+  end
+
+  def test_encode_settings_omits_required_widgets_when_caller_does_not_set_it
+    result = JSON.parse(E.encode_settings({}, :json))
+    refute result["settings"].key?("required_widgets"),
+      "empty settings hash should not introduce required_widgets"
+  end
+
   def test_encode_snapshot
     tree = {id: "root", type: "window", props: {}, children: []}
     result = JSON.parse(E.encode_snapshot(tree, :json))

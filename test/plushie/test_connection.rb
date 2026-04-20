@@ -24,6 +24,40 @@ class TestConnection < Minitest::Test
     Plushie.configuration.widgets = original
   end
 
+  def test_validate_required_extensions_accepts_native_widget_in_hello
+    ext = Class.new do
+      def self.native? = true
+      def self.type_names = [:gauge]
+    end
+
+    original = Plushie.configuration.widgets
+    Plushie.configuration.widgets = [ext]
+
+    conn = Plushie::Connection.allocate
+    # Renderer reports the widget under native_widgets; validator
+    # must recognize it and return without raising.
+    conn.send(:validate_required_widgets!, {type: :hello, native_widgets: ["gauge"]})
+  ensure
+    Plushie.configuration.widgets = original
+  end
+
+  def test_validate_required_extensions_is_noop_without_native_widgets
+    non_native = Class.new do
+      def self.native? = false
+      def self.type_names = [:composite]
+    end
+
+    original = Plushie.configuration.widgets
+    Plushie.configuration.widgets = [non_native]
+
+    conn = Plushie::Connection.allocate
+    # Non-native widgets aren't checked against the hello reply, so
+    # even an empty extensions list is fine.
+    conn.send(:validate_required_widgets!, {type: :hello, extensions: []})
+  ensure
+    Plushie.configuration.widgets = original
+  end
+
   # -- msgpack write framing (4-byte length prefix) -------------------------
 
   def test_msgpack_write_framing
