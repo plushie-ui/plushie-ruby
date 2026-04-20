@@ -170,6 +170,15 @@ module Plushie
             scope: scope
           )
 
+        when "link_click"
+          id, scope = split_scoped_id(msg["id"])
+          link = data["link"].is_a?(String) ? data["link"] : ""
+          Event::Widget.new(
+            type: :link_click, id: id,
+            value: link, window_id: window_id_fn.call(msg, family),
+            scope: scope
+          )
+
         when "sort"
           id, scope = split_scoped_id(msg["id"])
           Event::Widget.new(

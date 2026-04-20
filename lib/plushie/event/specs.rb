@@ -61,6 +61,7 @@ module Plushie
         # steep:ignore:start
         key_binding: {carrier: VALUE, fields: {}},
         # steep:ignore:end
+        link_click: {carrier: VALUE, value_type: :string},
         sort: {carrier: VALUE, value_type: :string},
         scrolled: {
           carrier: VALUE,

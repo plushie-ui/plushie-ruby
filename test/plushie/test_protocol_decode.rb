@@ -65,6 +65,12 @@ class TestProtocolDecode < Minitest::Test
     assert_equal 0.5, event.value[:relative_y]
   end
 
+  def test_decode_link_click
+    event = D.decode_event(windowed({"family" => "link_click", "id" => "article", "value" => {"link" => "https://example.com/article"}}))
+    assert_equal :link_click, event.type
+    assert_equal "https://example.com/article", event.value
+  end
+
   def test_decode_paste
     event = D.decode_event(windowed({"family" => "paste", "id" => "input", "value" => "pasted"}))
     assert_equal :paste, event.type
