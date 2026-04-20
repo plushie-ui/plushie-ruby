@@ -125,6 +125,22 @@ module Plushie
   # Base error class for all Plushie exceptions.
   class Error < StandardError; end
 
+  # Raised when the renderer's advertised protocol version differs
+  # from the version the SDK was built against. Carries both versions
+  # so callers can decide retry vs abort without string parsing.
+  class ProtocolVersionMismatchError < Error
+    # @return [Integer] protocol version this SDK was built for.
+    attr_reader :expected
+    # @return [Integer, nil] protocol version the renderer advertised.
+    attr_reader :got
+
+    def initialize(expected:, got:)
+      super("protocol version mismatch: expected #{expected}, got #{got.inspect}")
+      @expected = expected
+      @got = got
+    end
+  end
+
   # Global configuration for the Plushie SDK.
   #
   # @example Basic setup

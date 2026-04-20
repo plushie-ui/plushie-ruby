@@ -224,7 +224,7 @@ module Plushie
 
       if @hello.is_a?(Hash) && @hello[:type] == :hello
         if @hello[:protocol] != Protocol::PROTOCOL_VERSION
-          raise Error, "protocol version mismatch: expected #{Protocol::PROTOCOL_VERSION}, got #{@hello[:protocol]}"
+          raise Plushie::ProtocolVersionMismatchError.new(expected: Protocol::PROTOCOL_VERSION, got: @hello[:protocol])
         end
 
         validate_required_widgets!(@hello)
@@ -261,7 +261,7 @@ module Plushie
 
       if @hello.is_a?(Hash) && @hello[:type] == :hello
         if @hello[:protocol] != Protocol::PROTOCOL_VERSION
-          raise Error, "protocol version mismatch: expected #{Protocol::PROTOCOL_VERSION}, got #{@hello[:protocol]}"
+          raise Plushie::ProtocolVersionMismatchError.new(expected: Protocol::PROTOCOL_VERSION, got: @hello[:protocol])
         end
 
         validate_required_widgets!(@hello)

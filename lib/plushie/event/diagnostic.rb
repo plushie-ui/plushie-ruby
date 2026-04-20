@@ -154,6 +154,17 @@ module Plushie
       UnknownMessageType = Data.define(:msg_type)
       KINDS["unknown_message_type"] = UnknownMessageType
 
+      # The runtime's command dispatch chain exceeded the configured
+      # depth limit, indicating an `update` loop that keeps returning
+      # a command whose delivered event produces another command.
+      DispatchLoopExceeded = Data.define(:depth, :limit)
+      KINDS["dispatch_loop_exceeded"] = DispatchLoopExceeded
+
+      # A single wire message exceeded the protocol's 64 MiB
+      # per-message size cap.
+      BufferOverflow = Data.define(:size, :limit)
+      KINDS["buffer_overflow"] = BufferOverflow
+
       KINDS.freeze
 
       module_function
