@@ -1,7 +1,5 @@
 # frozen_string_literal: true
 
-require "securerandom"
-
 module Plushie
   # Native platform effect requests.
   #
@@ -104,6 +102,10 @@ module Plushie
     def clipboard_write_primary(tag, text) = request(tag, :clipboard_write_primary, text: text)
 
     # Show an OS notification.
+    #
+    # On macOS, notifications may require the app to be bundled (.app)
+    # or have notification entitlements to display.
+    #
     # @param tag [Symbol]
     # @param title [String]
     # @param body [String]
@@ -151,9 +153,18 @@ module Plushie
       end
     end
 
+    # Monotonic counter backing `generate_id`. Matches the format
+    # used by the other host SDKs so log / debug output is
+    # comparable across implementations.
+    @counter = 0
+    @counter_mutex = Mutex.new
+
     # @return [String] unique wire correlation ID
     def generate_id
-      "ef_#{SecureRandom.hex(6)}"
+      @counter_mutex.synchronize do
+        @counter += 1
+        "ef_#{@counter}"
+      end
     end
   end
 end
