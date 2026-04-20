@@ -87,4 +87,64 @@ class TestFraming < Minitest::Test
     assert_empty lines
     assert_equal "incomplete", remaining
   end
+
+  # -- Overflow enforcement -------------------------------------------------
+
+  def test_encode_packet_rejects_oversized_payload
+    oversize = "x" * (F::MAX_MESSAGE_SIZE + 1)
+
+    err = assert_raises(Plushie::Transport::BufferOverflowError) do
+      F.encode_packet(oversize)
+    end
+    assert_equal F::MAX_MESSAGE_SIZE + 1, err.size
+    assert_equal F::MAX_MESSAGE_SIZE, err.limit
+    assert_match(/exceeds/, err.message)
+  end
+
+  def test_decode_packets_rejects_oversized_length_prefix
+    # Craft a 4-byte header declaring MAX_MESSAGE_SIZE + 1 bytes.
+    # No need to allocate a payload; the check fires on the prefix
+    # before any payload bytes are consumed.
+    oversized_len = F::MAX_MESSAGE_SIZE + 1
+    header = [oversized_len].pack("N")
+
+    err = assert_raises(Plushie::Transport::BufferOverflowError) do
+      F.decode_packets(header)
+    end
+    assert_equal oversized_len, err.size
+    assert_equal F::MAX_MESSAGE_SIZE, err.limit
+  end
+
+  def test_encode_line_rejects_oversized_payload
+    oversize = "x" * (F::MAX_MESSAGE_SIZE + 1)
+
+    err = assert_raises(Plushie::Transport::BufferOverflowError) do
+      F.encode_line(oversize)
+    end
+    assert_equal F::MAX_MESSAGE_SIZE + 1, err.size
+    assert_equal F::MAX_MESSAGE_SIZE, err.limit
+  end
+
+  def test_decode_lines_rejects_oversized_complete_line
+    oversize_line = "x" * (F::MAX_MESSAGE_SIZE + 1) + "\n"
+
+    err = assert_raises(Plushie::Transport::BufferOverflowError) do
+      F.decode_lines(oversize_line)
+    end
+    assert_equal F::MAX_MESSAGE_SIZE + 1, err.size
+    assert_equal F::MAX_MESSAGE_SIZE, err.limit
+  end
+
+  def test_decode_lines_rejects_oversized_partial_tail
+    # Partial tail (no trailing newline) that has already grown past
+    # the cap. An unterminated line must not silently grow the
+    # caller's buffer without bound.
+    oversize_tail = "x" * (F::MAX_MESSAGE_SIZE + 1)
+
+    err = assert_raises(Plushie::Transport::BufferOverflowError) do
+      F.decode_lines(oversize_tail)
+    end
+    assert_equal F::MAX_MESSAGE_SIZE + 1, err.size
+    assert_equal F::MAX_MESSAGE_SIZE, err.limit
+  end
 end
