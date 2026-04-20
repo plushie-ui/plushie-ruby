@@ -199,6 +199,30 @@ class TestUIComplete < Minitest::Test
     assert_equal spans, node.props[:spans]
   end
 
+  def test_rich_text_typed_spans
+    span = Plushie::Widget::RichText::Span
+    spans = [
+      span.new(text: "Build "),
+      span.new(text: "ok", color: "#22aa22", underline: true)
+    ]
+    node = rich_text("rt", spans)
+    assert_equal "rich_text", node.type
+    encoded = node.props[:spans].map { |s| s.respond_to?(:to_wire) ? s.to_wire : s }
+    assert_equal(
+      [
+        {text: "Build "},
+        {text: "ok", color: "#22aa22", underline: true}
+      ],
+      encoded
+    )
+  end
+
+  def test_rich_text_span_with_omits_unset_fields
+    span = Plushie::Widget::RichText::Span
+    s = span.new(text: "x").with(color: "#ff0000", underline: true)
+    assert_equal({text: "x", color: "#ff0000", underline: true}, s.to_wire)
+  end
+
   def test_table
     node = table("tbl", columns: [], rows: [])
     assert_equal "table", node.type
