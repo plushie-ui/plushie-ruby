@@ -21,7 +21,8 @@ module Plushie
   # - *Scroll* ({Command::Scroll}): scroll_to, snap_to, scroll_by, ...
   # - *Window* ({Command::Window}): resize_window, close_window, focus_window, ...
   # - *Window queries* ({Command::WindowQuery}): window_size, window_mode, ...
-  # - *Image* ({Command::Image}): create_image, update_image, delete_image, ...
+  # - *Image* ({Command::Image}): create_image, create_image_rgba,
+  #   update_image, update_image_rgba, delete_image, ...
   # - *Widget command*: widget_command for native widget operations
   #
   # All submodule methods are also available directly on Command via delegation:
@@ -328,7 +329,9 @@ module Plushie
 
       # Image
       def_delegator Image, :create_image
+      def_delegator Image, :create_image_rgba
       def_delegator Image, :update_image
+      def_delegator Image, :update_image_rgba
       def_delegator Image, :delete_image
       def_delegator Image, :list_images
       def_delegator Image, :clear_images

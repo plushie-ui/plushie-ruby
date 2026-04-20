@@ -256,10 +256,20 @@ class TestCommand < Minitest::Test
     assert_equal "png_bytes", cmd.payload[:data]
   end
 
-  def test_create_image_with_pixels
-    cmd = C.create_image("img1", pixels: "\x00" * 16, width: 2, height: 2)
+  def test_create_image_rgba_with_pixels
+    cmd = C.create_image_rgba("img1", 2, 2, "\x00" * 16)
+    assert_equal :image_op, cmd.type
+    assert_equal "create_image", cmd.payload[:op]
     assert_equal "\x00" * 16, cmd.payload[:pixels]
     assert_equal 2, cmd.payload[:width]
+    assert_equal 2, cmd.payload[:height]
+  end
+
+  def test_update_image_rgba_with_pixels
+    cmd = C.update_image_rgba("img1", 1, 1, "\xff\x00\x00\xff")
+    assert_equal :image_op, cmd.type
+    assert_equal "update_image", cmd.payload[:op]
+    assert_equal "\xff\x00\x00\xff", cmd.payload[:pixels]
   end
 
   def test_delete_image

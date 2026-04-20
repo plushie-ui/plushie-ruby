@@ -11,36 +11,42 @@ module Plushie
     module Image
       module_function
 
-      # Create an image from encoded data (PNG/JPEG) or raw RGBA pixels.
+      # Create an image from encoded data (PNG/JPEG bytes).
       # @param handle [String] image handle name
-      # @param data [String, nil] encoded image bytes
-      # @param width [Integer, nil] pixel width (for raw pixels)
-      # @param height [Integer, nil] pixel height (for raw pixels)
-      # @param pixels [String, nil] raw RGBA pixel data
+      # @param data [String] encoded image bytes
       # @return [Cmd]
-      def create_image(handle, data = nil, width: nil, height: nil, pixels: nil)
-        if pixels
-          validate_pixel_buffer!(pixels, width, height)
-          Cmd.new(type: :image_op, payload: {op: "create_image", handle:, pixels:, width:, height:})
-        else
-          Cmd.new(type: :image_op, payload: {op: "create_image", handle:, data:})
-        end
+      def create_image(handle, data)
+        Cmd.new(type: :image_op, payload: {op: "create_image", handle:, data:})
       end
 
-      # Update an existing image handle.
-      # @param handle [String]
-      # @param data [String, nil] encoded image bytes
-      # @param width [Integer, nil] pixel width (for raw pixels)
-      # @param height [Integer, nil] pixel height (for raw pixels)
-      # @param pixels [String, nil] raw RGBA pixel data
+      # Create an image from raw RGBA pixel data.
+      # @param handle [String] image handle name
+      # @param width [Integer] pixel width
+      # @param height [Integer] pixel height
+      # @param pixels [String] raw RGBA pixel data
       # @return [Cmd]
-      def update_image(handle, data = nil, width: nil, height: nil, pixels: nil)
-        if pixels
-          validate_pixel_buffer!(pixels, width, height)
-          Cmd.new(type: :image_op, payload: {op: "update_image", handle:, pixels:, width:, height:})
-        else
-          Cmd.new(type: :image_op, payload: {op: "update_image", handle:, data:})
-        end
+      def create_image_rgba(handle, width, height, pixels)
+        validate_pixel_buffer!(pixels, width, height)
+        Cmd.new(type: :image_op, payload: {op: "create_image", handle:, pixels:, width:, height:})
+      end
+
+      # Update an existing image handle from encoded bytes.
+      # @param handle [String]
+      # @param data [String] encoded image bytes
+      # @return [Cmd]
+      def update_image(handle, data)
+        Cmd.new(type: :image_op, payload: {op: "update_image", handle:, data:})
+      end
+
+      # Update an existing image handle from raw RGBA pixel data.
+      # @param handle [String]
+      # @param width [Integer] pixel width
+      # @param height [Integer] pixel height
+      # @param pixels [String] raw RGBA pixel data
+      # @return [Cmd]
+      def update_image_rgba(handle, width, height, pixels)
+        validate_pixel_buffer!(pixels, width, height)
+        Cmd.new(type: :image_op, payload: {op: "update_image", handle:, pixels:, width:, height:})
       end
 
       # Delete an image handle.
@@ -60,7 +66,6 @@ module Plushie
       # Validate pixel buffer size matches dimensions.
       # @api private
       def validate_pixel_buffer!(pixels, width, height)
-        return unless pixels && width && height
         expected = width * height * 4
         return if pixels.bytesize == expected
 

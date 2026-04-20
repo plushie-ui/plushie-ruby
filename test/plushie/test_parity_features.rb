@@ -374,15 +374,15 @@ class TestParityFeatures < Minitest::Test
   # Pixel buffer validation
   # ======================================================================
 
-  def test_create_image_pixel_buffer_validation
+  def test_create_image_rgba_pixel_buffer_validation
     assert_raises(ArgumentError) do
-      Plushie::Command.create_image("img", pixels: "\x00" * 10, width: 2, height: 2)
+      Plushie::Command.create_image_rgba("img", 2, 2, "\x00" * 10)
     end
   end
 
-  def test_create_image_valid_pixel_buffer
+  def test_create_image_rgba_valid_pixel_buffer
     pixels = "\x00" * 16  # 2x2x4 = 16
-    cmd = Plushie::Command.create_image("img", pixels: pixels, width: 2, height: 2)
+    cmd = Plushie::Command.create_image_rgba("img", 2, 2, pixels)
     assert_equal :image_op, cmd.type
   end
 
