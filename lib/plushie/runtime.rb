@@ -56,6 +56,15 @@ module Plushie
       @effect_tags = {}        # tag -> wire_id
       @effect_ids = {}         # wire_id -> tag
       @effect_kinds = {}       # wire_id -> kind string
+
+      # Coalescable event buffer. High-frequency events (move, scroll,
+      # scrolled, resize) are stored here, keyed by (window_id, id, type),
+      # and flushed at the next event_queue iteration. Last-wins so
+      # bursts collapse to the latest value, except scroll events which
+      # accumulate their delta_x / delta_y. Keeps update() from drowning
+      # in pointer-move events when the host's update() is slow.
+      @pending_coalesce = {}   # [window_id, id, type] -> event
+      @coalesce_order = []     # insertion order for deterministic flush
       @pending_timers = {}     # event_key -> {thread:, nonce:}
       @subscriptions = {}      # sub_key -> {sub_type:, ...}
       @subscription_keys = []  # sorted keys for short-circuit
@@ -262,12 +271,25 @@ module Plushie
 
     def event_loop
       while @running
+        # Flush any pending coalescables before blocking on the queue.
+        # This mirrors Elixir's zero-delay send_after: coalescables
+        # survive only until the next scheduler tick, and here the
+        # "tick" is the boundary between inbound message batches.
+        flush_coalescables if !@pending_coalesce.empty? && @event_queue.empty?
+
         msg = @event_queue.pop
         break if msg == :shutdown
 
         case msg
         in [:renderer_event, event]
-          dispatch_event(event)
+          # Coalescable widget events collapse on (window_id, id, type);
+          # scroll deltas accumulate.
+          if coalescable_event?(event)
+            coalesce_event(event)
+          else
+            flush_coalescables
+            dispatch_event(event)
+          end
         in [:renderer_exited, reason]
           handle_renderer_exit(reason)
         in [:renderer_restarted]
@@ -319,6 +341,68 @@ module Plushie
         else
           @logger.debug("plushie: unknown message: #{msg.inspect}")
         end
+      end
+    end
+
+    # -- Coalescable events --------------------------------------------------
+
+    # Widget event types that collapse under high-frequency emission.
+    # Mirrors the Elixir / Python / TypeScript coalesce sets: pointer
+    # move, scroll, scrolled, and container resize events accumulate
+    # quickly when the host's update() is slow, so we keep only the
+    # latest value per (window_id, id, type) source before dispatch.
+    COALESCABLE_TYPES = %i[move scroll scrolled resize].freeze
+    private_constant :COALESCABLE_TYPES
+
+    def coalescable_event?(event)
+      event.is_a?(Event::Widget) && COALESCABLE_TYPES.include?(event.type)
+    end
+
+    def coalesce_event(event)
+      key = [event.window_id, event.id, event.type]
+      # Scroll events accumulate delta_x / delta_y so a burst of small
+      # wheel ticks delivers one Scroll with the summed deltas, not a
+      # lost-to-overwrite chain. Other types are last-wins.
+      merged =
+        if event.type == :scroll && @pending_coalesce.key?(key)
+          existing = @pending_coalesce[key]
+          combine_scroll_events(existing, event)
+        else
+          event
+        end
+
+      @coalesce_order << key unless @pending_coalesce.key?(key)
+      @pending_coalesce[key] = merged
+    end
+
+    def combine_scroll_events(old, new_event)
+      # Both events share the same (window_id, id, type) key. Sum the
+      # deltas and keep the newest metadata (modifiers, pointer kind).
+      old_val = old.value.is_a?(Hash) ? old.value : {}
+      new_val = new_event.value.is_a?(Hash) ? new_event.value : {}
+      dx = (old_val[:delta_x] || old_val["delta_x"] || 0) +
+        (new_val[:delta_x] || new_val["delta_x"] || 0)
+      dy = (old_val[:delta_y] || old_val["delta_y"] || 0) +
+        (new_val[:delta_y] || new_val["delta_y"] || 0)
+      merged_value = new_val.merge(delta_x: dx, delta_y: dy)
+      Event::Widget.new(
+        type: new_event.type,
+        id: new_event.id,
+        value: merged_value,
+        window_id: new_event.window_id,
+        scope: new_event.scope
+      )
+    end
+
+    def flush_coalescables
+      return if @pending_coalesce.empty?
+      order = @coalesce_order
+      pending = @pending_coalesce
+      @coalesce_order = []
+      @pending_coalesce = {}
+      order.each do |key|
+        event = pending[key]
+        dispatch_event(event) if event
       end
     end
 
@@ -823,6 +907,9 @@ module Plushie
     end
 
     def handle_interact_step(response)
+      # Flush pending coalescables so interact-step ordering stays
+      # deterministic and the snapshot reflects all prior events.
+      flush_coalescables
       events = extract_interact_events(response)
       # Process events WITHOUT rendering after each one.
       # Matches Elixir's apply_event which defers view/render.
@@ -833,6 +920,7 @@ module Plushie
     end
 
     def handle_interact_response(response)
+      flush_coalescables
       events = extract_interact_events(response)
       events.each { |ev| dispatch_event(ev) }
       pending = @pending_interact
@@ -1003,6 +1091,8 @@ module Plushie
       @effect_tags.clear
       @effect_ids.clear
       @effect_kinds.clear
+      @pending_coalesce.clear
+      @coalesce_order = []
       @pending_timers.each_value { |entry| entry[:thread]&.kill }
       @pending_timers.clear
       @subscriptions.each_value { |entry| entry[:thread]&.kill if entry[:sub_type] == :timer }
