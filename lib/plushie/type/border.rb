@@ -34,6 +34,9 @@ module Plushie
 
         # @return [Hash] wire-ready map
         def to_wire
+          if width.is_a?(Numeric) && width < 0
+            raise ArgumentError, "border width must be non-negative, got: #{width}"
+          end
           h = {width: width, radius: encode_radius}
           h[:color] = color unless color.nil?
           h
@@ -43,7 +46,19 @@ module Plushie
 
         def encode_radius
           case radius
-          when Hash then radius.slice(:top_left, :top_right, :bottom_right, :bottom_left)
+          when Hash
+            corners = radius.slice(:top_left, :top_right, :bottom_right, :bottom_left)
+            corners.each do |corner, n|
+              if n.is_a?(Numeric) && n < 0
+                raise ArgumentError, "border radius must be non-negative, got #{corner}=#{n}"
+              end
+            end
+            corners
+          when Numeric
+            if radius < 0
+              raise ArgumentError, "border radius must be non-negative, got: #{radius}"
+            end
+            radius
           else radius
           end
         end

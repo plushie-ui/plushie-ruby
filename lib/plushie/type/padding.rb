@@ -57,22 +57,29 @@ module Plushie
       # @param value [Numeric, Array, Hash, Pad] the padding value
       # @return [Hash] { top:, right:, bottom:, left: }
       def cast(value)
-        case value
-        when Numeric
-          {top: value, right: value, bottom: value, left: value}
-        when Array
-          case value.length
-          when 2 then {top: value[0], right: value[1], bottom: value[0], left: value[1]}
-          when 4 then {top: value[0], right: value[1], bottom: value[2], left: value[3]}
-          else raise ArgumentError, "padding array must have 2 or 4 elements, got #{value.length}"
+        result =
+          case value
+          when Numeric
+            {top: value, right: value, bottom: value, left: value}
+          when Array
+            case value.length
+            when 2 then {top: value[0], right: value[1], bottom: value[0], left: value[1]}
+            when 4 then {top: value[0], right: value[1], bottom: value[2], left: value[3]}
+            else raise ArgumentError, "padding array must have 2 or 4 elements, got #{value.length}"
+            end
+          when Pad
+            value.to_wire
+          when Hash
+            value.slice(:top, :right, :bottom, :left).compact
+          else
+            raise ArgumentError, "invalid padding: #{value.inspect}"
           end
-        when Pad
-          value.to_wire
-        when Hash
-          value.slice(:top, :right, :bottom, :left).compact
-        else
-          raise ArgumentError, "invalid padding: #{value.inspect}"
+        result.each do |side, n|
+          if n.is_a?(Numeric) && n < 0
+            raise ArgumentError, "padding must be non-negative, got #{side}=#{n}"
+          end
         end
+        result
       end
 
       # Encode a padding value for the wire protocol.
