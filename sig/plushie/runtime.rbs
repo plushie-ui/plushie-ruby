@@ -22,6 +22,11 @@ module Plushie
     @pending_effects: Hash[String, Thread]
     @effect_tags: Hash[Symbol, String]
     @effect_ids: Hash[String, Symbol]
+    @effect_kinds: Hash[String, String]
+    @pending_coalesce: Hash[Array[untyped], Event::Widget]
+    @coalesce_order: Array[Array[untyped]]
+    @memo_cache: Hash[untyped, untyped]
+    @tracked_windows: Set[String]
     @pending_timers: Hash[untyped, Hash[Symbol, untyped]]
     @subscriptions: Hash[untyped, Hash[Symbol, untyped]]
     @subscription_keys: Array[untyped]
@@ -69,6 +74,13 @@ module Plushie
 
     # Event loop
     def event_loop: () -> void
+
+    # Coalescable event buffering
+    COALESCABLE_TYPES: Array[Symbol]
+    def coalescable_event?: (untyped event) -> bool
+    def coalesce_event: (Event::Widget event) -> void
+    def combine_scroll_events: (Event::Widget old, Event::Widget new_event) -> Event::Widget
+    def flush_coalescables: () -> void
 
     # Event dispatch
     def dispatch_event: (untyped event) -> void

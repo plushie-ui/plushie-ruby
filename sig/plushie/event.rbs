@@ -102,10 +102,37 @@ module Plushie
 
     class Effect
       attr_reader tag: Symbol
-      attr_reader result: ([Symbol, untyped] | Symbol)
+      attr_reader result: untyped
 
-      def initialize: (tag: Symbol, result: ([Symbol, untyped] | Symbol)) -> void
+      def initialize: (tag: Symbol, result: untyped) -> void
       def with: (**untyped) -> Effect
+    end
+
+    # Typed per-kind result variants. Each is a Data.define class so
+    # apps can pattern-match on the class with `case/in`. Matches the
+    # Rust SDK's EffectResult enum.
+    module Effect::Result
+      FileOpened: untyped
+      FilesOpened: untyped
+      FileSaved: untyped
+      DirectorySelected: untyped
+      DirectoriesSelected: untyped
+      ClipboardText: untyped
+      ClipboardHtml: untyped
+      ClipboardWritten: untyped
+      ClipboardCleared: untyped
+      NotificationShown: untyped
+      Cancelled: untyped
+      Timeout: untyped
+      Error: untyped
+      Unsupported: untyped
+      RendererRestarted: untyped
+
+      def self.decode: (String kind, String status, untyped payload) -> untyped
+      def self.decode_ok: (String kind, Hash[untyped, untyped] payload) -> untyped
+      def self.fetch_string: (Hash[untyped, untyped] hash, Symbol key) -> String
+      def self.fetch_optional_string: (Hash[untyped, untyped] hash, Symbol key) -> String?
+      def self.fetch_paths: (Hash[untyped, untyped] hash, Symbol key) -> Array[String]
     end
 
     class CommandError

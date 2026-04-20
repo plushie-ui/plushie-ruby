@@ -378,8 +378,9 @@ module Plushie
     def combine_scroll_events(old, new_event)
       # Both events share the same (window_id, id, type) key. Sum the
       # deltas and keep the newest metadata (modifiers, pointer kind).
-      old_val = old.value.is_a?(Hash) ? old.value : {}
-      new_val = new_event.value.is_a?(Hash) ? new_event.value : {}
+      empty = {} # : Hash[untyped, untyped]
+      old_val = old.value.is_a?(Hash) ? old.value : empty
+      new_val = new_event.value.is_a?(Hash) ? new_event.value : empty
       dx = (old_val[:delta_x] || old_val["delta_x"] || 0) +
         (new_val[:delta_x] || new_val["delta_x"] || 0)
       dy = (old_val[:delta_y] || old_val["delta_y"] || 0) +
@@ -474,7 +475,11 @@ module Plushie
         @effect_tags.delete(tag) if tag
         return unless tag
 
-        typed = Event::Effect::Result.decode(kind, event[:status], event[:payload])
+        # @effect_ids and @effect_kinds are always written together in
+        # execute_effect, so if tag was present kind is too. Fall back
+        # to "" if the invariant ever breaks; decode will surface it as
+        # an Error result rather than crashing the loop.
+        typed = Event::Effect::Result.decode(kind || "", event[:status], event[:payload])
         event = Event::Effect.new(tag: tag, result: typed)
 
       end
