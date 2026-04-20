@@ -695,17 +695,15 @@ module Plushie
           Event::System.new(type: :announce, value: data["text"])
 
         when "session_error"
-          Event::System.new(
-            type: :session_error,
-            tag: msg["session"],
-            value: data["error"] || data
+          Event::SessionError.new(
+            session: msg["session"].to_s,
+            error: data["error"].is_a?(String) ? data["error"] : ""
           )
 
         when "session_closed"
-          Event::System.new(
-            type: :session_closed,
-            tag: msg["session"],
-            value: data["reason"] || data
+          Event::SessionClosed.new(
+            session: msg["session"].to_s,
+            reason: data["reason"].is_a?(String) ? data["reason"] : ""
           )
 
         # -- Diagnostic events -> Event::System ---------------------------------

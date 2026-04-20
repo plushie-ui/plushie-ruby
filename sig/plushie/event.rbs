@@ -184,5 +184,21 @@ module Plushie
       def initialize: (tag: Symbol, value: untyped) -> void
       def with: (**untyped) -> Stream
     end
+
+    class SessionError
+      attr_reader session: String
+      attr_reader error: String
+
+      def initialize: (session: String, error: String) -> void
+      def with: (**untyped) -> SessionError
+    end
+
+    class SessionClosed
+      attr_reader session: String
+      attr_reader reason: String
+
+      def initialize: (session: String, reason: String) -> void
+      def with: (**untyped) -> SessionClosed
+    end
   end
 end

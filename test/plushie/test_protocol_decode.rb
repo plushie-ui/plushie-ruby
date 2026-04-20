@@ -371,18 +371,16 @@ class TestProtocolDecode < Minitest::Test
 
   def test_decode_session_error_with_session_id
     event = D.decode_event({"family" => "session_error", "session" => "test_1", "value" => {"error" => "invalid state"}})
-    assert_instance_of Plushie::Event::System, event
-    assert_equal :session_error, event.type
-    assert_equal "test_1", event.tag
-    assert_equal "invalid state", event.value
+    assert_instance_of Plushie::Event::SessionError, event
+    assert_equal "test_1", event.session
+    assert_equal "invalid state", event.error
   end
 
   def test_decode_session_closed_with_session_id
     event = D.decode_event({"family" => "session_closed", "session" => "test_2", "value" => {"reason" => "timeout"}})
-    assert_instance_of Plushie::Event::System, event
-    assert_equal :session_closed, event.type
-    assert_equal "test_2", event.tag
-    assert_equal "timeout", event.value
+    assert_instance_of Plushie::Event::SessionClosed, event
+    assert_equal "test_2", event.session
+    assert_equal "timeout", event.reason
   end
 
   # -- Window events (additional) ------------------------------------------

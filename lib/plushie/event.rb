@@ -355,6 +355,28 @@ module Plushie
     #   in Event::Stream[tag: :download, value:]
     Stream = Data.define(:tag, :value)
 
+    # A multiplexed session encountered an error.
+    #
+    # Emitted by the renderer when a session thread panics, hits a
+    # session-scoped cap, or otherwise fails. Only delivered when the
+    # renderer is run with `--max-sessions > 1`.
+    #
+    # @!attribute [r] session [String] the session ID that errored
+    # @!attribute [r] error [String] error description from the renderer
+    #
+    # @example
+    #   in Event::SessionError[session:, error:]
+    #     logger.error("session #{session} failed: #{error}")
+    SessionError = Data.define(:session, :error)
+
+    # A multiplexed session was closed by the renderer.
+    #
+    # Emitted after a Reset completes and the session thread exits.
+    #
+    # @!attribute [r] session [String] the session ID that was closed
+    # @!attribute [r] reason [String] close reason from the renderer
+    SessionClosed = Data.define(:session, :reason)
+
     # Reconstruct the full scoped path as a forward-order string.
     # Strips the window_id from scope (it appears at the end of the
     # scope list but is not part of the container path).
