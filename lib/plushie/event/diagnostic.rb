@@ -203,7 +203,13 @@ module Plushie
     # The +diagnostic+ field is one of the typed variants in
     # {Plushie::Event::Diagnostic}.
     #
-    # @!attribute [r] session [String] session ID the diagnostic is attributed to
+    # @!attribute [r] session [String] session the diagnostic is attributable to.
+    #   An empty string for process-scoped diagnostics (font load
+    #   failures, renderer startup / panic, writer-dead, anything
+    #   that affects the whole renderer rather than a single
+    #   session). Non-empty for session-scoped diagnostics (widget
+    #   panics, view errors, tree validation warnings, anything
+    #   produced inside a session's update / apply pipeline).
     # @!attribute [r] level [Symbol] :info, :warn, or :error
     # @!attribute [r] diagnostic [Object] typed diagnostic variant
     DiagnosticMessage = Data.define(:session, :level, :diagnostic) do
