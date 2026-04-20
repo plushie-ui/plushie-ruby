@@ -6,7 +6,7 @@ module Plushie
       children :many
       prop :columns, :rows, :header, :separator, :separator_color,
         :width, :height, :padding, :sort_by, :sort_order,
-        :header_text_size, :row_text_size, :selected, :striped
+        :header_text_size, :row_text_size
       default_a11y role: :table
     end
 
