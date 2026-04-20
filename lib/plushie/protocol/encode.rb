@@ -41,7 +41,7 @@ module Plushie
       # All fields inside settings are optional. See protocol.md for
       # the full list: protocol_version, default_text_size, default_font,
       # antialiasing, vsync, fonts, scale_factor, validate_props,
-      # extension_config, default_event_rate.
+      # extension_config, default_event_rate, required_widgets.
       #
       # @param settings [Hash] settings key-value pairs
       # @param format [:msgpack, :json]
