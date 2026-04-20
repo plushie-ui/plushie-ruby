@@ -215,7 +215,8 @@ module Plushie
               pointer: (data["pointer"] || "mouse").to_sym,
               finger: data["finger"],
               modifiers: parse_modifiers(data["modifiers"]),
-              captured: data["captured"] || msg["captured"] || false
+              captured: data["captured"] || msg["captured"] || false,
+              lost: data["lost"]
             }
           )
 
@@ -544,7 +545,7 @@ module Plushie
             id: window_id || "__global__", scope: [], window_id: window_id,
             value: {
               pointer: :touch, finger: data["id"],
-              x: data["x"], y: data["y"],
+              x: data["x"], y: data["y"], lost: false,
               captured: msg["captured"] || false,
               modifiers: parse_modifiers(msg["modifiers"])
             }
