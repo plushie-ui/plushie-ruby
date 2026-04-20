@@ -236,6 +236,8 @@ module Plushie
       ViewPanicked: untyped
       UpdatePanicked: untyped
       UnknownMessageType: untyped
+      DispatchLoopExceeded: untyped
+      BufferOverflow: untyped
 
       def self.decode: (Hash[String, untyped] payload) -> untyped
     end

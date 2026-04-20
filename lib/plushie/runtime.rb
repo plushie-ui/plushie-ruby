@@ -76,6 +76,7 @@ module Plushie
       @memo_cache = {} # : Hash[untyped, untyped]
       @diagnostics = []        # accumulated prop validation diagnostics
       @diagnostics_mutex = Mutex.new
+      @dispatch_depth = 0      # Command.dispatch chain position
       @pending_stub_acks = {}  # kind -> Queue (for sync ack round-trip)
       @pending_await_async = {} # tag -> Queue (for sync await)
       @pending_interact = nil   # {id:, result_queue:} for current interact
@@ -280,6 +281,12 @@ module Plushie
         msg = @event_queue.pop
         break if msg == :shutdown
 
+        # A fresh entry into the event loop resets the
+        # `Command.dispatch` chain counter. The `:dispatched_event`
+        # branch below overrides it with the chain position so the
+        # guard in `execute_done` caps a pathological update loop.
+        @dispatch_depth = 0
+
         case msg
         in [:renderer_event, event]
           # Coalescable widget events collapse on (window_id, id, type);
@@ -300,6 +307,12 @@ module Plushie
           handle_stream_value(tag, nonce, value)
         in [:timer_tick, tag]
           handle_timer_tick(tag)
+        in [:dispatched_event, depth, event]
+          # A `Command.dispatch` follow-up: set the depth so the guard
+          # in `execute_done` caps the chain, then dispatch the event
+          # through the normal update cycle.
+          @dispatch_depth = depth
+          dispatch_event(event)
         in [:send_after_event, event, nonce]
           entry = @pending_timers[event]
           if entry && entry[:nonce] == nonce

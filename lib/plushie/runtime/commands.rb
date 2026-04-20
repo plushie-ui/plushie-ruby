@@ -8,6 +8,14 @@ module Plushie
     # Included into Runtime as a mixin.
     #
     module Commands
+      # Maximum synchronous `Command.dispatch` chain depth before the
+      # runtime guard fires. `Command.dispatch` queues a follow-up
+      # event back through the runtime mailbox; a pathological
+      # `update` that keeps returning another dispatch would fill the
+      # queue indefinitely, so the runtime caps the chain and surfaces
+      # a typed `DispatchLoopExceeded` diagnostic.
+      DISPATCH_DEPTH_LIMIT = 100
+
       private
 
       # Execute a command or list of commands, threading state.
@@ -117,9 +125,35 @@ module Plushie
       end
 
       # Dispatch a done command immediately.
+      #
+      # Guards against pathological `update` chains that keep returning
+      # another `Command.dispatch`: the current chain position lives on
+      # `@dispatch_depth`, the new event would be at `depth + 1`, and
+      # past {DISPATCH_DEPTH_LIMIT} the runtime drops the command and
+      # surfaces a typed `DispatchLoopExceeded` diagnostic.
       def execute_done(value, mapper)
+        next_depth = @dispatch_depth + 1
+        if next_depth > DISPATCH_DEPTH_LIMIT
+          diag = Plushie::Event::Diagnostic::DispatchLoopExceeded.new(
+            depth: next_depth,
+            limit: DISPATCH_DEPTH_LIMIT
+          )
+          message = Plushie::Event::DiagnosticMessage.new(
+            session: "",
+            level: :error,
+            diagnostic: diag
+          )
+          @logger.error(
+            "plushie: dispatch_loop_exceeded: command chain reached " \
+              "depth #{next_depth} (limit #{DISPATCH_DEPTH_LIMIT}); " \
+              "dropping command to break the loop"
+          )
+          @diagnostics_mutex.synchronize { @diagnostics << message } if @diagnostics
+          return
+        end
+
         event = mapper.call(value)
-        @event_queue.push([:send_after_event, event])
+        @event_queue.push([:dispatched_event, next_depth, event])
       rescue => e
         @logger.warn("plushie: Command.done mapper error: #{e.class}: #{e.message}")
       end

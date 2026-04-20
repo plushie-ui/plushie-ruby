@@ -39,7 +39,12 @@ class TestRuntimeCommands < Minitest::Test
       @pending_timers = {}
       @running = true
       @logger = Logger.new(IO::NULL)
+      @dispatch_depth = 0
+      @diagnostics = []
+      @diagnostics_mutex = Mutex.new
     end
+
+    attr_accessor :dispatch_depth
 
     # Make the private methods public for testing.
     public :execute_commands, :execute_async, :cancel_task,
@@ -107,8 +112,32 @@ class TestRuntimeCommands < Minitest::Test
     @runner.execute_commands(cmd)
 
     msg = @runner.event_queue.pop
-    assert_equal :send_after_event, msg[0]
-    assert_equal [:got, "payload"], msg[1]
+    assert_equal :dispatched_event, msg[0]
+    assert_equal 1, msg[1]
+    assert_equal [:got, "payload"], msg[2]
+  end
+
+  # -- :done guards against runaway dispatch chains ------------------------
+
+  def test_done_drops_and_diagnoses_past_depth_cap
+    mapper = ->(v) { [:got, v] }
+    cmd = C.dispatch("payload", mapper)
+    @runner.dispatch_depth = Plushie::Runtime::Commands::DISPATCH_DEPTH_LIMIT
+    @runner.execute_commands(cmd)
+
+    # The guard dropped the event; nothing queued.
+    assert @runner.event_queue.empty?
+
+    diags = @runner.instance_variable_get(:@diagnostics)
+    refute_empty diags
+    message = diags.first
+    assert_kind_of Plushie::Event::DiagnosticMessage, message
+    assert_kind_of Plushie::Event::Diagnostic::DispatchLoopExceeded,
+      message.diagnostic
+    assert_equal Plushie::Runtime::Commands::DISPATCH_DEPTH_LIMIT + 1,
+      message.diagnostic.depth
+    assert_equal Plushie::Runtime::Commands::DISPATCH_DEPTH_LIMIT,
+      message.diagnostic.limit
   end
 
   # -- :send_after fires after delay --------------------------------------

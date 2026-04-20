@@ -149,6 +149,8 @@ module Plushie
     def shutdown: () -> void
 
     module Commands
+      DISPATCH_DEPTH_LIMIT: Integer
+
       private
 
       def execute_commands: (Command::Cmd? cmd) -> void
