@@ -155,6 +155,7 @@ module Plushie
           timer = @pending_effects.delete(prev_id)
           timer&.kill
           @effect_ids.delete(prev_id)
+          @effect_kinds.delete(prev_id)
         end
 
         # Track tag <-> wire ID mapping plus the effect kind (needed
