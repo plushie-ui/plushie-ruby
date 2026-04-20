@@ -754,21 +754,24 @@ module Plushie
       # Decode an effect response (file dialog result, clipboard, etc.).
       # Uses the status field per protocol.md: "ok", "cancelled", "error".
       #
-      # Returns a hash with the wire ID. The runtime resolves the tag
-      # from its effect_ids mapping before delivering to the app.
+      # Returns a hash with the wire ID, the raw wire status, and the
+      # decoded payload (ok result or error reason). The runtime
+      # resolves the tag and effect kind from its pending-effects map
+      # and calls Event::Effect::Result.decode to build the typed
+      # outcome before delivering to the app.
       #
       # @param msg [Hash]
-      # @return [Hash] with :type, :wire_id, :result
+      # @return [Hash] with :type, :wire_id, :status, :payload
       def decode_effect_response(msg)
-        result = case msg["status"]
-        when "ok" then [:ok, msg["result"]]
-        when "cancelled" then :cancelled
-        when "error" then [:error, msg["error"]]
-        when "unsupported" then %i[error unsupported]
+        status = msg["status"]
+        payload = case status
+        when "ok" then msg["result"]
+        when "error" then msg["error"]
+        when "cancelled", "unsupported" then nil
         else
-          raise ArgumentError, "unknown effect_response status: #{msg["status"].inspect}"
+          raise ArgumentError, "unknown effect_response status: #{status.inspect}"
         end
-        {type: :effect_response, wire_id: msg["id"], result: result}
+        {type: :effect_response, wire_id: msg["id"], status: status, payload: payload}
       end
 
       # Decode a query response (find, tree).

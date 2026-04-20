@@ -172,18 +172,115 @@ module Plushie
       end
     end
 
-    # Effect result events for platform operations (file dialogs, clipboard, notifications).
-    # Triggered when an asynchronous platform effect completes.
-    # The tag matches the symbol passed when creating the effect command.
+    # Effect result events for platform operations (file dialogs,
+    # clipboard, notifications). Triggered when an asynchronous platform
+    # effect completes. The tag matches the symbol passed when creating
+    # the effect command. The `result` field is a typed per-kind
+    # Data class from Event::Effect::Result (FileOpened, ClipboardText,
+    # Cancelled, Timeout, Error, etc.) rather than a generic tuple.
     #
     # @!attribute [r] tag [Symbol] the tag from the originating effect command
-    # @!attribute [r] result [Object] operation result: [:ok, data], :cancelled, or [:error, reason]
+    # @!attribute [r] result [Event::Effect::Result] typed outcome
     #
     # @example File dialog result
-    #   in Event::Effect[tag: :import, result: [:ok, result]]
+    #   in Event::Effect[tag: :import, result: Event::Effect::Result::FileOpened[path:]]
     # @example Cancelled
-    #   in Event::Effect[tag: :import, result: :cancelled]
+    #   in Event::Effect[tag: :import, result: Event::Effect::Result::Cancelled[]]
     Effect = Data.define(:tag, :result)
+
+    # Typed per-kind outcomes nested under Event::Effect.
+    #
+    # Matches the Rust SDK's EffectResult enum. Host SDKs share the
+    # concept across language-idiomatic shapes; Ruby uses Data.define
+    # classes so apps can pattern-match on the class with Ruby's
+    # native `case/in` syntax.
+    module Effect::Result
+      FileOpened = Data.define(:path)
+      FilesOpened = Data.define(:paths)
+      FileSaved = Data.define(:path)
+      DirectorySelected = Data.define(:path)
+      DirectoriesSelected = Data.define(:paths)
+      ClipboardText = Data.define(:text)
+      ClipboardHtml = Data.define(:html, :alt_text) do
+        def initialize(html:, alt_text: nil)
+          super
+        end
+      end
+      ClipboardWritten = Data.define
+      ClipboardCleared = Data.define
+      NotificationShown = Data.define
+      Cancelled = Data.define
+      Timeout = Data.define
+      Error = Data.define(:message)
+      Unsupported = Data.define
+      RendererRestarted = Data.define
+
+      # Decode a renderer-supplied (kind, status, payload) triple
+      # into the appropriate Data.define instance.
+      #
+      # @param kind [String] effect kind, e.g. "file_open"
+      # @param status [String] wire status: "ok", "cancelled",
+      #   "error", "unsupported"
+      # @param payload [Object, nil] result payload on "ok" or the
+      #   error reason on "error"
+      # @return [Object] typed result instance
+      def self.decode(kind, status, payload)
+        case status
+        when "cancelled" then Cancelled.new
+        when "unsupported" then Unsupported.new
+        when "error" then Error.new(message: payload.to_s)
+        when "ok" then decode_ok(kind, payload.is_a?(Hash) ? payload : {})
+        else Error.new(message: "unknown effect status: #{status}")
+        end
+      end
+
+      def self.decode_ok(kind, payload)
+        case kind
+        when "file_open"
+          FileOpened.new(path: fetch_string(payload, :path))
+        when "file_open_multiple"
+          FilesOpened.new(paths: fetch_paths(payload, :paths))
+        when "file_save"
+          FileSaved.new(path: fetch_string(payload, :path))
+        when "directory_select"
+          DirectorySelected.new(path: fetch_string(payload, :path))
+        when "directory_select_multiple"
+          DirectoriesSelected.new(paths: fetch_paths(payload, :paths))
+        when "clipboard_read", "clipboard_read_primary"
+          ClipboardText.new(text: fetch_string(payload, :text))
+        when "clipboard_read_html"
+          ClipboardHtml.new(
+            html: fetch_string(payload, :html),
+            alt_text: fetch_optional_string(payload, :alt_text)
+          )
+        when "clipboard_write", "clipboard_write_html", "clipboard_write_primary"
+          ClipboardWritten.new
+        when "clipboard_clear"
+          ClipboardCleared.new
+        when "notification"
+          NotificationShown.new
+        else
+          Error.new(message: "unknown effect kind: #{kind}")
+        end
+      end
+
+      def self.fetch_string(hash, key)
+        v = hash[key] || hash[key.to_s]
+        v.is_a?(String) ? v : ""
+      end
+
+      def self.fetch_optional_string(hash, key)
+        v = hash[key] || hash[key.to_s]
+        v.is_a?(String) ? v : nil
+      end
+
+      def self.fetch_paths(hash, key)
+        v = hash[key] || hash[key.to_s]
+        v.is_a?(Array) ? v.select { _1.is_a?(String) } : []
+      end
+
+      private_class_method :decode_ok, :fetch_string, :fetch_optional_string, :fetch_paths
+    end
 
     # Renderer error for a command.
     #

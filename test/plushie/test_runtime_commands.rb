@@ -35,6 +35,7 @@ class TestRuntimeCommands < Minitest::Test
       @pending_effects = {}
       @effect_tags = {}
       @effect_ids = {}
+      @effect_kinds = {}
       @pending_timers = {}
       @running = true
       @logger = Logger.new(IO::NULL)

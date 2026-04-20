@@ -614,19 +614,22 @@ class TestProtocolDecode < Minitest::Test
     result = D.decode_effect_response(msg)
     assert_equal :effect_response, result[:type]
     assert_equal "ef_1", result[:wire_id]
-    assert_equal [:ok, {"path" => "/tmp/f.txt"}], result[:result]
+    assert_equal "ok", result[:status]
+    assert_equal({"path" => "/tmp/f.txt"}, result[:payload])
   end
 
   def test_decode_effect_response_cancelled
     msg = {"type" => "effect_response", "id" => "ef_2", "status" => "cancelled"}
     result = D.decode_effect_response(msg)
-    assert_equal :cancelled, result[:result]
+    assert_equal "cancelled", result[:status]
+    assert_nil result[:payload]
   end
 
   def test_decode_effect_response_error
     msg = {"type" => "effect_response", "id" => "ef_3", "status" => "error", "error" => "no permission"}
     result = D.decode_effect_response(msg)
-    assert_equal [:error, "no permission"], result[:result]
+    assert_equal "error", result[:status]
+    assert_equal "no permission", result[:payload]
   end
 
   def test_decode_query_response

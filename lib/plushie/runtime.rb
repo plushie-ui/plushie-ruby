@@ -55,6 +55,7 @@ module Plushie
       @pending_effects = {}    # wire_id -> timer_thread
       @effect_tags = {}        # tag -> wire_id
       @effect_ids = {}         # wire_id -> tag
+      @effect_kinds = {}       # wire_id -> kind string
       @pending_timers = {}     # event_key -> {thread:, nonce:}
       @subscriptions = {}      # sub_key -> {sub_type:, ...}
       @subscription_keys = []  # sorted keys for short-circuit
@@ -378,16 +379,19 @@ module Plushie
         return
       end
 
-      # Resolve effect responses: map wire_id -> tag and deliver as Event::Effect
+      # Resolve effect responses: map wire_id -> tag and decode the
+      # payload into a typed Event::Effect::Result.*.
       if event.is_a?(Hash) && event[:type] == :effect_response
         wire_id = event[:wire_id]
         timer = @pending_effects.delete(wire_id)
         timer&.kill
         tag = @effect_ids.delete(wire_id)
+        kind = @effect_kinds.delete(wire_id)
         @effect_tags.delete(tag) if tag
         return unless tag
 
-        event = Event::Effect.new(tag: tag, result: event[:result])
+        typed = Event::Effect::Result.decode(kind, event[:status], event[:payload])
+        event = Event::Effect.new(tag: tag, result: typed)
 
       end
 
@@ -584,10 +588,11 @@ module Plushie
       return unless timer
 
       tag = @effect_ids.delete(id)
+      @effect_kinds.delete(id)
       @effect_tags.delete(tag) if tag
       return unless tag
 
-      dispatch_event(Event::Effect.new(tag: tag, result: %i[error timeout]))
+      dispatch_event(Event::Effect.new(tag: tag, result: Event::Effect::Result::Timeout.new))
     end
 
     # -- Renderer exit -------------------------------------------------------
@@ -916,10 +921,11 @@ module Plushie
         timer = @pending_effects.delete(id)
         timer&.kill
         tag = @effect_ids.delete(id)
+        @effect_kinds.delete(id)
         @effect_tags.delete(tag) if tag
         next unless tag
 
-        event = Event::Effect.new(tag: tag, result: %i[error renderer_exited])
+        event = Event::Effect.new(tag: tag, result: Event::Effect::Result::RendererRestarted.new)
         saved_model = @model
         begin
           result = @app.update(@model, event)
@@ -996,6 +1002,7 @@ module Plushie
       @pending_effects.clear
       @effect_tags.clear
       @effect_ids.clear
+      @effect_kinds.clear
       @pending_timers.each_value { |entry| entry[:thread]&.kill }
       @pending_timers.clear
       @subscriptions.each_value { |entry| entry[:thread]&.kill if entry[:sub_type] == :timer }

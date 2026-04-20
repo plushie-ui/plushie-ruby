@@ -26,22 +26,28 @@ class DocsEffectsTest < Minitest::Test
   # -- Effect result pattern matching --
 
   def test_effect_result_ok_match
-    event = Plushie::Event::Effect.new(tag: :import, result: [:ok, {"path" => "/home/user/notes.txt"}])
+    event = Plushie::Event::Effect.new(
+      tag: :import,
+      result: Plushie::Event::Effect::Result::FileOpened.new(path: "/home/user/notes.txt")
+    )
     case event
-    in Plushie::Event::Effect[tag: :import, result: [:ok, data]]
-      assert_equal "/home/user/notes.txt", data["path"]
+    in Plushie::Event::Effect[tag: :import, result: Plushie::Event::Effect::Result::FileOpened[path:]]
+      assert_equal "/home/user/notes.txt", path
     else
-      flunk "expected ok result match"
+      flunk "expected FileOpened match"
     end
   end
 
   def test_effect_result_cancelled
-    event = Plushie::Event::Effect.new(tag: :import, result: :cancelled)
+    event = Plushie::Event::Effect.new(
+      tag: :import,
+      result: Plushie::Event::Effect::Result::Cancelled.new
+    )
     case event
-    in Plushie::Event::Effect[tag: :import, result: :cancelled]
+    in Plushie::Event::Effect[tag: :import, result: Plushie::Event::Effect::Result::Cancelled[]]
       pass
     else
-      flunk "expected cancelled match"
+      flunk "expected Cancelled match"
     end
   end
 
@@ -96,11 +102,11 @@ class DocsEffectsTest < Minitest::Test
     # Step 2: effect result arrives
     effect_event = Plushie::Event::Effect.new(
       tag: :import,
-      result: [:ok, {"path" => "/tmp/notes.txt"}]
+      result: Plushie::Event::Effect::Result::FileOpened.new(path: "/tmp/notes.txt")
     )
     case effect_event
-    in Plushie::Event::Effect[tag: :import, result: [:ok, data]]
-      model = model.merge(file_path: data["path"])
+    in Plushie::Event::Effect[tag: :import, result: Plushie::Event::Effect::Result::FileOpened[path:]]
+      model = model.merge(file_path: path)
     end
     assert_equal "/tmp/notes.txt", model[:file_path]
   end

@@ -157,9 +157,11 @@ module Plushie
           @effect_ids.delete(prev_id)
         end
 
-        # Track tag <-> wire ID mapping.
+        # Track tag <-> wire ID mapping plus the effect kind (needed
+        # by the response decoder to pick the right typed result).
         @effect_tags[tag] = id if tag
         @effect_ids[id] = tag
+        @effect_kinds[id] = kind
 
         @bridge.send_encoded(
           Protocol::Encode.encode_effect(id, kind, opts, @format)
