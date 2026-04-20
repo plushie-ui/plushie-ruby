@@ -135,19 +135,25 @@ module Plushie
     # Triggered by window manager actions or user interaction with window chrome.
     # Subscribe via Subscription.on_window_close, on_window_open, on_window_resize, etc.
     #
-    # @!attribute [r] type [Symbol] :opened, :close_requested, :resized, :moved, :focused, :unfocused, :file_dropped, :file_hovered
+    # @!attribute [r] type [Symbol] :opened, :close_requested, :closed,
+    #   :resized, :rescaled, :moved, :focused, :unfocused, :file_dropped,
+    #   :file_hovered, :files_hovered_left
     # @!attribute [r] window_id [String, nil] ID of the affected window
     # @!attribute [r] x [Float, nil] window x position (for :moved)
     # @!attribute [r] y [Float, nil] window y position (for :moved)
     # @!attribute [r] width [Float, nil] window width (for :resized, :opened)
     # @!attribute [r] height [Float, nil] window height (for :resized, :opened)
-    # @!attribute [r] scale_factor [Float, nil] display scale factor
+    # @!attribute [r] scale_factor [Float, nil] display scale factor (for :rescaled)
     # @!attribute [r] path [String, nil] file path (for :file_dropped, :file_hovered)
     #
     # @example Window close requested
     #   in Event::Window[type: :close_requested, window_id:]
     # @example Window resized
     #   in Event::Window[type: :resized, width:, height:]
+    # @example Display scale changed
+    #   in Event::Window[type: :rescaled, scale_factor:]
+    # @example File drop cancelled (cursor left the window while hovering)
+    #   in Event::Window[type: :files_hovered_left, window_id:]
     Window = Data.define(:type, :window_id, :x, :y, :width, :height,
       :scale_factor, :path) do
       def initialize(type:, window_id: nil, x: nil, y: nil,
