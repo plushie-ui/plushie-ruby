@@ -12,7 +12,8 @@ module Plushie
   # 2. Plushie.configuration.binary_path (explicit)
   # 3. Custom extension build in _build/plushie/custom/target/ (implicit)
   # 4. Downloaded binary in _build/plushie/bin/ (implicit)
-  # 5. System PATH (implicit)
+  # 5. Sibling plushie-rust checkout's target/{release,debug}/ (implicit)
+  # 6. System PATH (implicit)
   #
   module Binary
     module_function
@@ -72,8 +73,41 @@ module Plushie
       downloaded = downloaded_path
       return downloaded if downloaded
 
-      # 5. System PATH
+      # 5. Sibling plushie-rust checkout (convenient during local SDK development)
+      sibling = sibling_target_path
+      return sibling if sibling
+
+      # 6. System PATH
       which("plushie")
+    end
+
+    # Path to a plushie-renderer binary built in a sibling plushie-rust
+    # checkout. This is purely a developer-convenience fallback: it lets
+    # the Ruby SDK find the renderer when both repos live next to each
+    # other without requiring PLUSHIE_BINARY_PATH on every invocation.
+    # Checks release first, then debug.
+    #
+    # The lookup roots are, in order:
+    #   - $PLUSHIE_RUST_SOURCE_PATH (if set)
+    #   - ../plushie-rust (relative to Dir.pwd)
+    #
+    # @return [String, nil]
+    def sibling_target_path
+      roots = []
+      if (env_root = ENV["PLUSHIE_RUST_SOURCE_PATH"]) && !env_root.empty?
+        roots << env_root
+      end
+      roots << File.expand_path("../plushie-rust", Dir.pwd)
+
+      ext = Gem.win_platform? ? ".exe" : ""
+      roots.each do |root|
+        next unless File.directory?(root)
+        %w[release debug].each do |profile|
+          path = File.join(root, "target", profile, "plushie-renderer#{ext}")
+          return path if File.executable?(path)
+        end
+      end
+      nil
     end
 
     # Path to a custom extension build binary.
