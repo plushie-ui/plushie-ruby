@@ -119,7 +119,7 @@ module Plushie
       node = Node.new(
         id: "memo:#{site}",
         type: "__memo__",
-        meta: {__memo_deps__: deps, __memo_block__: block}
+        meta: {__memo_deps__: deps, __memo_fun__: block}
       )
 
       ctx = Context.current

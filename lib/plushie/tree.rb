@@ -691,7 +691,7 @@ module Plushie
     # on miss evaluates the block and caches the result.
     def self.normalize_memo(node, scope, registry, window_id, depth)
       deps = node.meta[:__memo_deps__]
-      block = node.meta[:__memo_block__]
+      block = node.meta[:__memo_fun__]
       cache_key = [node.id, scope, window_id, deps]
 
       prev_cache = UI::MemoCache.prev
