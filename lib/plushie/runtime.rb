@@ -5,6 +5,7 @@ require "securerandom"
 require_relative "runtime/commands"
 require_relative "runtime/subscriptions"
 require_relative "runtime/windows"
+require_relative "timer_scheduler"
 
 module Plushie
   # Core event loop for Plushie applications.
@@ -50,6 +51,7 @@ module Plushie
       @bridge = nil
       @dev_server = nil
       @running = false
+      @timer_scheduler = TimerScheduler.new
 
       @async_tasks = {}        # tag -> {thread:, nonce:}
       @pending_effects = {}    # wire_id -> timer_thread
@@ -1143,12 +1145,7 @@ module Plushie
         entry[:thread]&.join(0.5)
       end
       @pending_timers.clear
-      @subscriptions.each_value do |entry|
-        if entry[:sub_type] == :timer
-          entry[:thread]&.kill
-          entry[:thread]&.join(0.5)
-        end
-      end
+      @timer_scheduler.stop
       @subscriptions.clear
       # Flush pending stub acks so callers don't hang
       @pending_stub_acks.each_value { |q| q.push(:ok) }

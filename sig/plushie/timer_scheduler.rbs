@@ -1,0 +1,19 @@
+module Plushie
+  class TimerScheduler
+    def initialize: () -> void
+
+    def schedule: (tag: Symbol, interval_ms: Numeric, event_queue: Thread::Queue) -> void
+
+    def cancel: (Symbol) -> void
+
+    def stop: () -> void
+
+    private
+
+    def wake: () -> void
+
+    def drain_pipe: () -> void
+
+    def run_loop: () -> void
+  end
+end

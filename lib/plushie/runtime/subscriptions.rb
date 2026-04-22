@@ -91,7 +91,7 @@ module Plushie
 
         case entry[:sub_type]
         when :timer
-          entry[:thread]&.kill
+          @timer_scheduler.cancel(entry[:tag])
         when :renderer
           @bridge.send_encoded(
             Protocol::Encode.encode_unsubscribe(entry[:kind], @format, tag: entry[:wire_tag])
@@ -101,19 +101,12 @@ module Plushie
 
       # Start a timer subscription (runs locally, pushes to event queue).
       def start_timer_subscription(spec)
-        queue = @event_queue
         tag = spec.tag
         interval = spec.interval
 
-        thread = Thread.new do
-          loop do
-            sleep(interval / 1000.0)
-            queue.push([:timer_tick, tag])
-          end
-        end
-        thread.name = "plushie-timer-#{tag}"
+        @timer_scheduler.schedule(tag: tag, interval_ms: interval, event_queue: @event_queue)
 
-        {sub_type: :timer, thread: thread, tag: tag, interval: interval}
+        {sub_type: :timer, tag: tag, interval: interval}
       end
 
       # Start a renderer subscription (send subscribe message to bridge).
