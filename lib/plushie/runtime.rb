@@ -1130,14 +1130,7 @@ module Plushie
         entry[:thread]&.join(0.5)
       end
       @async_tasks.clear
-      @pending_effects.each_value do |timer|
-        timer.kill
-        timer.join(0.5) if timer.is_a?(Thread)
-      end
-      @pending_effects.clear
-      @effect_tags.clear
-      @effect_ids.clear
-      @effect_kinds.clear
+      flush_pending_effects_on_exit
       @pending_coalesce.clear
       @coalesce_order = []
       @pending_timers.each_value do |entry|
