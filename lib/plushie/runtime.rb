@@ -81,6 +81,7 @@ module Plushie
       @pending_await_async = {} # tag -> Queue (for sync await)
       @pending_interact = nil   # {id:, result_queue:} for current interact
       @tracked_windows = Set.new # active window IDs
+      @restarting = false
 
       @logger = Logger.new($stderr, level: :warn, progname: "plushie")
     end
@@ -324,14 +325,18 @@ module Plushie
         in [:interact_timeout, id]
           handle_interact_timeout(id)
         in [:register_effect_stub, kind, response, ack_queue]
-          if @pending_stub_acks.key?(kind)
+          if @restarting
+            ack_queue.push({error: "renderer is restarting"})
+          elsif @pending_stub_acks.key?(kind)
             ack_queue.push({error: "stub ack already pending for #{kind}"})
           else
             @bridge.send_register_effect_stub(kind, response)
             @pending_stub_acks[kind] = ack_queue
           end
         in [:unregister_effect_stub, kind, ack_queue]
-          if @pending_stub_acks.key?(kind)
+          if @restarting
+            ack_queue.push({error: "renderer is restarting"})
+          elsif @pending_stub_acks.key?(kind)
             ack_queue.push({error: "stub ack already pending for #{kind}"})
           else
             @bridge.send_unregister_effect_stub(kind)
@@ -646,7 +651,7 @@ module Plushie
         dispatch_event(Event::Async.new(tag: tag, result: result))
         notify_await_async(tag)
       else
-        # Stale result from an old nonce. Already replaced by a new task.
+        @logger.debug("plushie: stale async result for tag=#{tag} (nonce mismatch)")
         nil
       end
     end
@@ -708,6 +713,7 @@ module Plushie
       @canvas_widgets = {}
       @widget_statuses = {}
       @focused_widget_id = nil
+      @restarting = true
       # @type var recovery_error: Exception?
       recovery_error = nil
       begin
@@ -727,6 +733,7 @@ module Plushie
       end
 
       @previous_tree = nil
+      @restarting = false
       @running = false unless @daemon
     end
 
@@ -759,6 +766,7 @@ module Plushie
       # re-sends subscribe messages to the fresh renderer.
       reset_renderer_subscriptions
       sync_subscriptions
+      @restarting = false
     end
 
     # -- Status-based focus tracking -----------------------------------------
@@ -1115,18 +1123,32 @@ module Plushie
       @dev_server&.stop
       @bridge&.stop
       @pending_interact&.dig(:timeout_timer)&.kill
-      @async_tasks.each_value { |entry| entry[:thread]&.kill }
+      @async_tasks.each_value do |entry|
+        entry[:thread]&.kill
+        entry[:thread]&.join(0.5)
+      end
       @async_tasks.clear
-      @pending_effects.each_value(&:kill)
+      @pending_effects.each_value do |timer|
+        timer.kill
+        timer.join(0.5) if timer.is_a?(Thread)
+      end
       @pending_effects.clear
       @effect_tags.clear
       @effect_ids.clear
       @effect_kinds.clear
       @pending_coalesce.clear
       @coalesce_order = []
-      @pending_timers.each_value { |entry| entry[:thread]&.kill }
+      @pending_timers.each_value do |entry|
+        entry[:thread]&.kill
+        entry[:thread]&.join(0.5)
+      end
       @pending_timers.clear
-      @subscriptions.each_value { |entry| entry[:thread]&.kill if entry[:sub_type] == :timer }
+      @subscriptions.each_value do |entry|
+        if entry[:sub_type] == :timer
+          entry[:thread]&.kill
+          entry[:thread]&.join(0.5)
+        end
+      end
       @subscriptions.clear
       # Flush pending stub acks so callers don't hang
       @pending_stub_acks.each_value { |q| q.push(:ok) }

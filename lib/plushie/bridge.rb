@@ -58,6 +58,8 @@ module Plushie
       @settings = {}
       @heartbeat_interval = heartbeat_interval
       @heartbeat_timer = nil
+      @forwarder_thread = nil
+      @conn_queue = nil
       @logger = Logger.new($stderr, level: :warn, progname: "plushie")
     end
 
@@ -98,8 +100,12 @@ module Plushie
     # Stop the connection and clean up.
     def stop
       cancel_heartbeat_timer
+      @forwarder_thread&.kill
+      @forwarder_thread = nil
+      @conn_queue&.close
       @connection&.close
       @connection = nil
+      @retry_count = 0
     end
 
     private
@@ -144,7 +150,7 @@ module Plushie
     def start_forwarder(conn_queue)
       @conn_queue = conn_queue
       reset_heartbeat_timer
-      Thread.new do
+      @forwarder_thread = Thread.new do
         while (msg = conn_queue.pop)
           begin
             case msg

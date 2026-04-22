@@ -68,11 +68,11 @@ module Plushie
       # @param session_id [String]
       def unregister(session_id)
         send_message({type: "reset", id: "reset_#{session_id}"}, session_id)
-        # Wait for reset_response (with timeout)
         begin
           wait_for_response(session_id, :reset_response, timeout: 5)
+          wait_for_response(session_id, :session_closed, timeout: 5)
         rescue Timeout::Error
-          # Timeout on reset is not fatal: the session is still removed
+          # Timeout on reset or session_closed is not fatal
         end
         @mutex.synchronize { @sessions.delete(session_id) }
       end

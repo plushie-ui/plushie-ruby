@@ -281,7 +281,7 @@ module Plushie
     rescue IOError, Errno::EPIPE
       # Pipe closed: expected on shutdown
     ensure
-      dispatch_message({type: :connection_closed}) unless @closed
+      dispatch_message({type: :connection_closed})
     end
 
     def read_msgpack_loop
