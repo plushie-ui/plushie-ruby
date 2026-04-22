@@ -46,10 +46,15 @@ class TestRuntimeSubscriptions < Minitest::Test
       @subscriptions = {}
       @subscription_keys = []
       @logger = Logger.new(IO::NULL)
+      @timer_scheduler = Plushie::TimerScheduler.new
     end
 
     # Expose private methods for testing.
     public :sync_subscriptions, :start_subscription, :stop_subscription
+
+    def stop_timer(tag)
+      @timer_scheduler.cancel(tag)
+    end
   end
 
   def setup
@@ -59,9 +64,8 @@ class TestRuntimeSubscriptions < Minitest::Test
   end
 
   def teardown
-    # Kill any timer threads spawned during tests
     @runner.subscriptions.each_value do |entry|
-      entry[:thread]&.kill if entry[:sub_type] == :timer
+      @runner.stop_timer(entry[:tag]) if entry[:sub_type] == :timer
     end
   end
 
@@ -98,10 +102,9 @@ class TestRuntimeSubscriptions < Minitest::Test
 
     entry = @runner.subscriptions.values.first
     assert_equal :timer, entry[:sub_type]
-    assert entry[:thread].is_a?(Thread)
-    assert entry[:thread].alive?
+    assert_equal :tick, entry[:tag]
 
-    entry[:thread].kill
+    @runner.stop_timer(entry[:tag])
   end
 
   # -- Short-circuit when key list unchanged --------------------------------

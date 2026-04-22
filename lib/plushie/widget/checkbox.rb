@@ -4,7 +4,7 @@ module Plushie
   module Widget
     Checkbox = Plushie::Widget.define(:checkbox) do
       children :none
-      positional :label
+      positional :label, default: nil
       positional :is_toggled, default: false
       prop :label, :is_toggled, :spacing, :width, :size, :text_size, :font,
         :line_height, :shaping, :wrapping, :style, :icon, :disabled,

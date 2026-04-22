@@ -31,6 +31,8 @@ module Plushie
     # @param meta [Hash] runtime-only metadata, never sent to the renderer (will be frozen)
     # @return [Node]
     def initialize(id:, type:, props: {}, children: [], meta: {})
+      raise ArgumentError, "Node id cannot be nil" if id.nil?
+      raise ArgumentError, "Node type cannot be nil" if type.nil?
       super(id: id.to_s, type: type.to_s, props: props.freeze, children: children.freeze, meta: meta.freeze)
     end
 

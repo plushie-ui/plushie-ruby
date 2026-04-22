@@ -8,7 +8,7 @@ module Plushie
     #   Button.new("save", "Save").set_style(:primary).build
     Button = Plushie::Widget.define(:button) do
       children :none
-      positional :label
+      positional :label, default: nil
       prop :label, :width, :height, :padding,
         :clip, :style, :disabled
       prop :a11y, :event_rate

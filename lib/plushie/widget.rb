@@ -49,6 +49,11 @@ module Plushie
       alignment style font atom map any
     ].freeze
 
+    # Private sentinel for "no default provided, this arg is required."
+    # Using a frozen Object prevents collision with any user-supplied value.
+    # @api private
+    REQUIRED = Object.new.freeze
+
     # Property names reserved by the framework that the DSL rejects when
     # declared via `prop`. `:id`, `:type`, and `:children` are structural
     # fields, not props. `:a11y` and `:event_rate` are auto-wired on
@@ -184,9 +189,9 @@ module Plushie
       # The name must also be a declared prop.
       #
       # @param name [Symbol] argument name
-      # @param default [Object] default value (:_required_ means mandatory)
+      # @param default [Object] default value (omit for mandatory)
       # @return [void]
-      def positional(name, default: :_required_)
+      def positional(name, default: REQUIRED)
         @_widget_positionals << {name: name.to_sym, default: default}
       end
 
@@ -473,13 +478,30 @@ module Plushie
         define_method(:initialize) do |id, *args, **opts|
           @id = id.to_s
 
-          # Merge positional args into opts (keyword args take precedence).
+          n_required = positionals.count { _1[:default].equal?(REQUIRED) }
+
+          if args.length > positionals.size
+            raise ArgumentError,
+              "#{self.class}: " \
+              "expected at most #{positionals.size} positional arg(s), got #{args.length}"
+          end
+
+          if args.length < n_required
+            missing = positionals
+              .select { _1[:default].equal?(REQUIRED) }
+              .drop(args.length)
+              .map { _1[:name] }
+            raise ArgumentError,
+              "#{self.class}: " \
+              "missing required positional arg(s): #{missing.join(", ")}"
+          end
+
           positionals.each_with_index do |spec, i|
             next if opts.key?(spec[:name])
 
             if i < args.length
               opts[spec[:name]] = args[i]
-            elsif spec[:default] != :_required_
+            elsif !spec[:default].equal?(REQUIRED)
               opts[spec[:name]] = spec[:default]
             end
           end

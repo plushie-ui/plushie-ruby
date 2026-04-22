@@ -56,7 +56,7 @@ module Plushie
 
     def drain_pipe
       @pipe_r.read_nonblock(4096)
-    rescue IOError
+    rescue IOError, IO::EAGAINWaitReadable
       nil
     end
 

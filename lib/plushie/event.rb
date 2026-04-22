@@ -31,6 +31,11 @@ module Plushie
     # the scalar. For multi-field events (pointer coordinates, pane
     # operations, key data) it holds a symbol-keyed Hash.
     #
+    # No-payload events (click, open, close) always have +value: nil+.
+    # Pattern-match without binding +value+ for these:
+    #
+    #   in Event::Widget[type: :click, id: "save"]
+    #
     # The +scope+ array lists ancestor container IDs from immediate
     # parent to outermost. The window_id is appended as the last
     # element (outermost ancestor). Use Event.target to reconstruct
