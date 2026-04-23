@@ -29,6 +29,10 @@ end
 class TestExtensionBuild < Minitest::Test
   Build = Plushie::Widget::NativeBuild
 
+  def build_binary_name(name)
+    Gem.win_platform? ? "#{name}.exe" : name
+  end
+
   # -- Crate path resolution --
 
   def test_resolve_crate_paths_returns_absolute_paths
@@ -284,12 +288,76 @@ class TestExtensionBuild < Minitest::Test
   end
 
   def test_locate_built_binary_respects_cargo_target_dir
+    original = ENV["CARGO_TARGET_DIR"]
     ENV["CARGO_TARGET_DIR"] = "/custom/target"
     begin
       path = Build.locate_built_binary("/scratch", "plushie-custom", true)
       assert_includes path, "/custom/target/plushie-renderer/target/release/"
     ensure
-      ENV.delete("CARGO_TARGET_DIR")
+      original ? ENV["CARGO_TARGET_DIR"] = original : ENV.delete("CARGO_TARGET_DIR")
+    end
+  end
+
+  def test_locate_built_binary_prefers_cargo_plushie_layout
+    Dir.mktmpdir do |scratch|
+      binary = build_binary_name("plushie-custom")
+      preferred = File.join(scratch, "target", "plushie-renderer", "target", "release", binary)
+      fallback = File.join(scratch, "target", "other-layout", "release", binary)
+      FileUtils.mkdir_p(File.dirname(preferred))
+      FileUtils.mkdir_p(File.dirname(fallback))
+      File.write(preferred, "")
+      File.write(fallback, "")
+
+      assert_equal preferred, Build.locate_built_binary(scratch, "plushie-custom", true)
+    end
+  end
+
+  def test_locate_built_binary_falls_back_to_discovered_profile_binary
+    Dir.mktmpdir do |scratch|
+      fallback = File.join(scratch, "target", "cargo-plushie-new-layout", "release", build_binary_name("plushie-custom"))
+      FileUtils.mkdir_p(File.dirname(fallback))
+      File.write(fallback, "")
+
+      assert_equal fallback, Build.locate_built_binary(scratch, "plushie-custom", true)
+    end
+  end
+
+  def test_locate_built_binary_searches_cargo_target_dir
+    Dir.mktmpdir do |scratch|
+      Dir.mktmpdir do |target_dir|
+        original = ENV["CARGO_TARGET_DIR"]
+        ENV["CARGO_TARGET_DIR"] = target_dir
+        fallback = File.join(target_dir, "generated", "debug", build_binary_name("plushie-custom"))
+        FileUtils.mkdir_p(File.dirname(fallback))
+        File.write(fallback, "")
+
+        assert_equal fallback, Build.locate_built_binary(scratch, "plushie-custom", false)
+      ensure
+        original ? ENV["CARGO_TARGET_DIR"] = original : ENV.delete("CARGO_TARGET_DIR")
+      end
+    end
+  end
+
+  def test_locate_built_binary_raises_on_ambiguous_fallbacks
+    Dir.mktmpdir do |scratch|
+      first = File.join(scratch, "target", "layout-a", "release", build_binary_name("plushie-custom"))
+      second = File.join(scratch, "target", "layout-b", "release", build_binary_name("plushie-custom"))
+      [first, second].each do |path|
+        FileUtils.mkdir_p(File.dirname(path))
+        File.write(path, "")
+      end
+
+      error = assert_raises(Plushie::Error) do
+        Build.locate_built_binary(scratch, "plushie-custom", true)
+      end
+      assert_includes error.message, "multiple built binaries named"
+    end
+  end
+
+  def test_locate_built_binary_returns_preferred_path_when_not_found
+    Dir.mktmpdir do |scratch|
+      expected = File.join(scratch, "target", "plushie-renderer", "target", "debug", build_binary_name("plushie-custom"))
+      assert_equal expected, Build.locate_built_binary(scratch, "plushie-custom", false)
     end
   end
 end

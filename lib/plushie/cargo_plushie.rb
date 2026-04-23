@@ -84,7 +84,10 @@ module Plushie
     # @param output [String]
     # @return [String, nil]
     def extract_version(output)
-      output.to_s.strip.split(/\s+/).last
+      output.to_s.split(/\s+/).find do |token|
+        token.match?(/\A\d+\.\d+\.\d+(?:-[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?\z/) ||
+          token.match?(/\A\d+\.\d+\.\d+(?:\+[0-9A-Za-z]+(?:[.-][0-9A-Za-z]+)*)?\z/)
+      end
     end
 
     # @return [String]

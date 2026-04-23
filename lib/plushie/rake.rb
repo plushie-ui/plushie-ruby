@@ -29,8 +29,14 @@ namespace :plushie do
 
     if artifacts.include?(:bin)
       bin_file = ENV["PLUSHIE_BIN_FILE"] || config.bin_file
-      if !force && !bin_file && Plushie::Binary.downloaded_path
-        puts "Binary already exists at #{Plushie::Binary.downloaded_path}. Use force to re-download."
+      existing = if bin_file
+        File.exist?(bin_file) ? bin_file : nil
+      else
+        Plushie::Binary.downloaded_path
+      end
+
+      if !force && existing
+        puts "Binary already exists at #{existing}. Use force to re-download."
       else
         dest = Plushie::Binary.download!(dest: bin_file)
         puts "Downloaded plushie binary to #{dest}"

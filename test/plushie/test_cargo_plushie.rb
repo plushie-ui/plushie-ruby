@@ -97,13 +97,22 @@ class TestCargoPlushie < Minitest::Test
 
   # extract_version handles the canonical single-line format and
   # whitespace-padded variants without pulling in a parser.
-  def test_extract_version_pulls_trailing_token
+  def test_extract_version_pulls_version
     assert_equal "0.6.1", Resolver.extract_version("cargo-plushie 0.6.1\n")
     assert_equal "1.2.3", Resolver.extract_version("  cargo-plushie 1.2.3  ")
+    assert_equal "0.6.1", Resolver.extract_version("cargo-plushie 0.6.1 (x86_64)")
+    assert_equal "1.2.3-beta.1+build.5", Resolver.extract_version("cargo-plushie 1.2.3-beta.1+build.5")
   end
 
   def test_extract_version_returns_nil_for_empty_output
     assert_nil Resolver.extract_version("")
+  end
+
+  def test_extract_version_returns_nil_for_garbage_output
+    assert_nil Resolver.extract_version("cargo-plushie nightly build")
+    assert_nil Resolver.extract_version("cargo-plushie 1.2.3-")
+    assert_nil Resolver.extract_version("cargo-plushie 1.2.3..")
+    assert_nil Resolver.extract_version("cargo-plushie 1.2.3-pre.")
   end
 
   # Stub Open3.capture3 on the CargoPlushie module for the duration of

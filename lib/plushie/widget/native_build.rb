@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "fileutils"
+require "find"
 require "pathname"
 
 module Plushie
@@ -261,7 +262,37 @@ module Plushie
         target_root = ENV["CARGO_TARGET_DIR"] || File.join(scratch, "target")
         profile = release ? "release" : "debug"
         ext = Gem.win_platform? ? ".exe" : ""
-        File.join(target_root, "plushie-renderer", "target", profile, "#{bin_name}#{ext}")
+        preferred = File.join(target_root, "plushie-renderer", "target", profile, "#{bin_name}#{ext}")
+        return preferred if File.exist?(preferred)
+
+        discovered = find_built_binary(target_root, bin_name, profile, ext)
+        discovered || preferred
+      end
+
+      # Search only within cargo's target root for a profile-matching
+      # binary if cargo-plushie's generated workspace layout changes.
+      #
+      # @param target_root [String]
+      # @param bin_name [String]
+      # @param profile [String]
+      # @param ext [String]
+      # @return [String, nil]
+      def find_built_binary(target_root, bin_name, profile, ext)
+        return nil unless File.directory?(target_root)
+
+        expected_name = "#{bin_name}#{ext}"
+        matches = []
+        Find.find(target_root) do |path|
+          next unless File.file?(path)
+          next unless File.basename(path) == expected_name
+          next unless File.basename(File.dirname(path)) == profile
+
+          matches << path
+        end
+        return nil if matches.empty?
+        return matches.first if matches.length == 1
+
+        raise Error, "multiple built binaries named #{expected_name.inspect} found under #{target_root.inspect}"
       end
 
       # Install the built binary under +_build/plushie/bin/+ using the
