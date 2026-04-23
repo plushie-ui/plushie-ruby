@@ -544,48 +544,65 @@ module Plushie
 
     # -- Rendering -----------------------------------------------------------
 
-    def render_and_snapshot
+    def render_and_snapshot(window_ops_order: :before_snapshot)
+      committed = false
+      window_ops_accepted = false
       Thread.current[:_plushie_canvas_counter] = 0
-      @previous_tree = normalize_view_tree(@app.view(@model))
-      @canvas_widgets = CanvasWidget.derive_registry(@previous_tree) if @previous_tree
+      tree = normalize_view_tree(@app.view(@model))
+      canvas_widgets = CanvasWidget.derive_registry(tree) if tree
 
-      tree = @previous_tree or raise Plushie::Error, "missing normalized view tree"
-      @tracked_windows = Windows.sync_windows(self, tree, nil, @tracked_windows)
+      tree or raise Plushie::Error, "missing normalized view tree"
+      _new_windows, window_ops = Windows.plan_sync(self, tree, nil, @tracked_windows)
+
+      if window_ops_order == :before_snapshot
+        @tracked_windows, window_ops_accepted = Windows.apply_ops(self, window_ops, @tracked_windows)
+      end
 
       wire = Tree.node_to_wire(tree)
       encoded = Protocol::Encode.encode_snapshot(wire, @format)
       bridge = @bridge or raise Plushie::Error, "bridge not started"
       bridge.send_encoded(encoded)
+      @previous_tree = tree
+      committed = true
+      @canvas_widgets = canvas_widgets if tree
+
+      if window_ops_order == :defer_window_ops
+        @deferred_interact_window_ops = window_ops
+      end
+
       @consecutive_view_errors = 0
     rescue => e
       handle_view_error(e)
-      resend_last_snapshot
+      resend_last_snapshot unless committed || window_ops_accepted
     end
 
     def render_and_patch
       Thread.current[:_plushie_canvas_counter] = 0
       new_tree = normalize_view_tree(@app.view(@model))
-      @canvas_widgets = CanvasWidget.derive_registry(new_tree) if new_tree
+      canvas_widgets = CanvasWidget.derive_registry(new_tree) if new_tree
 
       if @previous_tree.nil?
-        @previous_tree = new_tree
-        @tracked_windows = Windows.sync_windows(self, new_tree, nil, @tracked_windows)
+        _new_windows, window_ops = Windows.plan_sync(self, new_tree, nil, @tracked_windows)
 
+        @tracked_windows, = Windows.apply_ops(self, window_ops, @tracked_windows)
         wire = Tree.node_to_wire(new_tree)
         encoded = Protocol::Encode.encode_snapshot(wire, @format)
         bridge = @bridge or raise Plushie::Error, "bridge not started"
         bridge.send_encoded(encoded)
       else
-        @tracked_windows = Windows.sync_windows(self, new_tree, @previous_tree, @tracked_windows)
+        _new_windows, window_ops = Windows.plan_sync(self, new_tree, @previous_tree, @tracked_windows)
 
         ops = Tree.diff(@previous_tree, new_tree)
-        @previous_tree = new_tree
 
+        @tracked_windows, = Windows.apply_ops(self, window_ops, @tracked_windows)
         unless ops.empty?
           bridge = @bridge or raise Plushie::Error, "bridge not started"
           bridge.send_encoded(Protocol::Encode.encode_patch(ops, @format))
         end
       end
+
+      @previous_tree = new_tree
+      @canvas_widgets = canvas_widgets if new_tree
       @consecutive_view_errors = 0
     rescue => e
       handle_view_error(e)
@@ -735,7 +752,6 @@ module Plushie
         ))
       end
 
-      @previous_tree = nil
       @restarting = false
       @running = false unless @daemon
     end
@@ -752,6 +768,7 @@ module Plushie
       @canvas_widgets = {}
       @widget_statuses = {}
       @focused_widget_id = nil
+      @memo_cache = {}
       # Keep @previous_tree intact. render_and_snapshot overwrites it on
       # success. If view fails, resend_last_snapshot uses it as a fallback
       # so the new renderer has something to display.
@@ -957,14 +974,18 @@ module Plushie
       # Matches Elixir's apply_event which defers view/render.
       events.each { |ev| apply_event(ev) }
       # Render once and send a single snapshot (headless protocol).
-      render_and_snapshot
-      sync_subscriptions
+      render_and_snapshot(window_ops_order: :defer_window_ops)
     end
 
     def handle_interact_response(response)
       flush_coalescables
       events = extract_interact_events(response)
-      events.each { |ev| dispatch_event(ev) }
+      if events.empty?
+        apply_deferred_interact_side_effects
+      else
+        @deferred_interact_window_ops = nil
+        events.each { |ev| dispatch_event(ev) }
+      end
       pending = @pending_interact
       @pending_interact = nil
       return unless pending
@@ -974,6 +995,15 @@ module Plushie
       result[:view_error] = true if @consecutive_view_errors > 0
       pending[:timeout_timer]&.kill
       pending[:result_queue]&.push(result)
+    end
+
+    def apply_deferred_interact_side_effects
+      ops = @deferred_interact_window_ops
+      @deferred_interact_window_ops = nil
+      @tracked_windows, = Windows.apply_ops(self, ops, @tracked_windows) if ops
+      sync_subscriptions
+    rescue => e
+      handle_view_error(e)
     end
 
     def handle_interact_timeout(id)

@@ -89,11 +89,12 @@ module Plushie
     def handle_interact_step: (untyped response) -> void
     def handle_interact_response: (untyped response) -> void
     def handle_interact_request: (String action, untyped selector, Hash[Symbol, untyped] payload, Thread::Queue[untyped] result_queue) -> void
+    def apply_deferred_interact_side_effects: () -> void
     def apply_event: (untyped event) -> void
     def extract_interact_events: (untyped response) -> Array[untyped]
 
     # Rendering
-    def render_and_snapshot: () -> void
+    def render_and_snapshot: (?window_ops_order: :before_snapshot | :defer_window_ops) -> void
     def render_and_patch: () -> void
     def normalize_view_tree: ((Node | Array[Node] | nil) view_tree) -> Node
 

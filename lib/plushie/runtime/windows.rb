@@ -38,36 +38,79 @@ module Plushie
       # @param tracked_windows [Set<String>] currently tracked window IDs
       # @return [Set<String>] the new set of tracked window IDs
       def self.sync_windows(runtime, new_tree, previous_tree, tracked_windows)
+        _new_windows, ops = plan_sync(runtime, new_tree, previous_tree, tracked_windows)
+        next_tracked_windows, _accepted = apply_ops(runtime, ops, tracked_windows)
+        next_tracked_windows
+      end
+
+      # Plan window synchronization without sending anything to the renderer.
+      #
+      # @param runtime [Runtime] the runtime instance
+      # @param new_tree [Node, nil] the newly rendered tree
+      # @param previous_tree [Node, nil] the previous tree (for prop diffing)
+      # @param tracked_windows [Set<String>] currently tracked window IDs
+      # @return [Array(Set<String>, Array<Hash>)] detected windows and ordered ops
+      def self.plan_sync(runtime, new_tree, previous_tree, tracked_windows)
         new_windows = detect_windows(new_tree)
         opened = new_windows - tracked_windows
         closed = tracked_windows - new_windows
         surviving = tracked_windows & new_windows
+        ops = []
 
         opened.each do |window_id|
-          base_settings = begin
-            runtime.app.window_config(runtime.model)
-          rescue => e
-            runtime.logger.warn("plushie: window_config error: #{e.class}: #{e.message}")
-            {}
-          end
-
           per_window_props = extract_window_props(new_tree, window_id)
-          settings = base_settings.merge(per_window_props)
-
-          runtime.bridge_send_window_op("open", window_id, settings)
+          ops << {op: "open", window_id:, settings: per_window_props}
         end
 
         closed.each do |window_id|
-          runtime.bridge_send_window_op("close", window_id)
+          ops << {op: "close", window_id:, settings: {}}
         end
 
         surviving.each do |window_id|
           old_props = extract_window_props(previous_tree, window_id)
           new_props = extract_window_props(new_tree, window_id)
-          runtime.bridge_send_window_op("update", window_id, new_props) if old_props != new_props
+          ops << {op: "update", window_id:, settings: new_props} if old_props != new_props
         end
 
-        new_windows
+        [new_windows, ops]
+      end
+
+      # Apply planned window operations, updating tracked windows only
+      # after each operation is accepted by the bridge.
+      #
+      # @param runtime [Runtime] the runtime instance
+      # @param ops [Array<Hash>] planned operations from plan_sync
+      # @param tracked_windows [Set<String>] currently tracked window IDs
+      # @return [Array(Set<String>, bool)] updated tracked window IDs and
+      # whether any operation was accepted by the bridge
+      def self.apply_ops(runtime, ops, tracked_windows)
+        accepted = false
+        ops.each do |op|
+          op_name = op.fetch(:op)
+          window_id = op.fetch(:window_id)
+          settings = op.fetch(:settings)
+          if op_name == "open"
+            base_settings = begin
+              runtime.app.window_config(runtime.model)
+            rescue => e
+              runtime.logger.warn("plushie: window_config error: #{e.class}: #{e.message}")
+              {}
+            end
+            settings = base_settings.merge(settings)
+          end
+
+          runtime.bridge_send_window_op(op_name, window_id, settings)
+          accepted = true
+
+          case op_name
+          when "open"
+            tracked_windows.add(window_id)
+          when "close"
+            tracked_windows.delete(window_id)
+          end
+        end
+
+        [tracked_windows, accepted]
       end
 
       # Extract window-related props from a window node in the tree.

@@ -10,6 +10,17 @@ module Plushie
         Node? previous_tree,
         Set[String] tracked_windows
       ) -> Set[String]
+      def self.plan_sync: (
+        Runtime runtime,
+        Node? new_tree,
+        Node? previous_tree,
+        Set[String] tracked_windows
+      ) -> [Set[String], Array[Hash[Symbol, untyped]]]
+      def self.apply_ops: (
+        Runtime runtime,
+        Array[Hash[Symbol, untyped]] ops,
+        Set[String] tracked_windows
+      ) -> [Set[String], bool]
       def self.extract_window_props: (Node? tree, String window_id) -> Hash[Symbol, untyped]
       def self.collect_window_ids: (Node node, Array[String] ids) -> void
       def self.find_window_node: (Node node, String window_id) -> Node?
