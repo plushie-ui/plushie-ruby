@@ -224,6 +224,22 @@ class TestParityFeatures < Minitest::Test
     prop :label, :width, :style
   end
 
+  FakeColumn = Plushie::Widget.define(:column) do
+    children :many
+    prop :spacing
+  end
+
+  PlainButton = Class.new do
+    def initialize(id, label = nil, **)
+      @id = id
+      @label = label
+    end
+
+    def build
+      Plushie::Node.new(id: @id, type: "button", props: {label: @label})
+    end
+  end
+
   def test_widget_set_overrides_method
     my_ui = Plushie::WidgetSet.create(button: FakeButton)
     obj = Object.new
@@ -238,6 +254,68 @@ class TestParityFeatures < Minitest::Test
     assert_raises(ArgumentError) do
       Plushie::WidgetSet.create(nonexistent_widget: FakeButton)
     end
+  end
+
+  def test_widget_set_pushable_override_collects_block_children
+    my_ui = Plushie::WidgetSet.create(column: FakeColumn)
+    obj = Object.new
+    obj.extend(my_ui)
+
+    node = obj.send(:column, "panel") do
+      obj.send(:text, "label", "Child")
+    end
+
+    assert_equal "column", node.type
+    assert_equal ["label"], node.children.map(&:id)
+  end
+
+  def test_widget_set_pushable_override_does_not_duplicate_nested_children
+    my_ui = Plushie::WidgetSet.create(column: FakeColumn, button: FakeButton)
+    obj = Object.new
+    obj.extend(my_ui)
+
+    node = obj.send(:column, "outer") do
+      obj.send(:button, "save", "Save")
+      obj.send(:column, "inner") do
+        obj.send(:text, "label", "Child")
+      end
+    end
+
+    assert_equal ["save", "inner"], node.children.map(&:id)
+    assert_equal ["label"], node.children.last.children.map(&:id)
+  end
+
+  def test_widget_set_appends_plain_replacement_builders_to_parent_context
+    my_ui = Plushie::WidgetSet.create(button: PlainButton)
+    obj = Object.new
+    obj.extend(my_ui)
+
+    node = obj.send(:column, "outer") do
+      obj.send(:button, "save", "Save")
+    end
+
+    assert_equal ["save"], node.children.map(&:id)
+    assert_equal "Save", node.children.first.props[:label]
+  end
+
+  def test_widget_set_non_pushable_override_rejects_block_and_cleans_context
+    my_ui = Plushie::WidgetSet.create(button: FakeButton)
+    obj = Object.new
+    obj.extend(my_ui)
+
+    error = assert_raises(ArgumentError) do
+      obj.send(:button, "save", "Save") do
+        obj.send(:text, "ignored", "Ignored")
+      end
+    end
+
+    assert_equal "button override TestParityFeatures::FakeButton does not accept children", error.message
+    assert_nil Plushie::UI::Context.current
+
+    node = obj.send(:column, "after") do
+      obj.send(:text, "good", "works")
+    end
+    assert_equal ["good"], node.children.map(&:id)
   end
 
   # ======================================================================

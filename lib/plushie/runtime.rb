@@ -70,7 +70,7 @@ module Plushie
       @pending_timers = {}     # event_key -> {thread:, nonce:}
       @subscriptions = {}      # sub_key -> {sub_type:, ...}
       @subscription_keys = []  # sorted keys for short-circuit
-      @canvas_widgets = {}     # "#{window_id}\0#{scoped_id}" -> CanvasWidget::RegistryEntry
+      @canvas_widgets = {}     # scoped_id -> CanvasWidget::RegistryEntry
       @consecutive_errors = 0
       @consecutive_view_errors = 0
       @widget_statuses = {}    # id -> status string
