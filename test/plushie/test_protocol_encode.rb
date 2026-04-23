@@ -61,9 +61,16 @@ class TestProtocolEncode < Minitest::Test
   end
 
   def test_encode_unsubscribe
-    result = JSON.parse(E.encode_unsubscribe(:on_key_press, :json))
+    result = JSON.parse(E.encode_unsubscribe(:on_key_press, format: :json))
     assert_equal "unsubscribe", result["type"]
     assert_equal "on_key_press", result["kind"]
+  end
+
+  def test_encode_unsubscribe_with_tag
+    result = JSON.parse(E.encode_unsubscribe(:on_key_press, tag: :keys, format: :json))
+    assert_equal "unsubscribe", result["type"]
+    assert_equal "on_key_press", result["kind"]
+    assert_equal "keys", result["tag"]
   end
 
   def test_encode_widget_op
@@ -172,7 +179,7 @@ class TestProtocolEncode < Minitest::Test
       E.encode_snapshot({}, :json),
       E.encode_patch([], :json),
       E.encode_subscribe(:on_key_press, :k, :json),
-      E.encode_unsubscribe(:on_key_press, :json),
+      E.encode_unsubscribe(:on_key_press, format: :json),
       E.encode_widget_op(:focus, {}, :json),
       E.encode_window_op(:close, "w", {}, :json),
       E.encode_effect("e1", "clipboard_read", {}, :json),

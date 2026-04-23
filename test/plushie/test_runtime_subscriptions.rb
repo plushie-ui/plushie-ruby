@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "json"
 
 class TestRuntimeSubscriptions < Minitest::Test
   Sub = Plushie::Subscription
@@ -91,6 +92,10 @@ class TestRuntimeSubscriptions < Minitest::Test
 
     # Should have sent an unsubscribe message
     assert_equal 1, @bridge.messages.length
+    decoded = JSON.parse(@bridge.messages.first)
+    assert_equal "unsubscribe", decoded["type"]
+    assert_equal "on_key_press", decoded["kind"]
+    assert_equal "on_key_press", decoded["tag"]
     assert_empty @runner.subscriptions
   end
 

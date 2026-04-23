@@ -94,7 +94,11 @@ module Plushie
           @timer_scheduler.cancel(entry[:tag])
         when :renderer
           @bridge.send_encoded(
-            Protocol::Encode.encode_unsubscribe(entry[:kind], @format, tag: entry[:wire_tag])
+            Protocol::Encode.encode_unsubscribe(
+              entry[:kind],
+              tag: entry[:wire_tag],
+              format: @format
+            )
           )
         end
       end

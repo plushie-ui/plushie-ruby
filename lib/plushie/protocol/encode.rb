@@ -97,10 +97,10 @@ module Plushie
       # Unsubscribe from an event category.
       #
       # @param kind [String, Symbol] event category
-      # @param format [:msgpack, :json]
       # @param tag [String, Symbol, nil] specific subscription tag for targeted removal
+      # @param format [:msgpack, :json]
       # @return [String]
-      def encode_unsubscribe(kind, format = :msgpack, tag: nil)
+      def encode_unsubscribe(kind, tag: nil, format: :msgpack)
         msg = {type: "unsubscribe", session: "", kind: kind.to_s}
         msg[:tag] = tag.to_s if tag
         encode(msg, format)
