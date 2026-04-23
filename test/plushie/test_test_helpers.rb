@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "plushie/test/helpers"
 
 class TestTestHelpers < Minitest::Test
   # We test Session's internal helper methods (build_selector,
@@ -10,6 +11,16 @@ class TestTestHelpers < Minitest::Test
   # Thin wrapper that includes just the methods we want to test,
   # extracted from Session via send (they're private there).
   class SessionStub
+    attr_reader :interactions
+
+    def initialize
+      @interactions = []
+    end
+
+    def interact(action, selector, **payload)
+      @interactions << [action, selector, payload]
+    end
+
     def build_selector(selector)
       case selector
       when String
@@ -213,6 +224,39 @@ class TestTestHelpers < Minitest::Test
     assert_includes methods, :register_effect_stub
     assert_includes methods, :unregister_effect_stub
     assert_includes methods, :assert_no_diagnostics
+  end
+
+  def test_click_element_passes_element_id_as_keyword_payload
+    helper = Object.new.extend(Plushie::Test::Helpers)
+    Thread.current[:_plushie_test_session] = @s
+
+    helper.click_element("#chart", "bar-1")
+
+    assert_equal [["canvas_element_click", "#chart", {element_id: "bar-1"}]], @s.interactions
+  ensure
+    Thread.current[:_plushie_test_session] = nil
+  end
+
+  def test_assertion_helpers_work_without_minitest_methods
+    helper = Object.new.extend(Plushie::Test::Helpers)
+    session = SessionStub.new
+    session.define_singleton_method(:find!) { |_| {"props" => {"content" => "Ready"}} }
+    session.define_singleton_method(:find) do |selector|
+      if selector == "#missing"
+        nil
+      else
+        {"props" => {}}
+      end
+    end
+    session.define_singleton_method(:get_diagnostics) { [] }
+    Thread.current[:_plushie_test_session] = session
+
+    helper.assert_text("#status", "Ready")
+    helper.assert_exists("#status")
+    helper.assert_not_exists("#missing")
+    helper.assert_no_diagnostics
+  ensure
+    Thread.current[:_plushie_test_session] = nil
   end
 
   # Key normalization tests removed: key handling is now delegated

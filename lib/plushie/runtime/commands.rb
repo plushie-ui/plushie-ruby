@@ -93,6 +93,14 @@ module Plushie
         @async_tasks[tag] = {thread: thread, nonce: nonce}
       end
 
+      def stop_thread(thread, timeout: 0.5)
+        return unless thread
+        return if thread == Thread.current
+
+        thread.kill
+        thread.join(timeout)
+      end
+
       # Spawn a thread for streaming work with emit callback.
       def execute_stream(callable, tag)
         cancel_task(tag)
@@ -187,7 +195,7 @@ module Plushie
         # One effect per tag: discard previous if same tag is in flight.
         if tag && (prev_id = @effect_tags[tag])
           timer = @pending_effects.delete(prev_id)
-          timer&.kill
+          stop_thread(timer)
           @effect_ids.delete(prev_id)
           @effect_kinds.delete(prev_id)
         end

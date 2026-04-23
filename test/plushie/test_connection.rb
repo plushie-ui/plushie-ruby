@@ -4,6 +4,26 @@ require "test_helper"
 require "json"
 
 class TestConnection < Minitest::Test
+  class ThreadDouble
+    attr_reader :killed, :joined
+
+    def kill
+      @killed = true
+    end
+
+    def join(timeout = nil)
+      @joined = timeout
+    end
+  end
+
+  class AdapterDouble
+    attr_reader :stopped
+
+    def stop
+      @stopped = true
+    end
+  end
+
   def test_validate_required_extensions_rejects_missing_native_extension
     ext = Class.new do
       def self.native? = true
@@ -164,5 +184,20 @@ class TestConnection < Minitest::Test
     messages.each do |msg|
       assert_match(/\At\d+i\d+\z/, msg, "Interleaved message detected: #{msg.inspect}")
     end
+  end
+
+  def test_close_waits_for_reader_thread_cleanup
+    conn = Plushie::Connection.allocate
+    reader = ThreadDouble.new
+    adapter = AdapterDouble.new
+    conn.instance_variable_set(:@closed, false)
+    conn.instance_variable_set(:@reader_thread, reader)
+    conn.instance_variable_set(:@iostream_adapter, adapter)
+
+    conn.close
+
+    assert reader.killed
+    assert_equal 1, reader.joined
+    assert adapter.stopped
   end
 end

@@ -100,7 +100,7 @@ module Plushie
     # Stop the connection and clean up.
     def stop
       cancel_heartbeat_timer
-      @forwarder_thread&.kill
+      stop_thread(@forwarder_thread, timeout: 1)
       @forwarder_thread = nil
       @conn_queue&.close
       @connection&.close
@@ -228,8 +228,16 @@ module Plushie
     end
 
     def cancel_heartbeat_timer
-      @heartbeat_timer&.kill
+      stop_thread(@heartbeat_timer, timeout: 1)
       @heartbeat_timer = nil
+    end
+
+    def stop_thread(thread, timeout:)
+      return unless thread
+      return if thread == Thread.current
+
+      thread.kill
+      thread.join(timeout)
     end
 
     def handle_connect_failure(error)

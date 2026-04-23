@@ -179,6 +179,23 @@ class TestRuntimeCommands < Minitest::Test
     @runner.pending_effects.each_value(&:kill)
   end
 
+  def test_effect_timeout_stops_timeout_thread
+    timer = Thread.new { sleep 60 }
+    runtime = Plushie::Runtime.allocate
+    dispatched = []
+    runtime.define_singleton_method(:dispatch_event) { |event| dispatched << event }
+    runtime.instance_variable_set(:@pending_effects, {"effect-1" => timer})
+    runtime.instance_variable_set(:@effect_ids, {"effect-1" => :paste})
+    runtime.instance_variable_set(:@effect_kinds, {"effect-1" => "clipboard_read"})
+    runtime.instance_variable_set(:@effect_tags, {paste: "effect-1"})
+
+    runtime.send(:handle_effect_timeout, "effect-1")
+
+    timer.join(0.1)
+    refute timer.alive?
+    assert_equal 1, dispatched.length
+  end
+
   # -- :window_op sends window_op via bridge -------------------------------
 
   def test_window_op_sends_to_bridge

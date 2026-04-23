@@ -489,7 +489,7 @@ module Plushie
       if event.is_a?(Hash) && event[:type] == :effect_response
         wire_id = event[:wire_id]
         timer = @pending_effects.delete(wire_id)
-        timer&.kill
+        stop_thread(timer)
         tag = @effect_ids.delete(wire_id)
         kind = @effect_kinds.delete(wire_id)
         @effect_tags.delete(tag) if tag
@@ -696,6 +696,7 @@ module Plushie
       timer = @pending_effects.delete(id)
       return unless timer
 
+      stop_thread(timer)
       tag = @effect_ids.delete(id)
       @effect_kinds.delete(id)
       @effect_tags.delete(tag) if tag
@@ -1048,7 +1049,7 @@ module Plushie
       ids = @pending_effects.keys
       ids.each do |id|
         timer = @pending_effects.delete(id)
-        timer&.kill
+        stop_thread(timer)
         tag = @effect_ids.delete(id)
         @effect_kinds.delete(id)
         @effect_tags.delete(tag) if tag

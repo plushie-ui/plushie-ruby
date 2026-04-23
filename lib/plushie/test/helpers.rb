@@ -74,7 +74,7 @@ module Plushie
       # Click a canvas element by injecting a synthetic canvas_element_click event.
       # @param canvas_id [String] the canvas widget ID (e.g. "#chart")
       # @param element_id [String] the element ID within the canvas
-      def click_element(canvas_id, element_id) = session.interact("canvas_element_click", canvas_id, {"element_id" => element_id})
+      def click_element(canvas_id, element_id) = session.interact("canvas_element_click", canvas_id, element_id: element_id)
 
       # Focus a canvas element via scoped path.
       # Use Command.focus("canvas/element") for the same effect.
@@ -157,7 +157,7 @@ module Plushie
         return if diagnostics.empty?
 
         details = diagnostics.map { |d| "  - #{d.diagnostic.inspect}" }.join("\n")
-        flunk "Expected no diagnostics, but found:\n#{details}"
+        plushie_flunk "Expected no diagnostics, but found:\n#{details}"
       end
 
       # Find a widget by accessibility role.
@@ -221,7 +221,7 @@ module Plushie
       def assert_text(selector, expected)
         element = find!(selector)
         actual = text(element)
-        assert_equal expected, actual,
+        plushie_assert_equal expected, actual,
           "Expected text #{expected.inspect} for #{selector}, got #{actual.inspect}"
       end
 
@@ -229,20 +229,20 @@ module Plushie
       # @param selector [String]
       def assert_exists(selector)
         result = find(selector)
-        assert result, "Expected widget #{selector} to exist, but it was not found"
+        plushie_assert result, "Expected widget #{selector} to exist, but it was not found"
       end
 
       # Assert that a widget does NOT exist.
       # @param selector [String]
       def assert_not_exists(selector)
         result = find(selector)
-        assert_nil result, "Expected widget #{selector} not to exist, but it was found"
+        plushie_assert_nil result, "Expected widget #{selector} not to exist, but it was found"
       end
 
       # Assert model equals expected value.
       # @param expected [Object]
       def assert_model(expected)
-        assert_equal expected, model
+        plushie_assert_equal expected, model
       end
 
       # Return the resolved a11y hash for a widget.
@@ -271,7 +271,7 @@ module Plushie
         a11y = resolved_a11y(selector)
         expected.each do |key, value|
           actual = a11y[key] || a11y[key.to_s]
-          assert_equal value, actual,
+          plushie_assert_equal value, actual,
             "a11y #{key.inspect} mismatch for #{selector}\nFull a11y: #{a11y.inspect}"
         end
       end
@@ -290,6 +290,41 @@ module Plushie
       def plushie_stop
         Thread.current[:_plushie_test_session]&.stop
         Thread.current[:_plushie_test_session] = nil
+      end
+
+      private
+
+      def plushie_assert_equal(expected, actual, message = nil)
+        return assert_equal(expected, actual, message) if respond_to?(:assert_equal)
+        return if expected == actual
+
+        plushie_flunk(message || "Expected #{expected.inspect}, got #{actual.inspect}")
+      end
+
+      def plushie_assert(value, message)
+        return assert(value, message) if respond_to?(:assert)
+        return if value
+
+        plushie_flunk(message)
+      end
+
+      def plushie_assert_nil(value, message)
+        return assert_nil(value, message) if respond_to?(:assert_nil)
+        return if value.nil?
+
+        plushie_flunk(message)
+      end
+
+      def plushie_flunk(message)
+        return flunk(message) if respond_to?(:flunk)
+
+        if defined?(::RSpec::Expectations::ExpectationNotMetError)
+          raise ::RSpec::Expectations::ExpectationNotMetError, message
+        elsif defined?(::Minitest::Assertion)
+          raise ::Minitest::Assertion, message
+        else
+          raise Plushie::Error, message
+        end
       end
     end
 

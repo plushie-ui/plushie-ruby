@@ -156,6 +156,7 @@ module Plushie
       def execute_commands: (Command::Cmd? cmd) -> void
       def execute_async: (Proc callable, Symbol tag) -> void
       def execute_stream: (Proc callable, Symbol tag) -> void
+      def stop_thread: (Thread? thread, ?timeout: Numeric) -> void
       def cancel_task: (Symbol tag) -> void
       def execute_done: (untyped value, Proc mapper) -> void
       def execute_send_after: (Integer delay_ms, untyped event) -> void

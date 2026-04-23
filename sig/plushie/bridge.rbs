@@ -15,6 +15,10 @@ module Plushie
     @connection: Connection?
     @retry_count: Integer
     @settings: Hash[Symbol, untyped]
+    @heartbeat_interval: Numeric?
+    @heartbeat_timer: Thread?
+    @forwarder_thread: Thread?
+    @conn_queue: Thread::Queue?
     @logger: Logger
 
     def initialize: (
@@ -23,7 +27,8 @@ module Plushie
       ?binary: String?,
       ?transport: Symbol | Array[untyped],
       ?log_level: Symbol,
-      ?token: String?
+      ?token: String?,
+      ?heartbeat_interval: Numeric?
     ) -> void
 
     def start: (?settings: Hash[Symbol, untyped]) -> void
@@ -37,6 +42,8 @@ module Plushie
     def connect!: () -> void
     def start_forwarder: (Thread::Queue conn_queue) -> Thread
     def attempt_restart: () -> void
+    def cancel_heartbeat_timer: () -> void
+    def stop_thread: (Thread? thread, timeout: Numeric) -> void
     def handle_connect_failure: (Exception error) -> void
   end
 end

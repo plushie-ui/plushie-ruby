@@ -164,7 +164,8 @@ module Plushie
     def close
       return if @closed
       @closed = true
-      @reader_thread&.kill
+      stop_thread(@reader_thread, timeout: 1)
+      @reader_thread = nil
       if @iostream_adapter
         @iostream_adapter.stop if @iostream_adapter.respond_to?(:stop)
       else
@@ -329,6 +330,14 @@ module Plushie
       elsif @on_message
         @on_message.call(msg)
       end
+    end
+
+    def stop_thread(thread, timeout:)
+      return unless thread
+      return if thread == Thread.current
+
+      thread.kill
+      thread.join(timeout)
     end
 
     def validate_required_widgets!(hello)
