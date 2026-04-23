@@ -88,7 +88,7 @@ class DocsTestingDocTest < Minitest::Test
 
     counter = Plushie::Tree.find(tree, "app/todo_count")
     refute_nil counter
-    assert_includes counter.props[:content], "1"
+    assert_includes counter.props["content"], "1"
   end
 
   def test_view_shows_zero_when_empty
@@ -97,7 +97,7 @@ class DocsTestingDocTest < Minitest::Test
 
     counter = Plushie::Tree.find(tree, "app/todo_count")
     refute_nil counter
-    assert_includes counter.props[:content], "0"
+    assert_includes counter.props["content"], "0"
   end
 
   # -- Tree query helpers from testing.md --

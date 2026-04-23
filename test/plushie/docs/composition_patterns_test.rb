@@ -199,7 +199,7 @@ class DocsCompositionPatternsTest < Minitest::Test
 
     title = Plushie::Tree.find(tree, "main/page_title")
     refute_nil title
-    assert_equal "Trash page", title.props[:content]
+    assert_equal "Trash page", title.props["content"]
   end
 
   # -- Modal dialog from composition-patterns.md --
@@ -310,7 +310,7 @@ class DocsCompositionPatternsTest < Minitest::Test
     refute_nil dialog
 
     title = Plushie::Tree.find(tree, "overlay/dialog/dialog_title")
-    assert_equal "Confirm action", title.props[:content]
+    assert_equal "Confirm action", title.props["content"]
   end
 
   # -- Card helper from composition-patterns.md --
@@ -363,11 +363,11 @@ class DocsCompositionPatternsTest < Minitest::Test
 
     card_title = Plushie::Tree.find(tree, "info/card_title")
     refute_nil card_title
-    assert_equal "System status", card_title.props[:content]
+    assert_equal "System status", card_title.props["content"]
 
     status_msg = Plushie::Tree.find(tree, "info/status_msg")
     refute_nil status_msg
-    assert_equal "All services operational", status_msg.props[:content]
+    assert_equal "All services operational", status_msg.props["content"]
   end
 
   # -- State helpers from composition-patterns.md --

@@ -161,7 +161,7 @@ class TestTree < Minitest::Test
       props: {style: {base: :primary, hover: {bg: :red}}}
     )
     normalized = Plushie::Tree.normalize(tree).first
-    style = normalized.props[:style]
+    style = normalized.props["style"]
     assert_equal "primary", style["base"]
     assert_equal "red", style["hover"]["bg"]
   end
@@ -172,7 +172,7 @@ class TestTree < Minitest::Test
       props: {items: [:one, :two, :three]}
     )
     normalized = Plushie::Tree.normalize(tree).first
-    assert_equal %w[one two three], normalized.props[:items]
+    assert_equal %w[one two three], normalized.props["items"]
   end
 
   def test_encode_value_to_wire_custom_type
@@ -184,7 +184,7 @@ class TestTree < Minitest::Test
       props: {thing: custom}
     )
     normalized = Plushie::Tree.normalize(tree).first
-    assert_equal({"kind" => "custom", "data" => 42}, normalized.props[:thing])
+    assert_equal({"kind" => "custom", "data" => 42}, normalized.props["thing"])
   end
 
   # -- Original tests --------------------------------------------------------

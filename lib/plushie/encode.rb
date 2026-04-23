@@ -3,9 +3,10 @@
 module Plushie
   # Value encoding for the wire protocol.
   #
-  # The single canonical encoding path for all prop values. Called by
-  # Tree.normalize on each prop value and by Tree::Diff when encoding
-  # changed props in patch operations.
+  # The single canonical encoding path for wire props. Called by
+  # Tree.normalize for normalized nodes, by Tree::Diff for changed props
+  # in patch operations, and by Tree.node_to_wire for direct non-normalized
+  # nodes.
   #
   # Encoding rules:
   # - true, false, nil, Integer, Float, String: pass through
@@ -54,7 +55,8 @@ module Plushie
     # Encode a props hash for the wire protocol.
     #
     # Converts all keys to strings and all values via {encode_value}.
-    # Used by Tree.node_to_wire and Tree::Diff for patch operations.
+    # Used by Tree.normalize, Tree::Diff for patch operations, and direct
+    # Tree.node_to_wire calls on non-normalized nodes.
     #
     # @param props [Hash] prop hash (symbol or string keys)
     # @return [Hash{String => Object}] wire-ready props

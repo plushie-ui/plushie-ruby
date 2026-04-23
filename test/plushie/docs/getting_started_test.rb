@@ -73,24 +73,24 @@ class DocsGettingStartedTest < Minitest::Test
 
     assert_equal "window", tree.type
     assert_equal "main", tree.id
-    assert_equal "Counter", tree.props[:title]
+    assert_equal "Counter", tree.props["title"]
 
     column = tree.children.first
     assert_equal "column", column.type
-    assert_equal 16, column.props[:padding]
-    assert_equal 8, column.props[:spacing]
+    assert_equal 16, column.props["padding"]
+    assert_equal 8, column.props["spacing"]
 
     text_node, row_node = column.children
     assert_equal "text", text_node.type
-    assert_equal "Count: 0", text_node.props[:content]
-    assert_equal 20, text_node.props[:size]
+    assert_equal "Count: 0", text_node.props["content"]
+    assert_equal 20, text_node.props["size"]
 
     assert_equal "row", row_node.type
     inc, dec = row_node.children
     assert_equal "main#increment", inc.id
-    assert_equal "+", inc.props[:label]
+    assert_equal "+", inc.props["label"]
     assert_equal "main#decrement", dec.id
-    assert_equal "-", dec.props[:label]
+    assert_equal "-", dec.props["label"]
   end
 
   def test_getting_started_counter_view_after_increments
@@ -102,6 +102,6 @@ class DocsGettingStartedTest < Minitest::Test
 
     column = tree.children.first
     text_node = column.children.first
-    assert_equal "Count: 2", text_node.props[:content]
+    assert_equal "Count: 2", text_node.props["content"]
   end
 end

@@ -150,7 +150,7 @@ class DocsAppBehaviourTest < Minitest::Test
 
     assert_equal "window", tree.type
     assert_equal "main", tree.id
-    assert_equal "Todos", tree.props[:title]
+    assert_equal "Todos", tree.props["title"]
   end
 
   # -- window_config --

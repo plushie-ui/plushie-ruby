@@ -225,6 +225,53 @@ class TestTreeDiff < Minitest::Test
     assert_equal "txt", wire["children"][0]["id"]
   end
 
+  def test_node_to_wire_reuses_normalized_nested_prop_values
+    tree = node("root", "container", props: {
+      style: {base: :primary, hover: {bg: :red}}
+    })
+
+    normalized = Plushie::Tree.normalize(tree).first
+    style = normalized.props["style"]
+    wire = Plushie::Tree.node_to_wire(normalized)
+
+    assert_same style, wire["props"]["style"]
+    assert_equal({"base" => "primary", "hover" => {"bg" => "red"}}, wire["props"]["style"])
+  end
+
+  def test_normalized_nested_props_are_immutable
+    tree = node("root", "container", props: {
+      style: {base: :primary, hover: {bg: :red}}
+    })
+
+    normalized = Plushie::Tree.normalize(tree).first
+
+    assert normalized.props["style"].frozen?
+    assert normalized.props["style"]["hover"].frozen?
+    assert_raises(FrozenError) { normalized.props["style"]["hover"]["bg"] = :blue }
+  end
+
+  def test_node_to_wire_encodes_direct_non_normalized_symbol_props
+    tree = node("root", "container", props: {
+      width: :fill,
+      style: {base: :primary}
+    })
+
+    wire = Plushie::Tree.node_to_wire(tree)
+
+    assert_equal "fill", wire["props"]["width"]
+    assert_equal "primary", wire["props"]["style"]["base"]
+  end
+
+  def test_node_to_wire_encodes_props_changed_after_normalization
+    normalized = Plushie::Tree.normalize(node("root", "container", props: {width: :fill})).first
+    changed = normalized.with(props: normalized.props.merge(extra: :primary))
+
+    wire = Plushie::Tree.node_to_wire(changed)
+
+    assert_equal "fill", wire["props"]["width"]
+    assert_equal "primary", wire["props"]["extra"]
+  end
+
   # -- LIS edge cases -------------------------------------------------------
 
   def test_diff_reverse_order

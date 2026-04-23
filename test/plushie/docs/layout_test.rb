@@ -18,26 +18,26 @@ class DocsLayoutTest < Minitest::Test
 
   def test_layout_length_fill
     tree = Plushie::Tree.normalize(@b.column(width: :fill) {}).first
-    assert_equal "fill", tree.props[:width]
+    assert_equal "fill", tree.props["width"]
   end
 
   def test_layout_length_shrink
     tree = Plushie::Tree.normalize(
       @b.button("save", "Save", width: :shrink)
     ).first
-    assert_equal "shrink", tree.props[:width]
+    assert_equal "shrink", tree.props["width"]
   end
 
   def test_layout_length_fill_portion
     node = @b.container("left", width: [:fill_portion, 2]) {}
     tree = Plushie::Tree.normalize(node).first
-    assert_equal ["fill_portion", 2], tree.props[:width]
+    assert_equal ["fill_portion", 2], tree.props["width"]
   end
 
   def test_layout_length_fixed
     node = @b.container("sidebar", width: 250) {}
     tree = Plushie::Tree.normalize(node).first
-    assert_equal 250, tree.props[:width]
+    assert_equal 250, tree.props["width"]
   end
 
   # -- Padding values --
@@ -45,19 +45,19 @@ class DocsLayoutTest < Minitest::Test
   def test_layout_padding_uniform
     node = @b.container("box", padding: 16) {}
     tree = Plushie::Tree.normalize(node).first
-    assert_equal 16, tree.props[:padding]
+    assert_equal 16, tree.props["padding"]
   end
 
   def test_layout_padding_axis
     node = @b.container("box", padding: [8, 16]) {}
     tree = Plushie::Tree.normalize(node).first
-    assert_equal [8, 16], tree.props[:padding]
+    assert_equal [8, 16], tree.props["padding"]
   end
 
   def test_layout_padding_per_side
     node = @b.container("box", padding: {top: 0, right: 16, bottom: 8, left: 16}) {}
     tree = Plushie::Tree.normalize(node).first
-    pad = tree.props[:padding]
+    pad = tree.props["padding"]
     assert_equal 0, pad["top"]
     assert_equal 16, pad["right"]
     assert_equal 8, pad["bottom"]
@@ -73,13 +73,13 @@ class DocsLayoutTest < Minitest::Test
     end
     tree = Plushie::Tree.normalize(node).first
     assert_equal "column", tree.type
-    assert_equal 16, tree.props[:spacing]
-    assert_equal 20, tree.props[:padding]
-    assert_equal "fill", tree.props[:width]
-    assert_equal "center", tree.props[:align_x]
+    assert_equal 16, tree.props["spacing"]
+    assert_equal 20, tree.props["padding"]
+    assert_equal "fill", tree.props["width"]
+    assert_equal "center", tree.props["align_x"]
     assert_equal 2, tree.children.length
-    assert_equal "Title", tree.children[0].props[:content]
-    assert_equal 24, tree.children[0].props[:size]
+    assert_equal "Title", tree.children[0].props["content"]
+    assert_equal 24, tree.children[0].props["size"]
   end
 
   # -- Row with spacing --
@@ -92,8 +92,8 @@ class DocsLayoutTest < Minitest::Test
     end
     tree = Plushie::Tree.normalize(node).first
     assert_equal "row", tree.type
-    assert_equal 8, tree.props[:spacing]
-    assert_equal "center", tree.props[:align_y]
+    assert_equal 8, tree.props["spacing"]
+    assert_equal "center", tree.props["align_y"]
     assert_equal 3, tree.children.length
   end
 
@@ -108,9 +108,9 @@ class DocsLayoutTest < Minitest::Test
     end
     tree = Plushie::Tree.normalize(node).first
     assert_equal "container", tree.type
-    assert_equal 16, tree.props[:padding]
-    assert_equal "rounded_box", tree.props[:style]
-    assert_equal "fill", tree.props[:width]
+    assert_equal 16, tree.props["padding"]
+    assert_equal "rounded_box", tree.props["style"]
+    assert_equal "fill", tree.props["width"]
     assert_equal 1, tree.children.length
     assert_equal "column", tree.children.first.type
   end
@@ -127,8 +127,8 @@ class DocsLayoutTest < Minitest::Test
     tree = Plushie::Tree.normalize(node).first
     assert_equal "scrollable", tree.type
     assert_equal "list", tree.id
-    assert_equal 400, tree.props[:height]
-    assert_equal "fill", tree.props[:width]
+    assert_equal 400, tree.props["height"]
+    assert_equal "fill", tree.props["width"]
   end
 
   # -- Stack --
@@ -159,7 +159,7 @@ class DocsLayoutTest < Minitest::Test
     assert_equal "row", tree.type
     assert_equal 3, tree.children.length
     assert_equal "space", tree.children[1].type
-    assert_equal "fill", tree.children[1].props[:width]
+    assert_equal "fill", tree.children[1].props["width"]
   end
 
   # -- Grid --
@@ -173,8 +173,8 @@ class DocsLayoutTest < Minitest::Test
     tree = Plushie::Tree.normalize(node).first
     assert_equal "grid", tree.type
     assert_equal "gallery", tree.id
-    assert_equal 3, tree.props[:num_columns]
-    assert_equal 8, tree.props[:spacing]
+    assert_equal 3, tree.props["num_columns"]
+    assert_equal 8, tree.props["spacing"]
     assert_equal 3, tree.children.length
   end
 
@@ -189,14 +189,14 @@ class DocsLayoutTest < Minitest::Test
     end
     tree = Plushie::Tree.normalize(node).first
     assert_equal "container", tree.type
-    assert_equal true, tree.props[:center]
-    assert_equal "fill", tree.props[:width]
-    assert_equal "fill", tree.props[:height]
+    assert_equal true, tree.props["center"]
+    assert_equal "fill", tree.props["width"]
+    assert_equal "fill", tree.props["height"]
 
     col = tree.children.first
     assert_equal "column", col.type
-    assert_equal 16, col.props[:spacing]
-    assert_equal "center", col.props[:align_x]
+    assert_equal 16, col.props["spacing"]
+    assert_equal "center", col.props["align_x"]
   end
 
   # -- Common patterns: sidebar + content --
@@ -216,11 +216,11 @@ class DocsLayoutTest < Minitest::Test
 
     sidebar = tree.children[0]
     assert_equal "container", sidebar.type
-    assert_equal 250, sidebar.props[:width]
+    assert_equal 250, sidebar.props["width"]
 
     content = tree.children[1]
     assert_equal "container", content.type
-    assert_equal "fill", content.props[:width]
+    assert_equal "fill", content.props["width"]
   end
 
   # -- Common patterns: header + body + footer --
@@ -243,11 +243,11 @@ class DocsLayoutTest < Minitest::Test
 
     header = tree.children[0]
     assert_equal "container", header.type
-    assert_equal [8, 16], header.props[:padding]
+    assert_equal [8, 16], header.props["padding"]
 
     body = tree.children[1]
     assert_equal "scrollable", body.type
-    assert_equal "fill", body.props[:height]
+    assert_equal "fill", body.props["height"]
 
     footer = tree.children[2]
     assert_equal "container", footer.type
@@ -261,7 +261,7 @@ class DocsLayoutTest < Minitest::Test
       @b.button("ok", "OK")
     end
     tree = Plushie::Tree.normalize(node).first
-    assert_equal "center", tree.props[:align_x]
+    assert_equal "center", tree.props["align_x"]
   end
 
   def test_layout_container_center_shorthand
@@ -269,6 +269,6 @@ class DocsLayoutTest < Minitest::Test
       @b.text("Dead center")
     end
     tree = Plushie::Tree.normalize(node).first
-    assert_equal true, tree.props[:center]
+    assert_equal true, tree.props["center"]
   end
 end

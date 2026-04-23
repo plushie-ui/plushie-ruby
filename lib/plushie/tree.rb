@@ -36,6 +36,8 @@ module Plushie
     MAX_DEPTH = 256
     # Depth at which a warning is emitted (approaching MAX_DEPTH).
     DEPTH_WARNING = 200
+    WIRE_READY_PROPS = :__plushie_wire_ready_props
+    private_constant :WIRE_READY_PROPS
 
     # Normalize a tree for wire transport.
     # Converts symbol prop values to strings via Encode, resolves
@@ -103,7 +105,7 @@ module Plushie
       {
         "id" => node.id,
         "type" => node.type,
-        "props" => Encode.encode_props(node.props),
+        "props" => wire_ready_props?(node) ? node.props : Encode.encode_props(node.props),
         "children" => node.children.map { |c| node_to_wire(c) }
       }
     end
@@ -179,7 +181,7 @@ module Plushie
           # Re-attach the meta after normalization for registry derivation.
           stripped = rendered_node.with(meta: nil)
           normalized = normalize_node(stripped, "", registry, current_window_id, depth + 1)
-          final = normalized.with(meta: rendered_node.meta)
+          final = normalized.with(meta: wire_ready_meta(rendered_node.meta, normalized.props))
 
           # Store in widget cache if cache_key is declared
           if ck_fn
@@ -193,7 +195,7 @@ module Plushie
         end
       end
 
-      props = node.props.transform_values { |v| Encode.encode_value(v) }
+      props = freeze_wire_value(Encode.encode_props(node.props))
 
       # Determine scope for children: window nodes set "window#" as the
       # child scope. Named non-window nodes propagate their scoped ID.
@@ -209,8 +211,8 @@ module Plushie
       # Resolve a11y ID references relative to current scope.
       # Uses the same separator logic as scoped_id: "#" at window
       # boundary, "/" for deeper scope.
-      if props.key?("a11y") || props.key?(:a11y)
-        a11y = props["a11y"] || props[:a11y]
+      if props.key?("a11y")
+        a11y = props["a11y"]
         if a11y.is_a?(Hash)
           %w[labelled_by described_by error_message].each do |ref_key|
             ref = a11y[ref_key] || a11y[ref_key.to_sym]
@@ -253,15 +255,45 @@ module Plushie
 
       # Consume the :rows prop so it doesn't appear on the wire.
       if node.type == "table" && !table_children.equal?(node.children)
-        props = props.except("rows", :rows)
+        props = props.except("rows")
       end
 
       children = table_children.map { |c| normalize_node(c, child_scope, registry, current_window_id, depth + 1) }
       check_duplicate_ids!(children)
       children = infer_radio_groups(children)
-      Node.new(id: scoped_id, type: node.type, props: props, children: children)
+      props = freeze_wire_value(props)
+      Node.new(id: scoped_id, type: node.type, props: props, children: children, meta: wire_ready_meta(node.meta, props))
     end
     private_class_method :normalize_node
+
+    def self.wire_ready_props?(node)
+      node.meta.is_a?(Hash) && node.meta[WIRE_READY_PROPS] == node.props.object_id
+    end
+    private_class_method :wire_ready_props?
+
+    def self.wire_ready_meta(meta, props)
+      empty_meta = {} #: Hash[untyped, untyped]
+      meta ||= empty_meta
+      props_id = props.object_id
+      return meta if meta[WIRE_READY_PROPS] == props_id
+
+      meta.merge(WIRE_READY_PROPS => props_id)
+    end
+    private_class_method :wire_ready_meta
+
+    def self.freeze_wire_value(value)
+      case value
+      when Hash
+        value.each_value { |child| freeze_wire_value(child) }
+        value.freeze
+      when Array
+        value.each { |child| freeze_wire_value(child) }
+        value.freeze
+      else
+        value
+      end
+    end
+    private_class_method :freeze_wire_value
 
     # -----------------------------------------------------------------
     # Post-normalize a11y pass
@@ -351,7 +383,8 @@ module Plushie
       new_children = node.children.map do |c|
         rewrite_a11y(c, child_scope, declared, radio_groups, tooltip_for_children)
       end
-      node.with(props: new_props, children: new_children)
+      new_props = freeze_wire_value(new_props)
+      node.with(props: new_props, children: new_children, meta: wire_ready_meta(node.meta, new_props))
     end
     private_class_method :rewrite_a11y
 
@@ -499,7 +532,7 @@ module Plushie
         a11y["described_by"] = tooltip_parent_id
       end
 
-      props.merge(a11y: a11y)
+      props.merge("a11y" => a11y)
     end
     private_class_method :apply_a11y_rewrites
 
@@ -610,7 +643,8 @@ module Plushie
 
       children.each_with_index.map do |node, idx|
         if (a11y = patches[idx])
-          node.with(props: node.props.merge(a11y: a11y))
+          props = freeze_wire_value(node.props.merge("a11y" => a11y))
+          node.with(props: props, meta: wire_ready_meta(node.meta, props))
         else
           node
         end
@@ -722,7 +756,8 @@ module Plushie
           wrapper = Node.new(id: wrapper_id, type: "container", children: children)
           normalize_node(wrapper, scope, registry, window_id, depth + 1)
         else
-          Node.new(id: "auto:memo_empty", type: "container")
+          props = freeze_wire_value({}) #: Hash[untyped, untyped]
+          Node.new(id: "auto:memo_empty", type: "container", props: props, meta: wire_ready_meta(nil, props))
         end
 
         UI::MemoCache.store(cache_key, result)

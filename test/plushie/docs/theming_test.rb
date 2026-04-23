@@ -90,7 +90,7 @@ class DocsThemingTest < Minitest::Test
     tree = Plushie::Tree.normalize(node).first
     themer = tree.children.first
     assert_equal "themer", themer.type
-    assert_equal "catppuccin_mocha", themer.props[:theme]
+    assert_equal "catppuccin_mocha", themer.props["theme"]
   end
 
   def test_theming_subtree_override
@@ -105,7 +105,7 @@ class DocsThemingTest < Minitest::Test
     tree = Plushie::Tree.normalize(node).first
     themer = tree.children[1]
     assert_equal "themer", themer.type
-    assert_equal "nord", themer.props[:theme]
+    assert_equal "nord", themer.props["theme"]
   end
 
   # -- StyleMap construction --
@@ -148,13 +148,13 @@ class DocsThemingTest < Minitest::Test
   def test_theming_button_style_preset
     node = @b.button("save", "Save", style: :primary)
     tree = Plushie::Tree.normalize(node).first
-    assert_equal "primary", tree.props[:style]
+    assert_equal "primary", tree.props["style"]
   end
 
   def test_theming_button_style_danger
     node = @b.button("delete", "Delete", style: :danger)
     tree = Plushie::Tree.normalize(node).first
-    assert_equal "danger", tree.props[:style]
+    assert_equal "danger", tree.props["style"]
   end
 
   # -- Per-widget style prop (StyleMap spec) --
@@ -168,9 +168,9 @@ class DocsThemingTest < Minitest::Test
       @b.text("Card content")
     end
     tree = Plushie::Tree.normalize(node).first
-    assert_kind_of Hash, tree.props[:style]
-    assert_equal "#ffffff", tree.props[:style]["background"]
-    assert_equal "#1a1a1a", tree.props[:style]["text_color"]
+    assert_kind_of Hash, tree.props["style"]
+    assert_equal "#ffffff", tree.props["style"]["background"]
+    assert_equal "#1a1a1a", tree.props["style"]["text_color"]
   end
 
   # -- Settings with theme --
@@ -190,6 +190,6 @@ class DocsThemingTest < Minitest::Test
     end
     tree = Plushie::Tree.normalize(node).first
     themer = tree.children.first
-    assert_equal "system", themer.props[:theme]
+    assert_equal "system", themer.props["theme"]
   end
 end
