@@ -314,7 +314,7 @@ module Plushie
           process_commands_sync(commands)
         rescue => e
           @model = saved
-          warn "plushie test: error processing event: #{e.class}: #{e.message}" if $DEBUG
+          warn_event_processing_error(event, e)
         end
         @tree = normalize_view
       end
@@ -331,7 +331,7 @@ module Plushie
           render_and_snapshot
         rescue => e
           @model = saved
-          warn "plushie test: error processing event: #{e.class}: #{e.message}" if $DEBUG
+          warn_event_processing_error(event, e)
         end
       end
 
@@ -370,8 +370,9 @@ module Plushie
             r = @app.update(@model, event)
             @model, sub_cmds = unwrap_result(r)
             process_commands_sync(sub_cmds)
-          rescue
+          rescue => e
             @model = saved
+            warn_event_processing_error(event, e)
           end
         when :stream
           # Execute synchronously, collecting emitted values
@@ -383,8 +384,9 @@ module Plushie
               r = @app.update(@model, event)
               @model, sub_cmds = unwrap_result(r)
               process_commands_sync(sub_cmds)
-            rescue
+            rescue => e
               @model = saved
+              warn_event_processing_error(event, e)
             end
           }
           result = cmd.payload[:callable].call(emit)
@@ -394,8 +396,9 @@ module Plushie
             r = @app.update(@model, final_event)
             @model, sub_cmds = unwrap_result(r)
             process_commands_sync(sub_cmds)
-          rescue
+          rescue => e
             @model = saved
+            warn_event_processing_error(final_event, e)
           end
         when :dispatch
           event = cmd.payload[:mapper].call(cmd.payload[:value])
@@ -404,8 +407,9 @@ module Plushie
             r = @app.update(@model, event)
             @model, sub_cmds = unwrap_result(r)
             process_commands_sync(sub_cmds)
-          rescue
+          rescue => e
             @model = saved
+            warn_event_processing_error(event, e)
           end
         else
           # Widget ops, window ops, effects, etc. are no-ops in test mode
@@ -424,6 +428,10 @@ module Plushie
         else
           [result, Command.none]
         end
+      end
+
+      def warn_event_processing_error(event, error)
+        warn "plushie test: error processing event #{event.inspect}: #{error.class}: #{error.message}"
       end
 
       # Parse a unified selector string into a wire-ready selector hash.
