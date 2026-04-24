@@ -2,6 +2,7 @@
 
 require "test_helper"
 require "json"
+require "stringio"
 
 class TestRuntimeView < Minitest::Test
   include Plushie::UI
@@ -78,6 +79,14 @@ class TestRuntimeView < Minitest::Test
       end
 
       @messages << data
+    end
+  end
+
+  class FakeTimer
+    attr_reader :killed
+
+    def kill
+      @killed = true
     end
   end
 
@@ -253,6 +262,63 @@ class TestRuntimeView < Minitest::Test
     assert_equal Set["main"], runtime.instance_variable_get(:@tracked_windows)
     refute_equal old_tree, runtime.instance_variable_get(:@previous_tree)
     assert runtime.view_error?
+  end
+
+  def test_handle_interact_timeout_pushes_action_and_selector_error
+    runtime = runtime_for(window("main") { text("msg", "hi") })
+    result_queue = Thread::Queue.new
+    timer = FakeTimer.new
+    runtime.instance_variable_set(:@pending_interact, {
+      id: "interact-1",
+      action: "click",
+      selector: {by: "id", value: "submit"},
+      result_queue: result_queue,
+      timeout_timer: timer
+    })
+
+    runtime.send(:handle_interact_timeout, "interact-1")
+
+    assert_equal({error: 'interact timed out for click selector={by: "id", value: "submit"}'}, result_queue.pop)
+    assert_nil runtime.instance_variable_get(:@pending_interact)
+    assert timer.killed
+  end
+
+  def test_handle_interact_timeout_omits_nil_selector_in_error
+    runtime = runtime_for(window("main") { text("msg", "hi") })
+    result_queue = Thread::Queue.new
+    runtime.instance_variable_set(:@pending_interact, {
+      id: "interact-1",
+      action: "press_key",
+      selector: nil,
+      result_queue: result_queue,
+      timeout_timer: FakeTimer.new
+    })
+
+    runtime.send(:handle_interact_timeout, "interact-1")
+
+    assert_equal({error: "interact timed out for press_key"}, result_queue.pop)
+  end
+
+  def test_handle_interact_timeout_warning_names_action_and_selector
+    runtime = runtime_for(window("main") { text("msg", "hi") })
+    log_io = StringIO.new
+    logger = Logger.new(log_io)
+    logger.formatter = ->(_severity, _time, _progname, message) { "#{message}\n" }
+    runtime.instance_variable_set(:@logger, logger)
+    runtime.instance_variable_set(:@pending_interact, {
+      id: "interact-2",
+      action: "type_text",
+      selector: {by: "id", value: "name"},
+      result_queue: Thread::Queue.new,
+      timeout_timer: FakeTimer.new
+    })
+
+    runtime.send(:handle_interact_timeout, "interact-2")
+
+    assert_equal(
+      "plushie: interact type_text selector={by: \"id\", value: \"name\"} timed out (id interact-2)\n",
+      log_io.string
+    )
   end
 
   def test_render_and_patch_tracks_opened_windows_when_patch_send_fails

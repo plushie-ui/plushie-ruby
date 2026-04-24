@@ -97,7 +97,7 @@ module Plushie
       @pending_runtime_events = [] # : Array[untyped]
       @pending_stub_acks = {}  # kind -> Queue (for sync ack round-trip)
       @pending_await_async = {} # tag -> Queue (for sync await)
-      @pending_interact = nil   # {id:, result_queue:} for current interact
+      @pending_interact = nil   # {id:, action:, selector:, result_queue:} for current interact
       @tracked_windows = Set.new # active window IDs
       @restarting = false
       @runtime_thread = nil
@@ -1045,7 +1045,13 @@ module Plushie
         BoundedQueue.push(queue, [:interact_timeout, id])
       end
       timer.name = "plushie-interact-timeout"
-      @pending_interact = {id: id, result_queue: result_queue, timeout_timer: timer}
+      @pending_interact = {
+        id: id,
+        action: action,
+        selector: selector,
+        result_queue: result_queue,
+        timeout_timer: timer
+      }
       bridge = @bridge or raise Plushie::Error, "bridge not started"
       bridge.send_encoded(
         Protocol::Encode.encode_interact(id, action, selector, payload, @format)
@@ -1097,9 +1103,17 @@ module Plushie
       pending = @pending_interact
       return unless pending && pending[:id] == id
 
-      @logger.warn("plushie: interact #{id} timed out")
+      target = format_interact_target(pending[:action], pending[:selector])
+      @logger.warn("plushie: interact #{target} timed out (id #{id})")
       @pending_interact = nil
-      pending[:result_queue]&.push({error: "interact timed out"})
+      pending[:timeout_timer]&.kill
+      pending[:result_queue]&.push({error: "interact timed out for #{target}"})
+    end
+
+    def format_interact_target(action, selector)
+      return action.to_s if selector.nil?
+
+      "#{action} selector=#{selector.inspect}"
     end
 
     # Process an event through update + commands WITHOUT rendering.
