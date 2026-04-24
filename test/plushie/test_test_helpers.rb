@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "plushie/test"
 require "plushie/test/helpers"
 
 class TestTestHelpers < Minitest::Test
@@ -224,6 +225,7 @@ class TestTestHelpers < Minitest::Test
     assert_includes methods, :register_effect_stub
     assert_includes methods, :unregister_effect_stub
     assert_includes methods, :assert_no_diagnostics
+    assert_includes methods, :await_async
   end
 
   def test_click_element_passes_element_id_as_keyword_payload
@@ -235,6 +237,30 @@ class TestTestHelpers < Minitest::Test
     assert_equal [["canvas_element_click", "#chart", {element_id: "bar-1"}]], @s.interactions
   ensure
     Thread.current[:_plushie_test_session] = nil
+  end
+
+  def test_await_async_warns_and_returns_ok_on_mock_backend
+    helper = Object.new.extend(Plushie::Test::Helpers)
+
+    with_test_backend("mock") do
+      _stdout, stderr = capture_io do
+        assert_equal :ok, helper.await_async(:data_loaded)
+      end
+
+      assert_includes stderr, "await_async is a no-op on the mock backend"
+    end
+  end
+
+  def test_await_async_does_not_warn_on_non_mock_backend
+    helper = Object.new.extend(Plushie::Test::Helpers)
+
+    with_test_backend("headless") do
+      _stdout, stderr = capture_io do
+        assert_equal :ok, helper.await_async(:data_loaded)
+      end
+
+      assert_empty stderr
+    end
   end
 
   def test_assertion_helpers_work_without_minitest_methods
@@ -261,4 +287,14 @@ class TestTestHelpers < Minitest::Test
 
   # Key normalization tests removed: key handling is now delegated
   # to the renderer. The combo string passes through directly.
+
+  private
+
+  def with_test_backend(backend)
+    previous = ENV["PLUSHIE_TEST_BACKEND"]
+    ENV["PLUSHIE_TEST_BACKEND"] = backend
+    yield
+  ensure
+    ENV["PLUSHIE_TEST_BACKEND"] = previous
+  end
 end

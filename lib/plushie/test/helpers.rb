@@ -121,13 +121,19 @@ module Plushie
       def reset = session.reset
 
       # Wait for a tagged async task to complete.
-      # In test mode, async commands run synchronously, so this is
-      # effectively a no-op. Exists for API compatibility.
+      # Async commands run synchronously on the mock backend, so this
+      # returns immediately after warning that there is nothing to wait for.
+      # Other test backends also currently complete async work before this
+      # method is needed, but do not warn.
       #
       # @param tag [Symbol] the async command tag
       # @param timeout [Integer] max wait in milliseconds (unused)
       # @return [:ok]
       def await_async(tag, timeout = 5000)
+        if Plushie::Test.respond_to?(:backend) && Plushie::Test.backend == :mock
+          warn "Plushie::Test#await_async is a no-op on the mock backend; async commands run synchronously."
+        end
+
         :ok
       end
 

@@ -514,13 +514,14 @@ immediately calls the callable, gets the result, and dispatches
 `update`, all within the same call.
 
 This means `await_async` returns immediately (the work is already
-done):
+done). On the mock backend it emits a warning so the wait does not
+look like a real synchronization point:
 
 ```ruby
 def test_fetching_data_loads_results
   click("#fetch")
   # On mock, the async command already executed synchronously.
-  # await_async is a no-op; the model is already updated.
+  # await_async warns and returns :ok; the model is already updated.
   await_async(:data_loaded)
   assert model.results.length > 0
 end
