@@ -97,14 +97,39 @@ class TestRuntimeCommands < Minitest::Test
     @runner.execute_commands(cmd)
 
     assert @runner.async_tasks.key?(:slow)
+    thread = @runner.async_tasks[:slow][:thread]
 
     @runner.execute_commands(C.cancel(:slow))
     # Entry is marked as cancelled (not deleted). The async result
     # handler owns cleanup, preventing a race where Thread.kill
     # triggers the rescue block that pushes an async_result after
-    # deletion.
+    # deletion. The killed thread is released immediately.
     assert @runner.async_tasks.key?(:slow)
     assert_equal :cancelled, @runner.async_tasks[:slow][:nonce]
+    refute @runner.async_tasks[:slow].key?(:thread)
+
+    thread.join(0.1)
+    refute thread.alive?
+  end
+
+  def test_cancel_joins_task_before_releasing_thread_reference
+    started = Thread::Queue.new
+    unwound = Thread::Queue.new
+    cmd = C.task(-> do
+      started.push(true)
+      begin
+        sleep(60)
+      ensure
+        unwound.push(true)
+      end
+    end, :slow)
+    @runner.execute_commands(cmd)
+    started.pop
+
+    @runner.execute_commands(C.cancel(:slow))
+
+    assert unwound.pop(true)
+    refute @runner.async_tasks[:slow].key?(:thread)
   end
 
   # -- :done dispatches immediately ----------------------------------------

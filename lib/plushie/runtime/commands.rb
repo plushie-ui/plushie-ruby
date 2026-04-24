@@ -128,8 +128,8 @@ module Plushie
         entry = @async_tasks[tag]
         return unless entry && entry[:nonce] != :cancelled
 
-        entry[:thread]&.kill
-        @async_tasks[tag] = {thread: entry[:thread], nonce: :cancelled}
+        stop_thread(entry[:thread])
+        @async_tasks[tag] = {nonce: :cancelled}
       end
 
       # Dispatch a done command immediately.
