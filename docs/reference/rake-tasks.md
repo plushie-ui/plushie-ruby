@@ -1,0 +1,440 @@
+# Rake Tasks
+
+Plushie ships a set of Rake tasks for building, downloading, running,
+inspecting, and scripting Plushie applications. The task definitions
+live in `lib/plushie/rake.rb` and are wired into your project's
+`Rakefile` with a single require:
+
+```ruby
+# Rakefile
+require "plushie/rake"
+```
+
+Once loaded, every task lives under the `plushie:` namespace and is
+invoked with `rake plushie:<task>`.
+
+| Task | Purpose |
+|---|---|
+| [`plushie:download`](#plushiedownload) | Download a precompiled renderer binary or WASM bundle |
+| [`plushie:build`](#plushiebuild) | Build the renderer from Rust source |
+| [`plushie:clean`](#plushieclean) | Remove build artifacts |
+| [`plushie:run`](#plushierun) | Run a Plushie app |
+| [`plushie:connect`](#plushieconnect) | Run a Plushie app over stdio transport |
+| [`plushie:inspect`](#plushieinspect) | Print the initial UI tree as JSON |
+| [`plushie:script`](#plushiescript) | Run `.plushie` automation scripts |
+| [`plushie:replay`](#plushiereplay) | Replay a `.plushie` script with real windows |
+| [`plushie:preflight`](#plushiepreflight) | Run all CI checks locally |
+
+## Shell quoting
+
+Rake passes positional arguments in square brackets. Both bash and
+zsh treat unquoted `[` and `]` as glob metacharacters, so always
+quote the full invocation when you pass arguments:
+
+```bash
+rake 'plushie:download[force]'
+rake 'plushie:build[release]'
+rake 'plushie:run[Counter,dev]'
+```
+
+Examples below assume the surrounding single quotes.
+
+## plushie:download
+
+Downloads a precompiled renderer binary (and/or WASM bundle) from
+GitHub releases. This is the fastest way to get a working renderer.
+The binary is platform-specific (OS plus architecture) and
+version-matched to the SDK via `Plushie::PLUSHIE_RUST_VERSION`.
+
+```bash
+rake plushie:download           # download anything that is missing
+rake 'plushie:download[force]'  # re-download even if the files are present
+```
+
+### Positional argument
+
+| Position | Value | Description |
+|---|---|---|
+| `arg1` | `force` | Re-download even when the file already exists |
+
+Any value other than the literal string `force` is treated as the
+default "download if missing" behaviour.
+
+### Configuration inputs
+
+The task reads `Plushie.configuration` (and a few environment
+variables) to decide what to download and where to put it:
+
+| Input | Source | Effect |
+|---|---|---|
+| `artifacts` | `Plushie.configuration.artifacts` | Which artifacts to install. Default: `[:bin]`. Set to `[:bin, :wasm]` to also fetch the WASM renderer |
+| `bin_file` | `PLUSHIE_BIN_FILE` or `Plushie.configuration.bin_file` | Override destination path for the native binary |
+| `wasm_dir` | `PLUSHIE_WASM_DIR` or `Plushie.configuration.wasm_dir` | Override destination directory for the WASM bundle |
+
+Default destinations:
+
+- Native binary: `_build/plushie/bin/plushie-renderer-<os>-<arch>`
+- WASM bundle: `_build/plushie-renderer/wasm/` (contains
+  `plushie_renderer_wasm.js` and `plushie_renderer_wasm_bg.wasm`)
+
+### Checksum verification
+
+Every download is verified against a `.sha256` sidecar fetched from
+the same GitHub release. On mismatch, the downloaded file is deleted
+and the task raises. There is no flag to skip verification, since the
+binary runs as a child process of your application.
+
+## plushie:build
+
+Builds the renderer binary from Rust source by delegating to the
+`cargo-plushie` Cargo subcommand.
+
+```bash
+rake plushie:build               # debug build
+rake 'plushie:build[release]'    # optimised build
+rake 'plushie:build[update]'     # force a clean regen of the virtual manifest
+rake 'plushie:build[release,update]'
+```
+
+Most apps use `plushie:download` for a precompiled binary and never
+build from source. Building is required when you have
+[native widgets](custom-widgets.md) (Rust-backed custom rendering) or
+want to work against a local `plushie-rust` checkout.
+
+### Positional arguments
+
+| Position | Value | Description |
+|---|---|---|
+| `arg1` / `arg2` | `release` | Build with optimisations |
+| `arg1` / `arg2` | `update` | Currently accepted for forward compatibility; cargo-plushie owns incremental workspace regeneration |
+
+Both flags may appear in either slot, in any order.
+
+### What it generates
+
+The task writes a small virtual app crate that `cargo-plushie` reads
+via `cargo metadata`:
+
+- `_build/plushie-renderer-spec/Cargo.toml` - minimal manifest
+  listing each configured native widget crate as a path dependency
+  and carrying `[package.metadata.plushie]` with the binary name.
+- `_build/plushie-renderer-spec/src/lib.rs` - empty placeholder so
+  the manifest parses.
+
+`cargo-plushie` produces the real renderer workspace under
+`_build/plushie-renderer-spec/target/plushie-renderer/`. On success,
+the compiled binary is copied to `_build/plushie/bin/`, where the
+renderer discovery chain will find it.
+
+### cargo-plushie resolution
+
+The task's resolver (`Plushie::CargoPlushie.resolve`) decides how to
+invoke `cargo-plushie`:
+
+1. **`PLUSHIE_RUST_SOURCE_PATH` set** (or
+   `Plushie.configuration.source_path`): runs `cargo run -p
+   cargo-plushie --release --quiet -- ...` against the checkout.
+   Always works during local plushie-rust development.
+2. **`cargo-plushie` on `PATH` at the matching version**: used
+   directly. The pinned version is `Plushie::PLUSHIE_RUST_VERSION`.
+3. **Missing or mismatched**: the task raises with an install hint,
+   no auto-install.
+
+See the [Versioning reference](versioning.md) for the relationship
+between the gem version, `PLUSHIE_RUST_VERSION`, and `cargo-plushie`.
+
+### Native widget discovery
+
+Native widgets are listed explicitly:
+
+```ruby
+Plushie.configure do |config|
+  config.widgets = [MyGauge, MyChart]
+  config.build_name = "my-dashboard-plushie"
+end
+```
+
+Or via the `PLUSHIE_WIDGETS` environment variable (comma-separated
+class names) for CI. Non-native entries are skipped with a warning.
+
+Each widget crate must declare `[package.metadata.plushie.widget]`
+with `type_name` and `constructor` keys in its own `Cargo.toml`. The
+task checks for these keys up front; missing metadata raises with a
+message naming the widget class.
+
+### Local source versus crates.io
+
+By default, Rust dependencies come from crates.io at
+`PLUSHIE_RUST_VERSION`. To build against a local plushie-rust
+checkout:
+
+```bash
+git clone https://github.com/plushie-ui/plushie-rust ../plushie-rust
+PLUSHIE_RUST_SOURCE_PATH=../plushie-rust rake 'plushie:build[release]'
+```
+
+Or permanently via configuration:
+
+```ruby
+Plushie.configure do |config|
+  config.source_path = "../plushie-rust"
+end
+```
+
+With a source path set, `cargo-plushie` emits `[patch.crates-io]`
+redirecting every plushie crate to the local checkout, which is
+essential when modifying the renderer alongside the SDK.
+
+### Requirements
+
+- Rust toolchain with `cargo` on `PATH`. The task shells out to
+  `cargo --version` first and aborts with `"cargo not found. Install
+  Rust via https://rustup.rs"` when absent.
+- `cargo-plushie` at the matching `PLUSHIE_RUST_VERSION`, or
+  `PLUSHIE_RUST_SOURCE_PATH` set to a local plushie-rust checkout.
+
+## plushie:clean
+
+Removes build artifacts so the next `plushie:build` starts clean.
+
+```bash
+rake plushie:clean
+```
+
+Deletes:
+
+- `_build/plushie/` (installed binaries)
+- `_build/plushie-renderer-spec/` (virtual manifest and cargo target
+  directory)
+
+Prints "Nothing to clean" when both directories are already gone.
+
+## plushie:run
+
+Starts a Plushie application against a local renderer binary.
+
+```bash
+rake 'plushie:run[Counter]'
+rake 'plushie:run[Counter,dev]'
+rake 'plushie:run[Counter,json]'
+rake 'plushie:run[Counter,dev,json]'
+```
+
+The task instantiates the app class, resolves the renderer binary
+(see [binary resolution](#binary-resolution)), starts the runtime,
+and blocks until the app exits.
+
+### Positional arguments
+
+| Position | Value | Description |
+|---|---|---|
+| `app_class` | string | Constant name of your app class. Resolved with `Object.const_get` |
+| `opt1` / `opt2` | `dev` | Enable dev-mode live reload |
+| `opt1` / `opt2` | `json` | Switch the wire protocol from MessagePack to newline-delimited JSON |
+
+`app_class` is required; the task aborts with a usage message when
+omitted.
+
+### Dev mode
+
+With `dev`, the runtime watches your source files for changes and
+re-renders the UI on save. The app's model is preserved across
+reloads; only the view tree (and any state the renderer owns) is
+replaced. See `lib/plushie/dev_server.rb` for the watcher
+implementation.
+
+### JSON wire protocol
+
+With `json`, the wire format switches from MessagePack to
+newline-delimited JSON. Each message is a complete JSON object on
+its own line, easy to inspect with
+[`jq`](https://jqlang.github.io/jq/) or redirect to a file:
+
+```bash
+rake 'plushie:run[Counter,json]' 2>protocol.log
+```
+
+For renderer-side tracing, set `RUST_LOG`:
+
+```bash
+RUST_LOG=plushie=debug rake 'plushie:run[Counter,json]'
+```
+
+See the [Wire Protocol reference](wire-protocol.md) for the message
+format.
+
+## plushie:connect
+
+Runs a Plushie application with `transport: :stdio`. The Rust
+renderer spawns the Ruby process (not the other way around) and
+communicates over the Ruby process's stdin and stdout. Use this when
+the renderer is launched externally via `plushie --exec`.
+
+```bash
+rake 'plushie:connect[Counter]'
+```
+
+### Positional argument
+
+| Position | Value | Description |
+|---|---|---|
+| `app_class` | string | Constant name of the app class |
+
+`app_class` is required; the task aborts with a usage message when
+omitted.
+
+The typical pattern is to run the renderer with an `--exec` string
+that launches this task:
+
+```bash
+plushie --listen --exec "bundle exec rake 'plushie:connect[Counter]'"
+```
+
+All log output is routed off of stdout so the protocol channel
+stays clean.
+
+## plushie:inspect
+
+Prints a Plushie app's initial UI tree as pretty-printed JSON,
+without starting a renderer.
+
+```bash
+rake 'plushie:inspect[Counter]'
+```
+
+The task calls `init({})`, renders the view, normalizes the tree
+(applying scoped IDs and widget expansion), converts the root node
+to its wire shape, and prints it via `JSON.pretty_generate`. When
+`init` returns `[model, command]`, the command is ignored and the
+model is used to render.
+
+Useful for:
+
+- Debugging layout structure and widget nesting
+- Verifying prop values without opening a window
+- Quick inspection in CI or scripts
+- Checking that `view` does not crash with a fresh model
+
+No renderer binary is needed; everything runs in Ruby.
+
+## plushie:script
+
+Runs [`.plushie` automation scripts](testing.md) headlessly against
+the mock backend.
+
+```bash
+rake plushie:script                                   # all scripts under test/scripts/
+rake 'plushie:script[test/scripts/save_flow.plushie]' # a specific script
+```
+
+### Positional argument
+
+| Position | Value | Description |
+|---|---|---|
+| `path` | string | Path to a single `.plushie` script. Omit to discover every `.plushie` file under `test/scripts/` |
+
+Each script starts a fresh app session against the mock backend,
+executes its instructions, and reports PASS or FAIL. Empty scripts
+are reported as SKIP. Scripts whose files do not exist are reported
+as FAIL.
+
+The task prints a summary line of the form `N passed, M failed` and
+exits with status 1 if any script failed. When no scripts are found,
+it prints `No .plushie scripts found` and exits 0.
+
+## plushie:replay
+
+Replays a single `.plushie` script with the windowed backend. Real
+windows appear on screen, GPU rendering is active, and `wait`
+directives in the script are respected, so the script plays in real
+time.
+
+```bash
+rake 'plushie:replay[test/scripts/demo.plushie]'
+```
+
+### Positional argument
+
+| Position | Value | Description |
+|---|---|---|
+| `path` | string | Path to the `.plushie` script to replay |
+
+`path` is required; the task aborts with a usage message when
+omitted and exits with status 1 if the file does not exist.
+
+Useful for:
+
+- Visually verifying that an automation script does what you expect
+- Creating demo recordings or walkthroughs
+- Debugging interaction sequences that behave differently under real
+  rendering (timing, animation, focus)
+
+Replay forces the windowed backend regardless of
+`PLUSHIE_TEST_BACKEND`; on a headless host, run it behind a display
+server (for example a headless `weston` socket). See the
+[Testing reference](testing.md).
+
+## plushie:preflight
+
+Runs the full CI check suite locally, stopping at the first failure.
+
+```bash
+rake plushie:preflight
+```
+
+Steps, in order:
+
+1. `bundle exec rake standard` - [Standard Ruby](https://github.com/standardrb/standard) linter
+2. `bundle exec rake test` - Minitest suite against the mock backend
+3. `PLUSHIE_TEST_BACKEND=headless bundle exec rake test` - the same
+   suite against the headless backend, skipped with a warning if the
+   renderer binary is not resolvable
+4. `bundle exec steep check` - Steep type checker against the RBS
+   signatures
+5. `bundle exec yard doc` - YARD documentation generation
+
+Each step streams its output directly to the terminal. If every step
+passes, the task prints `All checks passed.` at the end.
+
+If preflight passes locally, CI will pass. Run it before pushing.
+
+## Binary resolution
+
+Several tasks need the renderer binary. `Plushie::Binary.path!`
+resolves it in priority order:
+
+1. `PLUSHIE_BINARY_PATH` environment variable. Raises if set but the
+   file is missing.
+2. `Plushie.configuration.binary_path`. Raises if set but the file
+   is missing.
+3. Custom widget build under `_build/plushie/custom/target/` after
+   `rake plushie:build`.
+4. Downloaded binary in `_build/plushie/bin/` after
+   `rake plushie:download`.
+5. Sibling `plushie-rust` checkout's `target/{release,debug}/`.
+6. `plushie` on `PATH`.
+
+Steps 1 and 2 are explicit; the rest are silent fall-through. See
+`Plushie::Binary` for the full resolution logic.
+
+## Environment variables
+
+| Variable | Effect |
+|---|---|
+| `PLUSHIE_BINARY_PATH` | Explicit path to the renderer binary. Raises if set but missing |
+| `PLUSHIE_RUST_SOURCE_PATH` | Path to a local plushie-rust checkout. Switches builds to source mode and pins `cargo-plushie` to the checkout |
+| `PLUSHIE_BIN_FILE` | Override destination path for the native binary in `plushie:download` and `plushie:build` |
+| `PLUSHIE_WASM_DIR` | Override destination directory for the WASM bundle in `plushie:download` |
+| `PLUSHIE_WIDGETS` | Comma-separated list of native widget class names for `plushie:build`. Alias: `PLUSHIE_EXTENSIONS` |
+| `PLUSHIE_BUILD_NAME` | Override the Cargo binary target name for custom builds |
+| `PLUSHIE_TEST_BACKEND` | Selects the test backend: `mock` (default), `headless`, or `windowed` |
+| `RUST_LOG` | Passed through to the renderer for tracing-based logging |
+
+## See also
+
+- [Configuration reference](configuration.md) - `Plushie.configure`
+  fields, environment variables, and transport modes
+- [Versioning reference](versioning.md) - the relationship between
+  the gem version, `PLUSHIE_RUST_VERSION`, and the renderer binary
+- [Testing reference](testing.md) - test backends, `.plushie`
+  scripts, and the full test helper API
