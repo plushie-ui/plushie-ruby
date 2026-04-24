@@ -330,8 +330,8 @@ module Plushie
       def stateful?
         !@_widget_state_fields.empty? ||
           !@_widget_events.empty? ||
-          respond_to?(:init) ||
-          respond_to?(:handle_event)
+          _owns_singleton_method?(:init) ||
+          _owns_singleton_method?(:handle_event)
       end
 
       # Returns the widget type names this widget handles.
@@ -406,6 +406,17 @@ module Plushie
 
       private
 
+      def _owns_singleton_method?(method_name)
+        singleton_class.public_method_defined?(method_name, false)
+      end
+
+      def _remove_non_public_singleton_method!(method_name)
+        return unless singleton_class.protected_method_defined?(method_name, false) ||
+          singleton_class.private_method_defined?(method_name, false)
+
+        singleton_class.remove_method(method_name)
+      end
+
       # Check that a declared prop name is legal. Structural names
       # (`:id`, `:type`, `:children`) are always rejected. Auto-wired
       # names (`:a11y`, `:event_rate`) are allowed as no-op declarations
@@ -445,14 +456,16 @@ module Plushie
       def _set_defaults!
         return unless stateful?
 
-        unless respond_to?(:init)
+        unless _owns_singleton_method?(:init)
+          _remove_non_public_singleton_method!(:init)
           fields = @_widget_state_fields
           define_singleton_method(:init) do
             fields.each_with_object({}) { |f, h| h[f[:name]] = f[:default] }
           end
         end
 
-        unless respond_to?(:handle_event)
+        unless _owns_singleton_method?(:handle_event)
+          _remove_non_public_singleton_method!(:handle_event)
           has_events = !@_widget_events.empty?
           define_singleton_method(:handle_event) do |_event, state|
             has_events ? [:consumed, state] : [:ignored, state]

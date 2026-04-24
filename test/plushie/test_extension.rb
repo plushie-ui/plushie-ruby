@@ -238,6 +238,86 @@ class TestExtension < Minitest::Test
     refute TestLabeledValue.stateful?
   end
 
+  def test_inherited_init_does_not_make_render_only_widget_stateful
+    inherited_callbacks = Module.new do
+      def init = {count: 1}
+    end
+
+    klass = Class.new do
+      extend inherited_callbacks
+      include Plushie::Widget
+
+      widget :render_only_with_inherited_init
+      prop :label, :string, default: "ready"
+    end
+
+    klass.finalize!
+    refute klass.stateful?
+
+    node = klass.new("inherited-init").build
+    assert_equal "render_only_with_inherited_init", node.type
+    assert_equal "ready", node.props[:label]
+  end
+
+  def test_inherited_handle_event_does_not_make_render_only_widget_stateful
+    base = Class.new do
+      def self.handle_event(_event, state)
+        [:consumed, state]
+      end
+    end
+
+    klass = Class.new(base) do
+      include Plushie::Widget
+
+      widget :render_only_with_inherited_handle_event
+    end
+
+    klass.finalize!
+    refute klass.stateful?
+
+    node = klass.new("inherited-handler").build
+    assert_equal "render_only_with_inherited_handle_event", node.type
+  end
+
+  def test_private_init_does_not_block_generated_default_init
+    klass = Class.new do
+      include Plushie::Widget
+
+      widget :private_init_counter
+      state :count, default: 0
+
+      def self.init = {count: 99}
+      private_class_method :init
+
+      def self.view(id, _props, state)
+        Plushie::Node.new(id: id, type: "text", props: {content: state[:count].to_s})
+      end
+    end
+
+    klass.finalize!
+    assert klass.stateful?
+    assert_equal({count: 0}, klass.init)
+  end
+
+  def test_private_handle_event_does_not_block_generated_default_handler
+    klass = Class.new do
+      include Plushie::Widget
+
+      widget :private_handler_counter
+      state :count, default: 0
+
+      def self.handle_event(_event, state) = [:consumed, state.merge(count: 99)]
+      private_class_method :handle_event
+
+      def self.view(id, _props, state)
+        Plushie::Node.new(id: id, type: "text", props: {content: state[:count].to_s})
+      end
+    end
+
+    klass.finalize!
+    assert_equal [:ignored, {count: 0}], klass.handle_event(:tick, {count: 0})
+  end
+
   def test_handle_event_makes_widget_stateful
     klass = Class.new do
       include Plushie::Widget
