@@ -57,13 +57,32 @@ class TestRendererEnv < Minitest::Test
   end
 
   def test_build_sets_rust_log
-    env = RE.build(log_level: :debug)
-    assert_equal "plushie=debug", env["RUST_LOG"]
+    without_rust_log do
+      env = RE.build(log_level: :debug)
+      assert_equal "plushie=debug", env["RUST_LOG"]
+    end
   end
 
   def test_build_default_rust_log_is_error
-    env = RE.build
-    assert_equal "plushie=error", env["RUST_LOG"]
+    without_rust_log do
+      env = RE.build
+      assert_equal "plushie=error", env["RUST_LOG"]
+    end
+  end
+
+  def test_build_preserves_inherited_rust_log
+    original = ENV["RUST_LOG"]
+    ENV["RUST_LOG"] = "plushie=trace,wgpu=warn"
+    begin
+      env = RE.build(log_level: :error)
+      assert_equal "plushie=trace,wgpu=warn", env["RUST_LOG"]
+    ensure
+      if original
+        ENV["RUST_LOG"] = original
+      else
+        ENV.delete("RUST_LOG")
+      end
+    end
   end
 
   def test_build_sets_rust_backtrace
@@ -140,10 +159,26 @@ class TestRendererEnv < Minitest::Test
   end
 
   def test_rust_log_levels
-    assert_equal "off", RE.build(log_level: :off)["RUST_LOG"]
-    assert_equal "plushie=warn", RE.build(log_level: :warning)["RUST_LOG"]
-    assert_equal "plushie=warn", RE.build(log_level: :warn)["RUST_LOG"]
-    assert_equal "plushie=info", RE.build(log_level: :info)["RUST_LOG"]
-    assert_equal "plushie=trace", RE.build(log_level: :trace)["RUST_LOG"]
+    without_rust_log do
+      assert_equal "off", RE.build(log_level: :off)["RUST_LOG"]
+      assert_equal "plushie=warn", RE.build(log_level: :warning)["RUST_LOG"]
+      assert_equal "plushie=warn", RE.build(log_level: :warn)["RUST_LOG"]
+      assert_equal "plushie=info", RE.build(log_level: :info)["RUST_LOG"]
+      assert_equal "plushie=trace", RE.build(log_level: :trace)["RUST_LOG"]
+    end
+  end
+
+  private
+
+  def without_rust_log
+    original = ENV["RUST_LOG"]
+    ENV.delete("RUST_LOG")
+    yield
+  ensure
+    if original
+      ENV["RUST_LOG"] = original
+    else
+      ENV.delete("RUST_LOG")
+    end
   end
 end

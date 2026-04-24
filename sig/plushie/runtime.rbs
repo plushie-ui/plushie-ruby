@@ -3,12 +3,16 @@ module Plushie
     include Commands
     include Subscriptions
 
+    SDK_LOG_LEVELS: Hash[Symbol, Integer]
+    DEFAULT_LOG_LEVEL: untyped
+
     @app: untyped
     @transport: Symbol | Array[untyped]
     @format: Symbol
     @daemon: bool
     @binary: String?
     @log_level: Symbol
+    @log_level_explicit: bool
     @token: String?
     @dev: bool
     @dev_dirs: Array[String]?
@@ -73,6 +77,8 @@ module Plushie
     # Lifecycle
     def start_dev_server: () -> void
     def initialize_app: () -> void
+    def sdk_log_level: (untyped level) -> Integer
+    def renderer_log_level: (untyped level) -> Symbol
 
     # Event loop
     def event_loop: () -> void

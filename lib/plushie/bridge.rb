@@ -17,6 +17,18 @@ module Plushie
   # - +[:renderer_exited, reason]+ when the connection drops
   # - +[:renderer_restarted]+ after a successful reconnect
   class Bridge
+    SDK_LOG_LEVELS = {
+      off: Logger::UNKNOWN,
+      error: Logger::ERROR,
+      warning: Logger::WARN,
+      warn: Logger::WARN,
+      info: Logger::INFO,
+      debug: Logger::DEBUG,
+      trace: Logger::DEBUG
+    }.freeze
+    DEFAULT_LOG_LEVEL = Object.new.freeze
+    private_constant :DEFAULT_LOG_LEVEL
+
     # Exponential backoff parameters. Shared with the other host
     # SDKs (Elixir, Rust, Gleam, Python, TypeScript) so renderer
     # restart behavior is consistent across implementations.
@@ -38,7 +50,8 @@ module Plushie
     # @param format [:msgpack, :json] wire format
     # @param binary [String, nil] renderer binary path
     # @param transport [:spawn, :stdio, Array(:iostream, adapter)] transport mode
-    # @param log_level [Symbol] renderer log level
+    # @param log_level [Symbol] SDK logger level and fallback renderer log level.
+    #   Omitted keeps the SDK logger at warn and the renderer fallback at error.
     # @param token [String, nil] authentication token for the renderer
     # Default watchdog interval in seconds. Set to nil to disable.
     DEFAULT_HEARTBEAT_INTERVAL = 30
@@ -46,13 +59,13 @@ module Plushie
     # @param heartbeat_interval [Numeric, nil] max seconds between renderer
     #   messages before triggering a restart. nil disables the watchdog.
     def initialize(event_queue:, format: :msgpack, binary: nil,
-      transport: :spawn, log_level: :error, token: nil,
+      transport: :spawn, log_level: DEFAULT_LOG_LEVEL, token: nil,
       heartbeat_interval: DEFAULT_HEARTBEAT_INTERVAL)
       @event_queue = event_queue
       @format = format
       @binary = binary
       @transport = transport
-      @log_level = log_level
+      @log_level = renderer_log_level(log_level)
       @token = token
       @connection = nil
       @retry_count = 0
@@ -61,7 +74,7 @@ module Plushie
       @heartbeat_timer = nil
       @forwarder_thread = nil
       @conn_queue = nil
-      @logger = Logger.new($stderr, level: :warn, progname: "plushie")
+      @logger = Logger.new($stderr, level: sdk_log_level(log_level), progname: "plushie")
     end
 
     # Start the connection and perform handshake.
@@ -148,6 +161,18 @@ module Plushie
     rescue => e
       handle_connect_failure(e)
       false
+    end
+
+    def sdk_log_level(level)
+      return Logger::WARN if level.equal?(DEFAULT_LOG_LEVEL)
+
+      SDK_LOG_LEVELS.fetch(level, Logger::ERROR)
+    end
+
+    def renderer_log_level(level)
+      return :error if level.equal?(DEFAULT_LOG_LEVEL)
+
+      level
     end
 
     def start_forwarder(conn_queue)

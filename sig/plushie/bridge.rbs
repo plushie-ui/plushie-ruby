@@ -3,6 +3,8 @@ module Plushie
     BACKOFF_BASE_MS: Integer
     BACKOFF_MAX_MS: Integer
     MAX_RETRIES: Integer
+    SDK_LOG_LEVELS: Hash[Symbol, Integer]
+    DEFAULT_LOG_LEVEL: untyped
 
     attr_reader format: Symbol
     attr_reader hello: Hash[Symbol, untyped]?
@@ -40,6 +42,8 @@ module Plushie
     private
 
     def connect!: () -> void
+    def sdk_log_level: (untyped level) -> Integer
+    def renderer_log_level: (untyped level) -> Symbol
     def start_forwarder: (Thread::Queue conn_queue) -> Thread
     def attempt_restart: () -> void
     def cancel_heartbeat_timer: () -> void

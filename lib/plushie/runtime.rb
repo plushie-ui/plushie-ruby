@@ -19,6 +19,18 @@ module Plushie
     include Commands
     include Subscriptions
 
+    SDK_LOG_LEVELS = {
+      off: Logger::UNKNOWN,
+      error: Logger::ERROR,
+      warning: Logger::WARN,
+      warn: Logger::WARN,
+      info: Logger::INFO,
+      debug: Logger::DEBUG,
+      trace: Logger::DEBUG
+    }.freeze
+    DEFAULT_LOG_LEVEL = Object.new.freeze
+    private_constant :DEFAULT_LOG_LEVEL
+
     # Accessors for Runtime submodules (Windows, etc.).
     attr_reader :app, :model, :logger
 
@@ -27,12 +39,13 @@ module Plushie
     # @param format [:msgpack, :json] wire format
     # @param daemon [Boolean] keep running after last window closes
     # @param binary [String, nil] renderer binary path
-    # @param log_level [Symbol] renderer log level
+    # @param log_level [Symbol] SDK logger level and fallback renderer log level.
+    #   Omitted keeps the SDK logger at warn and the renderer fallback at error.
     # @param token [String, nil] authentication token for the renderer
     # @param dev [Boolean] enable live code reloading via DevServer
     # @param dev_dirs [Array<String>, nil] directories to watch (default: ["lib/"])
     def initialize(app:, transport: :spawn, format: :msgpack, daemon: false,
-      binary: nil, log_level: :error, token: nil, dev: false, dev_dirs: nil)
+      binary: nil, log_level: DEFAULT_LOG_LEVEL, token: nil, dev: false, dev_dirs: nil)
       validate_app!(app)
       validate_transport!(transport)
 
@@ -41,7 +54,8 @@ module Plushie
       @format = format
       @daemon = daemon
       @binary = binary
-      @log_level = log_level
+      @log_level_explicit = !log_level.equal?(DEFAULT_LOG_LEVEL)
+      @log_level = renderer_log_level(log_level)
       @token = token
       @dev = dev
       @dev_dirs = dev_dirs
@@ -88,7 +102,7 @@ module Plushie
       @restarting = false
       @runtime_thread = nil
 
-      @logger = Logger.new($stderr, level: :warn, progname: "plushie")
+      @logger = Logger.new($stderr, level: sdk_log_level(log_level), progname: "plushie")
     end
 
     # Run the event loop in the calling thread (blocking).
@@ -250,14 +264,24 @@ module Plushie
     # -- Lifecycle -----------------------------------------------------------
 
     def start_bridge
-      @bridge = Bridge.new(
-        event_queue: @event_queue,
-        format: @format,
-        binary: @binary,
-        transport: @transport,
-        log_level: @log_level,
-        token: @token
-      )
+      @bridge = if @log_level_explicit
+        Bridge.new(
+          event_queue: @event_queue,
+          format: @format,
+          binary: @binary,
+          transport: @transport,
+          log_level: @log_level,
+          token: @token
+        )
+      else
+        Bridge.new(
+          event_queue: @event_queue,
+          format: @format,
+          binary: @binary,
+          transport: @transport,
+          token: @token
+        )
+      end
       bridge = @bridge or raise Plushie::Error, "bridge not started"
       bridge.start(settings: build_settings)
     end
@@ -274,6 +298,18 @@ module Plushie
       settings = settings.merge(widget_config: wc) if wc && !wc.empty?
       settings = settings.merge(validate_props: true) if Plushie.configuration.validate_props
       settings
+    end
+
+    def sdk_log_level(level)
+      return Logger::WARN if level.equal?(DEFAULT_LOG_LEVEL)
+
+      SDK_LOG_LEVELS.fetch(level, Logger::ERROR)
+    end
+
+    def renderer_log_level(level)
+      return :error if level.equal?(DEFAULT_LOG_LEVEL)
+
+      level
     end
 
     def start_dev_server

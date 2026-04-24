@@ -86,7 +86,7 @@ module Plushie
     # Returns a Hash where:
     # - Whitelisted vars map to their current values
     # - Non-whitelisted vars map to nil (which unsets them)
-    # - RUST_LOG is set based on the log_level parameter
+    # - RUST_LOG is inherited when set, otherwise derived from log_level
     #
     # @param log_level [Symbol] :off, :error, :warning, :info, :debug
     # @return [Hash{String => String, nil}] environment for subprocess
@@ -102,9 +102,7 @@ module Plushie
         end
       end
 
-      # Set RUST_LOG based on configured level (overrides inherited value)
-      rust_log = RUST_LOG_LEVELS.fetch(log_level, "plushie=error")
-      env["RUST_LOG"] = rust_log
+      env["RUST_LOG"] ||= RUST_LOG_LEVELS.fetch(log_level, "plushie=error")
 
       # Ensure RUST_BACKTRACE is set for diagnostics
       env["RUST_BACKTRACE"] ||= "1"
