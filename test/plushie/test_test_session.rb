@@ -32,10 +32,21 @@ class TestTestSession < Minitest::Test
 
     def initialize
       @messages = []
+      @responses = []
     end
 
     def send_message(message, session_id)
       @messages << [message, session_id]
+    end
+
+    def queue_response(response)
+      @responses << response
+    end
+
+    def read_message(_session_id, **_kwargs)
+      raise Timeout::Error if @responses.empty?
+
+      @responses.shift
     end
   end
 
@@ -102,6 +113,46 @@ class TestTestSession < Minitest::Test
     assert_includes stderr, "ArgumentError: update failed for fail"
   end
 
+  def test_interact_is_quiet_for_unexpected_response_without_debug
+    session = build_session
+    pool = session.instance_variable_get(:@pool)
+    pool.queue_response({type: "new_message_family"})
+    pool.queue_response({type: "interact_response", events: []})
+
+    _stdout, stderr = without_debug do
+      capture_io { session.send(:interact, "press", nil, combo: "Enter") }
+    end
+
+    assert_empty stderr
+  end
+
+  def test_interact_warns_for_unexpected_response_with_debug
+    session = build_session
+    pool = session.instance_variable_get(:@pool)
+    pool.queue_response({type: "new_message_family"})
+    pool.queue_response({"type" => "interact_response", "events" => []})
+
+    _stdout, stderr = with_debug do
+      capture_io { session.send(:interact, "press", nil, combo: "Enter") }
+    end
+
+    assert_includes stderr, "plushie test: consumed unexpected interact response type"
+    assert_includes stderr, "new_message_family"
+  end
+
+  def test_interact_warns_plainly_when_unexpected_response_type_is_missing
+    session = build_session
+    pool = session.instance_variable_get(:@pool)
+    pool.queue_response({events: []})
+    pool.queue_response({type: "interact_response", events: []})
+
+    _stdout, stderr = with_debug do
+      capture_io { session.send(:interact, "press", nil, combo: "Enter") }
+    end
+
+    assert_includes stderr, "plushie test: consumed unexpected interact response type: missing"
+  end
+
   private
 
   def build_session
@@ -118,6 +169,14 @@ class TestTestSession < Minitest::Test
   def without_debug
     previous = $DEBUG
     $DEBUG = false
+    yield
+  ensure
+    $DEBUG = previous
+  end
+
+  def with_debug
+    previous = $DEBUG
+    $DEBUG = true
     yield
   ensure
     $DEBUG = previous

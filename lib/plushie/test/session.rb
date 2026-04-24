@@ -295,6 +295,7 @@ module Plushie
               # Subscription events or other messages that arrive during interact
               # are silently consumed: test sessions don't fire subscriptions
               # in mock mode, and headless mode delivers them via interact_step.
+              warn_unexpected_interact_response(response)
             end
           end
         rescue Timeout::Error
@@ -432,6 +433,14 @@ module Plushie
 
       def warn_event_processing_error(event, error)
         warn "plushie test: error processing event #{event.inspect}: #{error.class}: #{error.message}"
+      end
+
+      def warn_unexpected_interact_response(response)
+        return unless $DEBUG
+
+        raw_type = response[:type] || response["type"]
+        type_desc = raw_type.nil? ? "missing" : raw_type.inspect
+        warn "plushie test: consumed unexpected interact response type: #{type_desc}"
       end
 
       # Parse a unified selector string into a wire-ready selector hash.
