@@ -1,5 +1,9 @@
 # frozen_string_literal: true
 
+require_relative "node"
+require_relative "canvas/shape"
+require_relative "ui"
+
 module Plushie
   # Create widget set modules that override built-in widget DSL methods.
   #
@@ -19,20 +23,25 @@ module Plushie
   # and +#build+ (returning a Node), matching the Widget.define API.
   #
   module WidgetSet
+    OVERRIDEABLE_WIDGET_METHODS = %i[
+      button canvas checkbox column combo_box container floating grid image
+      keyed_column markdown overlay pane_grid pick_list pin pointer_area
+      progress_bar qr_code radio responsive rich_text row rule scrollable
+      sensor slider space stack svg table table_row cell text text_editor
+      text_input themer toggler tooltip vertical_slider window
+    ].freeze
+    private_constant :OVERRIDEABLE_WIDGET_METHODS
+
     # Create a widget set module with the given overrides.
     #
     # @param overrides [Hash{Symbol => Class}] widget name -> replacement class
     # @return [Module] a module that can be included for the overridden DSL
     def self.create(**overrides)
-      # Validate all override names are actual UI methods
-      ui_methods = Plushie::UI.private_instance_methods(false) +
-        Plushie::UI.instance_methods(false)
-
       overrides.each_key do |name|
-        unless ui_methods.include?(name)
+        unless OVERRIDEABLE_WIDGET_METHODS.include?(name)
           raise ArgumentError,
             "#{name.inspect} is not a Plushie::UI widget method. " \
-            "Available: #{ui_methods.sort.inspect}"
+            "Available: #{OVERRIDEABLE_WIDGET_METHODS.sort.inspect}"
         end
       end
 

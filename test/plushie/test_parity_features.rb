@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "open3"
 require "plushie/widget/native_build"
 require "tmpdir"
 
@@ -251,9 +252,50 @@ class TestParityFeatures < Minitest::Test
   end
 
   def test_widget_set_rejects_invalid_override
-    assert_raises(ArgumentError) do
+    error = assert_raises(ArgumentError) do
       Plushie::WidgetSet.create(nonexistent_widget: FakeButton)
     end
+
+    assert_includes error.message, ":button"
+    refute_includes error.message, "_plushie_container"
+    refute_includes error.message, "_plushie_leaf"
+  end
+
+  def test_widget_set_rejects_private_helper_override
+    error = assert_raises(ArgumentError) do
+      Plushie::WidgetSet.create(_plushie_container: FakeColumn)
+    end
+
+    assert_includes error.message, "_plushie_container"
+    refute_includes error.message, "_plushie_leaf"
+  end
+
+  def test_widget_set_rejects_non_widget_dsl_helpers
+    %i[memo layer canvas_rect].each do |name|
+      error = assert_raises(ArgumentError) do
+        Plushie::WidgetSet.create(**{name => FakeColumn})
+      end
+
+      assert_includes error.message, "#{name.inspect} is not a Plushie::UI widget method"
+    end
+  end
+
+  def test_widget_set_direct_require_can_create_set
+    script = <<~RUBY
+      $LOAD_PATH.unshift("#{File.expand_path("../../lib", __dir__)}")
+      require "plushie/widget_set"
+      Plushie::WidgetSet.create(button: Class.new)
+      ui = Plushie::WidgetSet.create
+      object = Object.new
+      object.extend(ui)
+      node = object.send(:text, "hello")
+      raise "wrong node" unless node.type == "text" && node.props[:content] == "hello"
+      object.send(:canvas_group, x: 1, y: 2) {}
+    RUBY
+
+    _stdout, stderr, status = Open3.capture3(RbConfig.ruby, "-e", script)
+
+    assert status.success?, stderr
   end
 
   def test_widget_set_pushable_override_collects_block_children
