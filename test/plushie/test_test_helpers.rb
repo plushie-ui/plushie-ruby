@@ -5,17 +5,14 @@ require "plushie/test"
 require "plushie/test/helpers"
 
 class TestTestHelpers < Minitest::Test
-  # We test Session's internal helper methods (build_selector,
-  # element_text, find_similar_ids, levenshtein) by instantiating
-  # a minimal session-like object that exposes them.
-
-  # Thin wrapper that includes just the methods we want to test,
-  # extracted from Session via send (they're private there).
+  # We test Session's internal helper methods through a minimal wrapper
+  # that exposes the production private methods.
   class SessionStub
     attr_reader :interactions
 
     def initialize
       @interactions = []
+      @session = Plushie::Test::Session.allocate
     end
 
     def interact(action, selector, **payload)
@@ -23,68 +20,19 @@ class TestTestHelpers < Minitest::Test
     end
 
     def build_selector(selector)
-      case selector
-      when String
-        if selector.start_with?("#")
-          id = selector[1..]
-          {by: "id", value: id}
-        else
-          {by: "text", value: selector}
-        end
-      when Hash then selector
-      when :focused then {by: "focused"}
-      else {by: "text", value: selector.to_s}
-      end
+      @session.send(:build_selector, selector)
     end
 
     def element_text(element)
-      return nil unless element
-      props = element["props"] || element[:props] || {}
-      props["content"] || props["label"] || props["value"] || props["placeholder"]
+      @session.send(:element_text, element)
     end
 
     def find_similar_ids(target, all_ids, max: 3)
-      return [] if target.nil? || target.empty?
-
-      scored = all_ids.filter_map do |id|
-        local = id.split("/").last
-        if local.include?(target) || target.include?(local)
-          [id, 0]
-        else
-          dist = levenshtein(target.downcase, local.downcase)
-          (dist <= [target.length / 2, 3].max) ? [id, dist] : nil
-        end
-      end
-
-      scored.sort_by(&:last).first(max).map(&:first)
+      @session.send(:find_similar_ids, target, all_ids, max: max)
     end
 
     def levenshtein(a, b)
-      return b.length if a.empty?
-      return a.length if b.empty?
-
-      matrix = Array.new(a.length + 1) { |i|
-        Array.new(b.length + 1) { |j|
-          (if i.zero?
-             j
-           else
-             (j.zero? ? i : 0)
-           end)
-        }
-      }
-
-      (1..a.length).each do |i|
-        (1..b.length).each do |j|
-          cost = (a[i - 1] == b[j - 1]) ? 0 : 1
-          matrix[i][j] = [
-            matrix[i - 1][j] + 1,
-            matrix[i][j - 1] + 1,
-            matrix[i - 1][j - 1] + cost
-          ].min
-        end
-      end
-
-      matrix[a.length][b.length]
+      @session.send(:levenshtein, a, b)
     end
   end
 
@@ -96,12 +44,12 @@ class TestTestHelpers < Minitest::Test
 
   def test_hash_id_selector
     result = @s.build_selector("#save")
-    assert_equal({by: "id", value: "save"}, result)
+    assert_equal({by: "id", value: "save", window_id: nil}, result)
   end
 
-  def test_text_selector
+  def test_bare_string_selector
     result = @s.build_selector("Click me")
-    assert_equal({by: "text", value: "Click me"}, result)
+    assert_equal({by: "id", value: "Click me", window_id: nil}, result)
   end
 
   def test_hash_passthrough
@@ -168,6 +116,26 @@ class TestTestHelpers < Minitest::Test
     result = @s.find_similar_ids("conter", ids)
     # "counter" and "container" and "content" are all within distance
     refute_empty result
+  end
+
+  def test_find_similar_ids_keeps_short_substring_matches
+    ids = ["toolbar/x", "toolbar/zoom", "toolbar/cancel"]
+    assert_equal ["toolbar/x"], @s.find_similar_ids("x", ids)
+  end
+
+  def test_find_similar_ids_keeps_short_case_insensitive_substring_matches
+    ids = ["toolbar/x"]
+    assert_equal ["toolbar/x"], @s.find_similar_ids("X", ids)
+  end
+
+  def test_find_similar_ids_skips_short_fuzzy_matches
+    ids = ["toolbar/but", "toolbar/run", "toolbar/save"]
+    assert_empty @s.find_similar_ids("xy", ids)
+  end
+
+  def test_find_similar_ids_skips_short_reverse_substring_matches
+    ids = ["toolbar/x"]
+    assert_empty @s.find_similar_ids("xy", ids)
   end
 
   def test_find_similar_ids_max_results

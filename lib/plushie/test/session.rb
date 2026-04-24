@@ -633,11 +633,15 @@ module Plushie
 
         scored = all_ids.filter_map do |id|
           local = id.split("/").last
+          target_down = target.downcase
+          local_down = local.downcase
           # Exact substring match scores highest
-          if local.include?(target) || target.include?(local)
+          if local_down.include?(target_down) || (target.length >= 3 && target_down.include?(local_down))
             [id, 0]
+          elsif target.length < 3
+            nil
           else
-            dist = levenshtein(target.downcase, local.downcase)
+            dist = levenshtein(target_down, local_down)
             (dist <= [target.length / 2, 3].max) ? [id, dist] : nil
           end
         end
