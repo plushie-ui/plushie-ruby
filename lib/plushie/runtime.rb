@@ -97,7 +97,7 @@ module Plushie
       @pending_runtime_events = [] # : Array[untyped]
       @pending_stub_acks = {}  # kind -> Queue (for sync ack round-trip)
       @pending_await_async = {} # tag -> Queue (for sync await)
-      @pending_interact = nil   # {id:, action:, selector:, result_queue:} for current interact
+      @pending_interact = nil   # {id:, action:, selector:, result_queue:, timeout_timer:} for current interact
       @tracked_windows = Set.new # active window IDs
       @restarting = false
       @runtime_thread = nil
