@@ -154,7 +154,7 @@ module Plushie
 
     # Resync helpers
     def send_settings: () -> void
-    def flush_pending_effects_on_exit: () -> void
+    def flush_pending_effects_on_exit: (untyped result, ?execute_returned_commands: bool execute_returned_commands) -> void
     def flush_pending_stub_acks: () -> void
     def reset_renderer_subscriptions: () -> void
 

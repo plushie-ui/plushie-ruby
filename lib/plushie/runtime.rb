@@ -815,7 +815,7 @@ module Plushie
       renderer_exit = build_renderer_exit(reason)
       @logger.warn("plushie: renderer exited: #{renderer_exit.message}")
       fail_pending_interact("renderer_exited")
-      flush_pending_effects_on_exit
+      flush_pending_effects_on_exit(Event::Effect::Result::RendererRestarted.new)
       flush_pending_stub_acks
       @canvas_widgets = {}
       @widget_statuses = {}
@@ -850,7 +850,7 @@ module Plushie
 
       # Clear stale interaction state from the old renderer.
       fail_pending_interact("renderer_restarted")
-      flush_pending_effects_on_exit
+      flush_pending_effects_on_exit(Event::Effect::Result::RendererRestarted.new)
       flush_pending_stub_acks
       @canvas_widgets = {}
       @widget_statuses = {}
@@ -1162,7 +1162,7 @@ module Plushie
     # app can react. Each effect is removed individually before its
     # error event so new effects started during the flush survive.
     # Rendering is skipped since the renderer is dead.
-    def flush_pending_effects_on_exit
+    def flush_pending_effects_on_exit(effect_result, execute_returned_commands: true)
       ids = @pending_effects.keys
       ids.each do |id|
         timer = @pending_effects.delete(id)
@@ -1172,12 +1172,12 @@ module Plushie
         @effect_tags.delete(tag) if tag
         next unless tag
 
-        event = Event::Effect.new(tag: tag, result: Event::Effect::Result::RendererRestarted.new)
+        event = Event::Effect.new(tag: tag, result: effect_result)
         saved_model = @model
         begin
-          result = @app.update(@model, event)
-          @model, commands = unwrap_result(result)
-          execute_commands(commands)
+          update_result = @app.update(@model, event)
+          @model, commands = unwrap_result(update_result)
+          execute_commands(commands) if execute_returned_commands
         rescue => e
           @model = saved_model
           handle_callback_error("update (effect flush)", e)
@@ -1248,7 +1248,10 @@ module Plushie
         entry[:thread]&.join(0.5)
       end
       @async_tasks.clear
-      flush_pending_effects_on_exit
+      flush_pending_effects_on_exit(
+        Event::Effect::Result::Cancelled.new,
+        execute_returned_commands: false
+      )
       @pending_coalesce.clear
       @coalesce_order = []
       @pending_timers.each_value do |entry|

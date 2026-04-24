@@ -65,9 +65,7 @@ class TestRuntimeSubscriptions < Minitest::Test
   end
 
   def teardown
-    @runner.subscriptions.each_value do |entry|
-      @runner.stop_timer(entry[:tag]) if entry[:sub_type] == :timer
-    end
+    @runner.instance_variable_get(:@timer_scheduler).stop
   end
 
   # -- Adding a renderer subscription sends subscribe ---------------------

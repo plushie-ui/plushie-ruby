@@ -20,6 +20,7 @@ module Plushie
       @pipe_r, @pipe_w = IO.pipe
       @timers = {}
       @mutex = Mutex.new
+      @stop_mutex = Mutex.new
       @thread = Thread.new { run_loop }
       @thread.name = "plushie-timer-scheduler"
     end
@@ -42,10 +43,18 @@ module Plushie
     end
 
     def stop
-      @thread&.kill
-      @thread = nil
-      @pipe_r&.close
-      @pipe_w&.close
+      thread = nil
+      @stop_mutex.synchronize do
+        thread = @thread
+        @thread = nil
+        @pipe_w&.close unless @pipe_w&.closed?
+        @pipe_r&.close unless @pipe_r&.closed?
+      end
+      return unless thread
+      return if thread == Thread.current
+
+      thread.kill
+      thread.join(0.5)
     end
 
     private
