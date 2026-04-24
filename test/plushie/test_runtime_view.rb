@@ -90,6 +90,16 @@ class TestRuntimeView < Minitest::Test
     end
   end
 
+  class LeakyReason
+    def inspect = "/secret/config.yml token=abc"
+  end
+
+  class LeakyClassReason
+    def class
+      Struct.new(:name).new("/secret/config.yml token=abc")
+    end
+  end
+
   def runtime_for(view_tree)
     runtime = Plushie::Runtime.new(app: ViewApp.new(view_tree), transport: :spawn, format: :json)
     runtime.instance_variable_set(:@logger, Logger.new(IO::NULL))
@@ -142,6 +152,75 @@ class TestRuntimeView < Minitest::Test
     assert_equal tree, runtime.instance_variable_get(:@previous_tree)
     assert_equal :connection_lost, app.renderer_exits.first.type
     refute runtime.instance_variable_get(:@running)
+  end
+
+  def test_renderer_exit_callback_receives_sanitized_crash
+    runtime = runtime_for(window("main") { text("msg", "hi") })
+    app = runtime.instance_variable_get(:@app)
+    runtime.instance_variable_set(:@model, :model)
+    runtime.instance_variable_set(:@running, true)
+    error = RuntimeError.new("/secret/config.yml token=abc")
+
+    runtime.send(:handle_renderer_exit, error)
+
+    exit = app.renderer_exits.first
+    assert_equal :crash, exit.type
+    assert_equal "renderer exited unexpectedly", exit.message
+    assert_equal({exception_class: "RuntimeError"}, exit.details)
+    refute_includes exit.message, "/secret"
+    refute_includes exit.details.inspect, "/secret"
+  end
+
+  def test_renderer_exit_sanitizes_connection_error
+    runtime = runtime_for(window("main") { text("msg", "hi") })
+    error = IOError.new("/secret/renderer.sock token=abc")
+
+    exit = runtime.send(:build_renderer_exit, {type: :connection_error, error: error})
+
+    assert_equal :crash, exit.type
+    assert_equal "renderer connection error", exit.message
+    assert_equal({error_class: "IOError"}, exit.details)
+    refute_same error, exit.details
+    refute_includes exit.message, "/secret"
+    refute_includes exit.details.inspect, "/secret"
+  end
+
+  def test_renderer_exit_sanitizes_exception_reason
+    runtime = runtime_for(window("main") { text("msg", "hi") })
+    error = RuntimeError.new("/secret/config.yml token=abc")
+
+    exit = runtime.send(:build_renderer_exit, error)
+
+    assert_equal :crash, exit.type
+    assert_equal "renderer exited unexpectedly", exit.message
+    assert_equal({exception_class: "RuntimeError"}, exit.details)
+    refute_same error, exit.details
+    refute_includes exit.message, "/secret"
+    refute_includes exit.details.inspect, "/secret"
+  end
+
+  def test_renderer_exit_sanitizes_arbitrary_reason
+    runtime = runtime_for(window("main") { text("msg", "hi") })
+    reason = LeakyReason.new
+
+    exit = runtime.send(:build_renderer_exit, reason)
+
+    assert_equal :crash, exit.type
+    assert_equal "renderer exited unexpectedly", exit.message
+    assert_equal({reason_type: "TestRuntimeView::LeakyReason"}, exit.details)
+    refute_same reason, exit.details
+    refute_includes exit.message, "/secret"
+    refute_includes exit.details.inspect, "/secret"
+  end
+
+  def test_renderer_exit_sanitizes_overridden_class
+    runtime = runtime_for(window("main") { text("msg", "hi") })
+    reason = LeakyClassReason.new
+
+    exit = runtime.send(:build_renderer_exit, reason)
+
+    assert_equal({reason_type: "TestRuntimeView::LeakyClassReason"}, exit.details)
+    refute_includes exit.details.inspect, "/secret"
   end
 
   def test_renderer_restart_clears_memo_cache_before_snapshot

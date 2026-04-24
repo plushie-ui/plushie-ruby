@@ -24,7 +24,7 @@ module Plushie
   #
   # @!attribute [r] type [Symbol] exit category (:crash, :connection_lost, :shutdown, :heartbeat_timeout)
   # @!attribute [r] message [String] human-readable description
-  # @!attribute [r] details [Object, nil] additional context (exception, exit status, etc.)
+  # @!attribute [r] details [Hash, nil] safe structured context
   RENDERER_EXIT_TYPES = %i[crash connection_lost shutdown heartbeat_timeout].freeze
 
   RendererExit = Data.define(:type, :message, :details) do

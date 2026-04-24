@@ -130,6 +130,7 @@ module Plushie
     def handle_renderer_restarted: () -> void
     def fail_pending_interact: (String reason) -> void
     def build_renderer_exit: (untyped reason) -> untyped
+    def safe_class_name: (untyped value) -> String
 
     # Init validation
     def validate_app!: (untyped app) -> void

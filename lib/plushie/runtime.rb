@@ -1242,22 +1242,26 @@ module Plushie
       in {type: :connection_error, error:}
         RendererExit.new(
           type: :crash,
-          message: "renderer connection error: #{error}",
-          details: error
+          message: "renderer connection error",
+          details: {error_class: safe_class_name(error)}
         )
       in Exception
         RendererExit.new(
           type: :crash,
-          message: "renderer exited unexpectedly: #{reason.message}",
-          details: reason
+          message: "renderer exited unexpectedly",
+          details: {exception_class: safe_class_name(reason)}
         )
       else
         RendererExit.new(
           type: :crash,
-          message: "renderer exited unexpectedly: #{reason.inspect}",
-          details: reason
+          message: "renderer exited unexpectedly",
+          details: {reason_type: safe_class_name(reason)}
         )
       end
+    end
+
+    def safe_class_name(value)
+      Object.instance_method(:class).bind_call(value).name || "anonymous"
     end
 
     # -- Shutdown ------------------------------------------------------------
