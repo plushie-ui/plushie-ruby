@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "stringio"
 
 class TestRuntimeEffectShutdown < Minitest::Test
   class EffectApp
@@ -92,6 +93,24 @@ class TestRuntimeEffectShutdown < Minitest::Test
     assert_equal 1, app.events.length
     assert_empty runtime.instance_variable_get(:@pending_effects)
     assert_empty runtime.instance_variable_get(:@effect_tags)
+  end
+
+  def test_nil_effect_response_wire_id_is_logged_for_debugging
+    app = EffectApp.new
+    runtime = runtime_for(app)
+    log_io = StringIO.new
+    logger = Logger.new(log_io)
+    logger.level = Logger::DEBUG
+    logger.formatter = ->(_severity, _time, _progname, message) { "#{message}\n" }
+    runtime.instance_variable_set(:@logger, logger)
+
+    runtime.send(:dispatch_event, {type: :effect_response, wire_id: nil, status: :ok, payload: nil})
+
+    assert_equal(
+      "plushie: effect response with nil wire_id: {type: :effect_response, wire_id: nil, status: :ok, payload: nil}\n",
+      log_io.string
+    )
+    assert_empty app.events
   end
 
   def test_renderer_exit_flush_reports_pending_effect_as_renderer_restarted
