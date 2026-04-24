@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "timeout"
 
 class TestRuntimeCommands < Minitest::Test
   C = Plushie::Command
@@ -42,6 +43,8 @@ class TestRuntimeCommands < Minitest::Test
       @dispatch_depth = 0
       @diagnostics = []
       @diagnostics_mutex = Mutex.new
+      @pending_runtime_events = []
+      @runtime_thread = nil
     end
 
     attr_accessor :dispatch_depth
@@ -115,6 +118,27 @@ class TestRuntimeCommands < Minitest::Test
     assert_equal :dispatched_event, msg[0]
     assert_equal 1, msg[1]
     assert_equal [:got, "payload"], msg[2]
+  end
+
+  def test_done_from_runtime_thread_does_not_block_when_mailbox_is_full
+    full_queue = Plushie::BoundedQueue.new(1)
+    full_queue.push(:already_waiting)
+    @runner.instance_variable_set(:@event_queue, full_queue)
+    @runner.instance_variable_set(:@runtime_thread, Thread.current)
+
+    mapper = ->(v) { [:got, v] }
+    cmd = C.dispatch("payload", mapper)
+
+    Timeout.timeout(0.1) { @runner.execute_commands(cmd) }
+
+    pending = @runner.instance_variable_get(:@pending_runtime_events)
+    assert_equal :already_waiting, full_queue.pop
+    assert_equal [
+      {
+        message: [:dispatched_event, 1, [:got, "payload"]],
+        remaining: 1
+      }
+    ], pending
   end
 
   # -- :done guards against runaway dispatch chains ------------------------

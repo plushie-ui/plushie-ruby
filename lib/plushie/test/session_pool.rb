@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "timeout"
+require_relative "../bounded_queue"
 
 module Plushie
   module Test
@@ -28,6 +29,7 @@ module Plushie
         @binary = binary
         @connection = nil
         @sessions = {}  # session_id -> Thread::Queue
+        @stashes = {}   # session_id -> Array
         @counter = 0
         @mutex = Mutex.new
         @started = false
@@ -58,7 +60,8 @@ module Plushie
           end
           @counter += 1
           session_id = "test_#{@counter}"
-          @sessions[session_id] = Thread::Queue.new
+          @sessions[session_id] = BoundedQueue.new(BoundedQueue::SESSION_CAPACITY)
+          @stashes[session_id] = []
           session_id
         end
       end
@@ -74,7 +77,10 @@ module Plushie
         rescue Timeout::Error
           # Timeout on reset or session_closed is not fatal
         end
-        @mutex.synchronize { @sessions.delete(session_id) }
+        @mutex.synchronize do
+          @sessions.delete(session_id)
+          @stashes.delete(session_id)
+        end
       end
 
       # Send a message for a session (fire-and-forget).
@@ -105,8 +111,14 @@ module Plushie
       # @param timeout [Numeric] max wait time in seconds
       # @return [Object] the decoded message
       def read_message(session_id, timeout: 10)
-        queue = @mutex.synchronize { @sessions[session_id] }
-        raise "Unknown session: #{session_id}" unless queue
+        stashed, queue = @mutex.synchronize do
+          queue = @sessions[session_id]
+          raise "Unknown session: #{session_id}" unless queue
+
+          stash = @stashes.fetch(session_id)
+          [stash.empty? ? nil : stash.shift, queue]
+        end
+        return stashed unless stashed.nil?
 
         msg = nil
         Timeout.timeout(timeout) { msg = queue.pop }
@@ -116,7 +128,10 @@ module Plushie
       # Stop the pool and close the renderer.
       def stop
         @connection&.close
-        @mutex.synchronize { @sessions.clear }
+        @mutex.synchronize do
+          @sessions.clear
+          @stashes.clear
+        end
         @started = false
       end
 
@@ -133,7 +148,7 @@ module Plushie
         return if session_id.nil? || session_id.empty?
 
         queue = @mutex.synchronize { @sessions[session_id] }
-        queue&.push(msg)
+        BoundedQueue.push(queue, msg) if queue
       end
 
       # Extract session ID from a message (handles both Hash and event structs).
@@ -157,9 +172,10 @@ module Plushie
           msg_type = extract_type(msg)
 
           if msg_type == response_type
-            # Re-queue stashed messages
-            queue = @mutex.synchronize { @sessions[session_id] }
-            stash.each { |m| queue&.push(m) } if queue
+            @mutex.synchronize do
+              session_stash = @stashes[session_id]
+              session_stash&.unshift(*stash)
+            end
             return msg
           else
             stash << msg

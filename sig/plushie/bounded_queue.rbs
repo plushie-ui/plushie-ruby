@@ -1,0 +1,13 @@
+module Plushie
+  module BoundedQueue
+    EVENT_CAPACITY: Integer
+    CONNECTION_CAPACITY: Integer
+    SESSION_CAPACITY: Integer
+
+    def self.new: (?Integer capacity) -> Thread::Queue[untyped]
+
+    def self.push: (Thread::Queue[untyped] queue, untyped item, ?timeout: Numeric?) -> untyped
+
+    def self.try_push: (Thread::Queue[untyped] queue, untyped item) -> untyped
+  end
+end

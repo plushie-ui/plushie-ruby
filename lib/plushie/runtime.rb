@@ -2,6 +2,7 @@
 
 require "logger"
 require "securerandom"
+require_relative "bounded_queue"
 require_relative "runtime/commands"
 require_relative "runtime/subscriptions"
 require_relative "runtime/windows"
@@ -45,7 +46,7 @@ module Plushie
       @dev = dev
       @dev_dirs = dev_dirs
 
-      @event_queue = Thread::Queue.new
+      @event_queue = BoundedQueue.new
       @model = nil
       @previous_tree = nil
       @bridge = nil
@@ -79,23 +80,27 @@ module Plushie
       @diagnostics = []        # accumulated prop validation diagnostics
       @diagnostics_mutex = Mutex.new
       @dispatch_depth = 0      # Command.dispatch chain position
+      @pending_runtime_events = [] # : Array[untyped]
       @pending_stub_acks = {}  # kind -> Queue (for sync ack round-trip)
       @pending_await_async = {} # tag -> Queue (for sync await)
       @pending_interact = nil   # {id:, result_queue:} for current interact
       @tracked_windows = Set.new # active window IDs
       @restarting = false
+      @runtime_thread = nil
 
       @logger = Logger.new($stderr, level: :warn, progname: "plushie")
     end
 
     # Run the event loop in the calling thread (blocking).
     def run
+      @runtime_thread = Thread.current
       start_bridge
       start_dev_server if @dev
       initialize_app
       event_loop
     ensure
       shutdown
+      @runtime_thread = nil
     end
 
     # Start the event loop in a background thread.
@@ -110,8 +115,19 @@ module Plushie
     # Stop a background runtime.
     def stop
       @running = false
-      @event_queue.push(:shutdown)
-      @loop_thread&.join(5)
+      enqueued = BoundedQueue.push(@event_queue, :shutdown, timeout: 1)
+      thread = @loop_thread
+      return unless thread
+      return if thread == Thread.current
+
+      unless enqueued
+        @event_queue.close if @event_queue.respond_to?(:close)
+        stop_thread(thread, timeout: 5)
+        return
+      end
+
+      joined = thread.join(5)
+      stop_thread(thread, timeout: 1) if joined.nil?
     end
 
     # Register an effect stub with the renderer.
@@ -122,7 +138,9 @@ module Plushie
     # @param timeout [Numeric] max wait in seconds
     def register_effect_stub(kind, response, timeout: 5)
       ack_queue = Thread::Queue.new
-      @event_queue.push([:register_effect_stub, kind, response, ack_queue])
+      enqueued = BoundedQueue.push(@event_queue, [:register_effect_stub, kind, response, ack_queue], timeout: Float(timeout))
+      raise Plushie::Error, "effect stub registration timed out for #{kind}" if enqueued.nil?
+
       result = ack_queue.pop(timeout: Float(timeout))
       raise Plushie::Error, "effect stub registration timed out for #{kind}" if result.nil?
 
@@ -136,7 +154,9 @@ module Plushie
     # @param timeout [Numeric] max wait in seconds
     def unregister_effect_stub(kind, timeout: 5)
       ack_queue = Thread::Queue.new
-      @event_queue.push([:unregister_effect_stub, kind, ack_queue])
+      enqueued = BoundedQueue.push(@event_queue, [:unregister_effect_stub, kind, ack_queue], timeout: Float(timeout))
+      raise Plushie::Error, "effect stub unregistration timed out for #{kind}" if enqueued.nil?
+
       result = ack_queue.pop(timeout: Float(timeout))
       raise Plushie::Error, "effect stub unregistration timed out for #{kind}" if result.nil?
 
@@ -195,7 +215,9 @@ module Plushie
     # @return [Array<Object>] events produced by the interaction
     def interact(action, selector = nil, payload = {}, timeout: 5)
       result_queue = Thread::Queue.new
-      @event_queue.push([:interact, action, selector, payload, result_queue])
+      enqueued = BoundedQueue.push(@event_queue, [:interact, action, selector, payload, result_queue], timeout: Float(timeout))
+      raise Plushie::Error, "interact timed out for #{action}" if enqueued.nil?
+
       result = result_queue.pop(timeout: Float(timeout))
       raise Plushie::Error, "interact timed out for #{action}" if result.nil?
       raise Plushie::Error, result[:error] if result.is_a?(Hash) && result[:error]
@@ -214,7 +236,9 @@ module Plushie
     # @return [:ok]
     def await_async(tag, timeout: 5)
       ack_queue = Thread::Queue.new
-      @event_queue.push([:await_async, tag, ack_queue])
+      enqueued = BoundedQueue.push(@event_queue, [:await_async, tag, ack_queue], timeout: Float(timeout))
+      raise Plushie::Error, "await_async timed out for #{tag}" if enqueued.nil?
+
       result = ack_queue.pop(timeout: Float(timeout))
       raise Plushie::Error, "await_async timed out for #{tag}" if result.nil?
 
@@ -279,9 +303,11 @@ module Plushie
         # This mirrors Elixir's zero-delay send_after: coalescables
         # survive only until the next scheduler tick, and here the
         # "tick" is the boundary between inbound message batches.
-        flush_coalescables if !@pending_coalesce.empty? && @event_queue.empty?
+        if !@pending_coalesce.empty? && @event_queue.empty? && !pending_runtime_event_ready?
+          flush_coalescables
+        end
 
-        msg = @event_queue.pop
+        msg = next_event_message
         break if msg == :shutdown
 
         # A fresh entry into the event loop resets the
@@ -361,6 +387,31 @@ module Plushie
         else
           @logger.debug("plushie: unknown message: #{msg.inspect}")
         end
+      end
+    end
+
+    def next_event_message
+      return shift_pending_runtime_event if pending_runtime_event_ready?
+
+      msg = @event_queue.pop || :shutdown
+      advance_pending_runtime_events if msg != :shutdown
+      msg
+    end
+
+    def pending_runtime_event_ready?
+      entry = @pending_runtime_events.first
+      return false unless entry
+
+      entry[:remaining] <= 0 || @event_queue.empty?
+    end
+
+    def shift_pending_runtime_event
+      @pending_runtime_events.shift.fetch(:message)
+    end
+
+    def advance_pending_runtime_events
+      @pending_runtime_events.each do |entry|
+        entry[:remaining] -= 1 if entry[:remaining] > 0
       end
     end
 
@@ -955,7 +1006,7 @@ module Plushie
       queue = @event_queue
       timer = Thread.new do
         sleep(INTERACT_TIMEOUT_S)
-        queue.push([:interact_timeout, id])
+        BoundedQueue.push(queue, [:interact_timeout, id])
       end
       timer.name = "plushie-interact-timeout"
       @pending_interact = {id: id, result_queue: result_queue, timeout_timer: timer}

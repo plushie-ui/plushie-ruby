@@ -84,9 +84,9 @@ module Plushie
 
         thread = Thread.new do
           result = callable.call
-          queue.push([:async_result, tag, nonce, result])
+          BoundedQueue.push(queue, [:async_result, tag, nonce, result])
         rescue => e
-          queue.push([:async_result, tag, nonce, [:error, e]])
+          BoundedQueue.push(queue, [:async_result, tag, nonce, [:error, e]])
         end
         thread.name = "plushie-async-#{tag}"
 
@@ -106,13 +106,13 @@ module Plushie
         cancel_task(tag)
         nonce = rand(1 << 64)
         queue = @event_queue
-        emit = ->(value) { queue.push([:stream_value, tag, nonce, value]) }
+        emit = ->(value) { BoundedQueue.push(queue, [:stream_value, tag, nonce, value]) }
 
         thread = Thread.new do
           result = callable.call(emit)
-          queue.push([:async_result, tag, nonce, result])
+          BoundedQueue.push(queue, [:async_result, tag, nonce, result])
         rescue => e
-          queue.push([:async_result, tag, nonce, [:error, e]])
+          BoundedQueue.push(queue, [:async_result, tag, nonce, [:error, e]])
         end
         thread.name = "plushie-stream-#{tag}"
 
@@ -161,9 +161,24 @@ module Plushie
         end
 
         event = mapper.call(value)
-        @event_queue.push([:dispatched_event, next_depth, event])
+        enqueue_runtime_event([:dispatched_event, next_depth, event])
       rescue => e
         @logger.warn("plushie: Command.done mapper error: #{e.class}: #{e.message}")
+      end
+
+      def enqueue_runtime_event(message)
+        unless Thread.current == @runtime_thread
+          return BoundedQueue.push(@event_queue, message)
+        end
+
+        queued = BoundedQueue.try_push(@event_queue, message)
+        return queued if queued
+
+        @pending_runtime_events << {
+          message: message,
+          remaining: @event_queue.length
+        }
+        message
       end
 
       # Schedule a delayed event.
@@ -179,7 +194,7 @@ module Plushie
         nonce = rand(1 << 64)
         thread = Thread.new do
           sleep(delay_ms / 1000.0)
-          queue.push([:send_after_event, event, nonce])
+          BoundedQueue.push(queue, [:send_after_event, event, nonce])
         end
         thread.name = "plushie-timer"
         @pending_timers[event] = {thread: thread, nonce: nonce}
@@ -215,7 +230,7 @@ module Plushie
         queue = @event_queue
         timer = Thread.new do
           sleep(timeout / 1000.0)
-          queue.push([:effect_timeout, id])
+          BoundedQueue.push(queue, [:effect_timeout, id])
         end
         timer.name = "plushie-effect-timeout"
         @pending_effects[id] = timer

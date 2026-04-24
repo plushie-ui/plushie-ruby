@@ -2,6 +2,7 @@
 
 require "test_helper"
 require "json"
+require "stringio"
 
 class TestConnection < Minitest::Test
   class ThreadDouble
@@ -22,6 +23,50 @@ class TestConnection < Minitest::Test
     def stop
       @stopped = true
     end
+  end
+
+  class PrefixOnlyIO
+    attr_reader :reads
+
+    def initialize(length)
+      @length = length
+      @reads = []
+    end
+
+    def read(bytes)
+      @reads << bytes
+      raise "payload body should not be read" if @reads.length > 1
+
+      [@length].pack("N")
+    end
+  end
+
+  class GetsLimitIO
+    attr_reader :args
+
+    def initialize(line)
+      @line = line
+      @read = false
+    end
+
+    def gets(separator = nil, limit = nil)
+      @args = [separator, limit]
+      return nil if @read
+
+      @read = true
+      @line
+    end
+  end
+
+  def with_message_limit(limit)
+    framing = Plushie::Transport::Framing
+    original = framing.const_get(:MAX_MESSAGE_SIZE)
+    framing.send(:remove_const, :MAX_MESSAGE_SIZE)
+    framing.const_set(:MAX_MESSAGE_SIZE, limit)
+    yield
+  ensure
+    framing.send(:remove_const, :MAX_MESSAGE_SIZE)
+    framing.const_set(:MAX_MESSAGE_SIZE, original)
   end
 
   def test_validate_required_extensions_rejects_missing_native_extension
@@ -132,6 +177,78 @@ class TestConnection < Minitest::Test
     assert_equal payload, data
 
     rd.close
+  end
+
+  def test_msgpack_hello_rejects_oversized_prefix_without_reading_body
+    with_message_limit(16) do
+      stdout = PrefixOnlyIO.new(17)
+      conn = Plushie::Connection.allocate
+      conn.instance_variable_set(:@format, :msgpack)
+      conn.instance_variable_set(:@stdout, stdout)
+
+      err = assert_raises(Plushie::Transport::BufferOverflowError) do
+        conn.send(:read_one_message)
+      end
+
+      assert_equal 17, err.size
+      assert_equal 16, err.limit
+      assert_equal [4], stdout.reads
+    end
+  end
+
+  def test_json_hello_rejects_oversized_line_before_parsing
+    with_message_limit(8) do
+      stdout = GetsLimitIO.new("x" * 10)
+      conn = Plushie::Connection.allocate
+      conn.instance_variable_set(:@format, :json)
+      conn.instance_variable_set(:@stdout, stdout)
+
+      err = assert_raises(Plushie::Transport::BufferOverflowError) do
+        conn.send(:read_one_message)
+      end
+
+      assert_equal 10, err.size
+      assert_equal 8, err.limit
+      assert_equal ["\n", 10], stdout.args
+    end
+  end
+
+  def test_reader_dispatches_connection_error_for_oversized_json_line
+    with_message_limit(8) do
+      queue = Thread::Queue.new
+      conn = Plushie::Connection.allocate
+      conn.instance_variable_set(:@format, :json)
+      conn.instance_variable_set(:@stdout, StringIO.new("x" * 10))
+      conn.instance_variable_set(:@queue, queue)
+
+      conn.send(:reader_loop)
+
+      error = queue.pop
+      closed = queue.pop
+      assert_equal :connection_error, error[:type]
+      assert_kind_of Plushie::Transport::BufferOverflowError, error[:error]
+      assert_equal :connection_closed, closed[:type]
+    end
+  end
+
+  def test_reader_dispatches_connection_error_for_oversized_msgpack_prefix
+    with_message_limit(8) do
+      queue = Thread::Queue.new
+      stdout = PrefixOnlyIO.new(9)
+      conn = Plushie::Connection.allocate
+      conn.instance_variable_set(:@format, :msgpack)
+      conn.instance_variable_set(:@stdout, stdout)
+      conn.instance_variable_set(:@queue, queue)
+
+      conn.send(:reader_loop)
+
+      error = queue.pop
+      closed = queue.pop
+      assert_equal :connection_error, error[:type]
+      assert_kind_of Plushie::Transport::BufferOverflowError, error[:error]
+      assert_equal :connection_closed, closed[:type]
+      assert_equal [4], stdout.reads
+    end
   end
 
   # -- Thread-safe writes don't interleave ---------------------------------

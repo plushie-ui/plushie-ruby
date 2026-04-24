@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "logger"
+require_relative "bounded_queue"
 
 module Plushie
   # Renderer lifecycle manager.
@@ -111,7 +112,7 @@ module Plushie
     private
 
     def connect!
-      queue = Thread::Queue.new
+      queue = BoundedQueue.new(BoundedQueue::CONNECTION_CAPACITY)
       settings = @token ? @settings.merge(token: @token) : @settings
 
       @connection = case @transport
@@ -143,8 +144,10 @@ module Plushie
 
       # Forward messages from connection queue to event queue
       start_forwarder(queue)
+      true
     rescue => e
       handle_connect_failure(e)
+      false
     end
 
     def start_forwarder(conn_queue)
@@ -156,12 +159,12 @@ module Plushie
             case msg
             in {type: :connection_closed} | {type: :connection_error}
               cancel_heartbeat_timer
-              @event_queue.push([:renderer_exited, msg])
+              BoundedQueue.push(@event_queue, [:renderer_exited, msg])
               attempt_restart
               break
             else
               reset_heartbeat_timer
-              @event_queue.push([:renderer_event, msg])
+              BoundedQueue.push(@event_queue, [:renderer_event, msg])
             end
           rescue => e
             @logger.warn("plushie: bridge forwarder message error: #{e.class}: #{e.message}")
@@ -169,7 +172,7 @@ module Plushie
         end
       rescue => e
         cancel_heartbeat_timer
-        @event_queue.push([:renderer_exited, e])
+        BoundedQueue.push(@event_queue, [:renderer_exited, e])
       end.tap { |t| t.name = "plushie-bridge-forwarder" }
     end
 
@@ -183,13 +186,14 @@ module Plushie
       sleep(delay_ms / 1000.0)
       @connection&.close
 
-      connect!
+      return unless connect!
+
       # Notify the runtime that the renderer is back. The runtime owns
       # the resync flow: re-send settings, render, sync subscriptions.
-      @event_queue.push([:renderer_restarted])
+      BoundedQueue.push(@event_queue, [:renderer_restarted])
     rescue => e
       @logger.error("plushie: restart failed: #{e.class}: #{e.message}")
-      @event_queue.push([:renderer_exited, e]) if @retry_count >= MAX_RETRIES
+      BoundedQueue.push(@event_queue, [:renderer_exited, e]) if @retry_count >= MAX_RETRIES
     end
 
     def check_renderer_version(hello)
@@ -222,7 +226,7 @@ module Plushie
         # Push a synthetic close to the forwarder's connection queue so
         # it goes through the normal restart path (not directly to the
         # runtime, which would bypass the forwarder).
-        conn_queue&.push({type: :connection_closed, reason: :heartbeat_timeout})
+        BoundedQueue.push(conn_queue, {type: :connection_closed, reason: :heartbeat_timeout}) if conn_queue
       end
       @heartbeat_timer.name = "plushie-heartbeat"
     end
@@ -242,7 +246,7 @@ module Plushie
 
     def handle_connect_failure(error)
       @logger.error("plushie: connection failed: #{error.class}: #{error.message}")
-      @event_queue.push([:renderer_exited, error])
+      BoundedQueue.push(@event_queue, [:renderer_exited, error])
     end
   end
 end

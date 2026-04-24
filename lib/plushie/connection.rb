@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "open3"
+require_relative "bounded_queue"
 
 module Plushie
   # Low-level protocol client for the plushie renderer.
@@ -279,6 +280,8 @@ module Plushie
       when :msgpack then read_msgpack_loop
       when :json then read_json_loop
       end
+    rescue Transport::BufferOverflowError => e
+      dispatch_message({type: :connection_error, error: e})
     rescue IOError, Errno::EPIPE
       # Pipe closed: expected on shutdown
     ensure
@@ -287,7 +290,10 @@ module Plushie
 
     def read_msgpack_loop
       while (header = @stdout.read(4))
+        break unless header.bytesize == 4
+
         length = header.unpack1("N")
+        enforce_message_size!(length)
         data = @stdout.read(length)
         break if data.nil? || data.bytesize != length
 
@@ -298,8 +304,7 @@ module Plushie
     end
 
     def read_json_loop
-      @stdout.each_line do |line|
-        line = line.chomp
+      while (line = read_json_line)
         next if line.empty?
 
         msg = Protocol::Decode.decode(line, :json)
@@ -313,20 +318,39 @@ module Plushie
       when :msgpack
         header = @stdout.read(4)
         raise Error, "renderer closed before hello" unless header
+        raise Error, "incomplete hello message" unless header.bytesize == 4
+
         length = header.unpack1("N")
+        enforce_message_size!(length)
         data = @stdout.read(length)
         raise Error, "incomplete hello message" unless data&.bytesize == length
         data
       when :json
-        line = @stdout.gets
+        line = read_json_line
         raise Error, "renderer closed before hello" unless line
-        line.chomp
+        line
       end
+    end
+
+    def read_json_line
+      raw = @stdout.gets("\n", Transport::Framing::MAX_MESSAGE_SIZE + 2)
+      return nil unless raw
+
+      line = raw.chomp
+      enforce_message_size!(line.bytesize)
+      line
+    end
+
+    def enforce_message_size!(size)
+      limit = Transport::Framing::MAX_MESSAGE_SIZE
+      return if size <= limit
+
+      raise Transport::BufferOverflowError.new(size: size, limit: limit)
     end
 
     def dispatch_message(msg)
       if @queue
-        @queue.push(msg)
+        BoundedQueue.push(@queue, msg)
       elsif @on_message
         @on_message.call(msg)
       end

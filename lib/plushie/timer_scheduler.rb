@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require_relative "bounded_queue"
+
 module Plushie
   # Single-thread timer scheduler for timer subscriptions.
   #
@@ -77,7 +79,7 @@ module Plushie
         end
 
         timers_to_fire.each do |tag, queue|
-          queue.push([:timer_tick, tag])
+          BoundedQueue.push(queue, [:timer_tick, tag])
         end
 
         drain_pipe
