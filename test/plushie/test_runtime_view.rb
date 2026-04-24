@@ -278,7 +278,7 @@ class TestRuntimeView < Minitest::Test
 
     runtime.send(:handle_interact_timeout, "interact-1")
 
-    assert_equal({error: 'interact timed out for click selector={by: "id", value: "submit"}'}, result_queue.pop)
+    assert_equal({error: 'interact timed out: action=click selector={by: "id", value: "submit"}'}, result_queue.pop)
     assert_nil runtime.instance_variable_get(:@pending_interact)
     assert timer.killed
   end
@@ -296,7 +296,7 @@ class TestRuntimeView < Minitest::Test
 
     runtime.send(:handle_interact_timeout, "interact-1")
 
-    assert_equal({error: "interact timed out for press_key"}, result_queue.pop)
+    assert_equal({error: "interact timed out: action=press_key"}, result_queue.pop)
   end
 
   def test_handle_interact_timeout_warning_names_action_and_selector
@@ -316,9 +316,55 @@ class TestRuntimeView < Minitest::Test
     runtime.send(:handle_interact_timeout, "interact-2")
 
     assert_equal(
-      "plushie: interact type_text selector={by: \"id\", value: \"name\"} timed out (id interact-2)\n",
+      "plushie: interact timed out: action=type_text selector={by: \"id\", value: \"name\"} (id interact-2)\n",
       log_io.string
     )
+  end
+
+  def test_interact_enqueue_timeout_uses_labeled_message
+    runtime = runtime_for(window("main") { text("msg", "hi") })
+    queue = Plushie::BoundedQueue.new(1)
+    queue.close
+    runtime.instance_variable_set(:@event_queue, queue)
+
+    error = assert_raises(Plushie::Error) do
+      runtime.interact("click", {by: "id", value: "submit"}, timeout: 0)
+    end
+
+    assert_equal 'interact timed out: action=click selector={by: "id", value: "submit"}', error.message
+  end
+
+  def test_interact_wait_timeout_uses_labeled_message
+    runtime = runtime_for(window("main") { text("msg", "hi") })
+
+    error = assert_raises(Plushie::Error) do
+      runtime.interact("press_key", nil, timeout: 0)
+    end
+
+    assert_equal "interact timed out: action=press_key", error.message
+  end
+
+  def test_await_async_enqueue_timeout_uses_labeled_message
+    runtime = runtime_for(window("main") { text("msg", "hi") })
+    queue = Plushie::BoundedQueue.new(1)
+    queue.close
+    runtime.instance_variable_set(:@event_queue, queue)
+
+    error = assert_raises(Plushie::Error) do
+      runtime.await_async(:data_loaded, timeout: 0)
+    end
+
+    assert_equal "await_async timed out: tag=data_loaded", error.message
+  end
+
+  def test_await_async_wait_timeout_uses_labeled_message
+    runtime = runtime_for(window("main") { text("msg", "hi") })
+
+    error = assert_raises(Plushie::Error) do
+      runtime.await_async(:data_loaded, timeout: 0)
+    end
+
+    assert_equal "await_async timed out: tag=data_loaded", error.message
   end
 
   def test_render_and_patch_tracks_opened_windows_when_patch_send_fails

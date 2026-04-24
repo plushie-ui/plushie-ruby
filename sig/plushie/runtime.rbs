@@ -142,6 +142,8 @@ module Plushie
     INTERACT_TIMEOUT_S: Integer
     def handle_interact_timeout: (String id) -> void
     def format_interact_target: (String action, untyped selector) -> String
+    def format_interact_timeout: (String action, untyped selector) -> String
+    def format_await_async_timeout: (Symbol tag) -> String
 
     # View errors
     VIEW_ERROR_WARN_THRESHOLD: Integer

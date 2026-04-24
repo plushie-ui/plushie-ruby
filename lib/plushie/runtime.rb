@@ -230,10 +230,10 @@ module Plushie
     def interact(action, selector = nil, payload = {}, timeout: 5)
       result_queue = Thread::Queue.new
       enqueued = BoundedQueue.push(@event_queue, [:interact, action, selector, payload, result_queue], timeout: Float(timeout))
-      raise Plushie::Error, "interact timed out for #{action}" if enqueued.nil?
+      raise Plushie::Error, format_interact_timeout(action, selector) if enqueued.nil?
 
       result = result_queue.pop(timeout: Float(timeout))
-      raise Plushie::Error, "interact timed out for #{action}" if result.nil?
+      raise Plushie::Error, format_interact_timeout(action, selector) if result.nil?
       raise Plushie::Error, result[:error] if result.is_a?(Hash) && result[:error]
 
       result.is_a?(Hash) ? result.fetch(:events, []) : []
@@ -251,10 +251,10 @@ module Plushie
     def await_async(tag, timeout: 5)
       ack_queue = Thread::Queue.new
       enqueued = BoundedQueue.push(@event_queue, [:await_async, tag, ack_queue], timeout: Float(timeout))
-      raise Plushie::Error, "await_async timed out for #{tag}" if enqueued.nil?
+      raise Plushie::Error, format_await_async_timeout(tag) if enqueued.nil?
 
       result = ack_queue.pop(timeout: Float(timeout))
-      raise Plushie::Error, "await_async timed out for #{tag}" if result.nil?
+      raise Plushie::Error, format_await_async_timeout(tag) if result.nil?
 
       :ok
     end
@@ -1104,16 +1104,25 @@ module Plushie
       return unless pending && pending[:id] == id
 
       target = format_interact_target(pending[:action], pending[:selector])
-      @logger.warn("plushie: interact #{target} timed out (id #{id})")
+      @logger.warn("plushie: interact timed out: #{target} (id #{id})")
       @pending_interact = nil
       pending[:timeout_timer]&.kill
-      pending[:result_queue]&.push({error: "interact timed out for #{target}"})
+      pending[:result_queue]&.push({error: format_interact_timeout(pending[:action], pending[:selector])})
     end
 
     def format_interact_target(action, selector)
-      return action.to_s if selector.nil?
+      target = "action=#{action}"
+      return target if selector.nil?
 
-      "#{action} selector=#{selector.inspect}"
+      "#{target} selector=#{selector.inspect}"
+    end
+
+    def format_interact_timeout(action, selector)
+      "interact timed out: #{format_interact_target(action, selector)}"
+    end
+
+    def format_await_async_timeout(tag)
+      "await_async timed out: tag=#{tag}"
     end
 
     # Process an event through update + commands WITHOUT rendering.
