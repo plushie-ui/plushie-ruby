@@ -219,6 +219,32 @@ namespace :plushie do
   desc "Run all CI checks (mirrors .github/workflows/ci.yml)"
   task :preflight do
     require "plushie"
+
+    # When PLUSHIE_RUST_SOURCE_PATH points at a plushie-rust checkout,
+    # rebuild plushie-renderer from that source first and export
+    # PLUSHIE_BINARY_PATH so the headless test run uses the fresh binary.
+    # Tests exercise the real renderer over the wire, so a stale binary
+    # hides real bugs and surfaces phantom ones. Without the variable
+    # set, the existing binary resolution chain runs unchanged.
+    if (source = ENV["PLUSHIE_RUST_SOURCE_PATH"]) && !source.empty?
+      workspace = File.expand_path(source)
+      manifest = File.join(workspace, "Cargo.toml")
+      unless File.exist?(manifest)
+        abort "PLUSHIE_RUST_SOURCE_PATH=#{source} but no Cargo.toml at #{manifest}"
+      end
+      puts "==> cargo build -p plushie-renderer (from #{workspace})"
+      Dir.chdir(workspace) do
+        sh "cargo build --release -p plushie-renderer"
+      end
+      ext = Gem.win_platform? ? ".exe" : ""
+      binary = File.join(workspace, "target", "release", "plushie-renderer#{ext}")
+      unless File.exist?(binary)
+        abort "cargo build succeeded but #{binary} is missing"
+      end
+      ENV["PLUSHIE_BINARY_PATH"] = binary
+      puts "    using #{binary}"
+    end
+
     sh "bundle exec rake standard"
     sh "bundle exec rake test"
     # Run headless backend tests to catch renderer integration bugs
