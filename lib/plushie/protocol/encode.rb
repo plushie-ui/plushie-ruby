@@ -222,20 +222,27 @@ module Plushie
       # Image operations
       # ---------------------------------------------------------------
 
-      # Manage in-memory image handles (create, update, delete).
+      # Manage in-memory image handles (create, update, delete, list, clear).
       #
-      # Uses the unified +_op+ envelope: op-specific data (+handle+,
-      # +data+, +pixels+, +width+, +height+) lives under +payload+.
-      # Binary fields (data, pixels) are base64-encoded for JSON and
-      # passed as raw binary for MessagePack.
+      # Uses the unified +_op+ envelope: op-specific data lives under
+      # +payload+. Binary fields (data, pixels) are base64-encoded for
+      # JSON and passed as raw binary for MessagePack.
       #
-      # @param op [String] "create_image", "update_image", or "delete_image"
-      # @param payload [Hash] includes :handle, and optionally :data or :pixels/:width/:height
+      # Field set per op:
+      # * +create_image+/+update_image+: +handle+, plus +data+ or
+      #   (+pixels+, +width+, +height+).
+      # * +delete_image+: +handle+.
+      # * +list+: +tag+ (response routes through op_query_response).
+      # * +clear+: empty payload.
+      #
+      # @param op [String]
+      # @param payload [Hash]
       # @param format [:msgpack, :json]
       # @return [String]
       def encode_image_op(op, payload, format = :msgpack)
         op_payload = {}
         op_payload[:handle] = payload[:handle] if payload[:handle]
+        op_payload[:tag] = payload[:tag].to_s if payload[:tag]
 
         if payload[:data]
           op_payload[:data] = encode_binary(payload[:data], format)

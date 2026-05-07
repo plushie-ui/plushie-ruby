@@ -57,11 +57,11 @@ module Plushie
       # List all image handles. Result via Event::System.
       # @param tag [Symbol]
       # @return [Cmd]
-      def list_images(tag) = Cmd.new(type: :widget_op, payload: {op: "list_images", tag: tag.to_s})
+      def list_images(tag) = Cmd.new(type: :image_op, payload: {op: "list", tag: tag.to_s})
 
       # Remove all image handles.
       # @return [Cmd]
-      def clear_images = Cmd.new(type: :widget_op, payload: {op: "clear_images"})
+      def clear_images = Cmd.new(type: :image_op, payload: {op: "clear"})
 
       # Validate pixel buffer size matches dimensions.
       # @api private

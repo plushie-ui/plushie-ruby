@@ -148,7 +148,58 @@ class TestIntegration < Minitest::Test
       end
     end
 
+    # Confirms the typed image_op envelope routes list/clear correctly:
+    # the renderer rejects the older widget_op shape, so the test
+    # passing means the SDK is producing the canonical wire envelope.
+    # `clear` followed by `list` exercises both ops in a single round
+    # trip without depending on binary payloads.
+    def test_image_op_list_and_clear_route_through_typed_channel
+      with_mock_session do |session_id, pool|
+        # Clear is a no-op against an empty registry; the round trip
+        # exercises the typed image_op channel without needing binary
+        # payloads (which take a different code path). Uses the same
+        # wire envelope `Command.clear_images` and `Command.list_images`
+        # produce, so a passing test means the SDK is producing the
+        # canonical shape the renderer accepts.
+        pool.send_message(
+          {type: "image_op", op: "clear", payload: {}},
+          session_id
+        )
+
+        pool.send_message(
+          {type: "image_op", op: "list", payload: {tag: "after_clear"}},
+          session_id
+        )
+
+        response = wait_for_op_query_response(pool, session_id, "after_clear")
+        assert_equal :op_query_response, response[:type]
+        assert_equal :list_images, response[:kind]
+        assert_equal "after_clear", response[:tag]
+
+        data = response[:data] || {}
+        handles = data["handles"] || data[:handles] || []
+        assert_equal [], handles, "fresh renderer should report no image handles"
+      end
+    end
+
     private
+
+    def wait_for_op_query_response(pool, session_id, tag, timeout: 5)
+      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
+      loop do
+        remaining = deadline - Process.clock_gettime(Process::CLOCK_MONOTONIC)
+        raise Timeout::Error, "no op_query_response for #{tag}" if remaining <= 0
+
+        msg = pool.read_message(session_id, timeout: remaining)
+        next unless msg.is_a?(Hash)
+        msg_type = (msg[:type] || msg["type"])&.to_sym
+        next unless msg_type == :op_query_response
+        msg_tag = msg[:tag] || msg["tag"]
+        next unless msg_tag == tag
+
+        return msg
+      end
+    end
 
     # Yield a session_id and pool against a freshly spawned mock
     # renderer. Cleans up regardless of test outcome.

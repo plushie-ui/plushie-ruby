@@ -279,7 +279,9 @@ class TestCommand < Minitest::Test
 
   def test_clear_images
     cmd = C.clear_images
-    assert_equal "clear_images", cmd.payload[:op]
+    assert_equal :image_op, cmd.type
+    assert_equal "clear", cmd.payload[:op]
+    refute cmd.payload.key?(:tag), "clear payload should be empty besides op"
   end
 
   # -- Widget queries ------------------------------------------------------
@@ -298,7 +300,8 @@ class TestCommand < Minitest::Test
 
   def test_list_images_stringifies_tag
     cmd = C.list_images(:img_list)
-    assert_equal "list_images", cmd.payload[:op]
+    assert_equal :image_op, cmd.type
+    assert_equal "list", cmd.payload[:op]
     assert_equal "img_list", cmd.payload[:tag]
   end
 
