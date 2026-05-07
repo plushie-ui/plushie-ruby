@@ -42,7 +42,8 @@ follow them by name. The naming is a cross-SDK contract.
   hash assertions, layout-affecting bugs.
   `PLUSHIE_TEST_BACKEND=headless bundle exec rake test`.
 - **windowed**: seconds per test. Full iced rendering with a
-  real display (Xvfb on Linux, native display elsewhere). Used
+  real display (headless weston on Linux, native display
+  elsewhere; Xvfb also works for X11-only environments). Used
   when the test cares about full window lifecycle, focus
   events, or platform-specific behavior.
 

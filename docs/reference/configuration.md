@@ -277,7 +277,8 @@ var, `Plushie.configuration.test_backend`, then the default of
 
 - `:mock`, pure protocol loop with no rendering (fastest, default)
 - `:headless`, software rendering without a display server
-- `:windowed`, real iced windows (needs a display server or Xvfb)
+- `:windowed`, real iced windows (needs headless weston, a real
+  display server, or Xvfb for X11-only environments)
 
 ```bash
 bundle exec rake test                              # :mock

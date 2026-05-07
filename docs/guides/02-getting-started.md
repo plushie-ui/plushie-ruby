@@ -18,12 +18,13 @@ ruby --version
 Plushie runs on Linux, macOS, and Windows. The renderer uses
 [wgpu](https://wgpu.rs) for GPU rendering, so the machine needs a
 working graphics stack: a native desktop session on Linux or macOS,
-or a Windows desktop. Headless CI hosts need
+or a Windows desktop. Headless CI hosts need a headless
+[weston](https://wayland.pages.freedesktop.org/weston/) socket
+(preferred) or
 [Xvfb](https://www.x.org/releases/current/doc/man/man1/Xvfb.1.xhtml)
-or a headless [weston](https://wayland.pages.freedesktop.org/weston/)
-socket before `rake plushie:run` will open a window. The Windowed
-test backend has the same requirement. The Mock and Headless test
-backends work without a display server.
+for X11-only environments before `rake plushie:run` will open a
+window. The Windowed test backend has the same requirement. The
+Mock and Headless test backends work without a display server.
 
 On Linux, most distributions ship the required GPU drivers by
 default. If the renderer fails to start with a Vulkan or OpenGL
@@ -363,17 +364,22 @@ checkout.
 ### No window appears on headless Linux
 
 The `plushie:run` task needs a display server. On a headless CI
-host or server, run an Xvfb or headless weston first and export
-the appropriate display variable:
+host or server, the preferred path is a headless
+[weston](https://wayland.pages.freedesktop.org/weston/) socket:
+
+```bash
+export XDG_RUNTIME_DIR=$(mktemp -d)
+weston -B headless --socket=plushie-run &
+WAYLAND_DISPLAY=plushie-run XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR \
+  bundle exec rake 'plushie:run[Hello]'
+```
+
+For X11-only environments, Xvfb works as an alternative:
 
 ```bash
 Xvfb :99 -screen 0 1280x1024x24 &
 DISPLAY=:99 bundle exec rake 'plushie:run[Hello]'
 ```
-
-For a Wayland-only host, use a headless
-[weston](https://wayland.pages.freedesktop.org/weston/) socket
-and set `WAYLAND_DISPLAY` and `XDG_RUNTIME_DIR` accordingly.
 
 ### Renderer log output is quiet
 

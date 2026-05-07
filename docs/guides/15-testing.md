@@ -149,8 +149,9 @@ PLUSHIE_TEST_BACKEND=windowed bundle exec rake test
 
 Mock is the fastest and the default. Headless exercises the real
 rendering pipeline over a software rasterizer (no display server
-required). Windowed opens real windows; run it behind Xvfb or a
-Wayland compositor on CI.
+required). Windowed opens real windows; on Linux CI hosts, run it
+behind a headless weston compositor (preferred) or Xvfb for
+X11-only environments.
 
 Assertions that depend on pixels (`assert_screenshot`) are no-ops
 on the mock backend, so the same test passes everywhere.

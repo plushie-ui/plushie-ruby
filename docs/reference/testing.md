@@ -110,8 +110,9 @@ PLUSHIE_TEST_BACKEND=windowed bundle exec rake test
 
 The mock backend is fast enough for TDD. The headless backend exercises
 the real rendering pipeline over software (no display server required).
-The windowed backend opens real windows; run it behind Xvfb or a
-Wayland compositor on CI.
+The windowed backend opens real windows; on Linux CI hosts, run it
+behind a headless weston compositor (preferred) or Xvfb for X11-only
+environments.
 
 Tests are written once and run against all three backends without
 changes. Features that depend on pixels (screenshots, actual event
