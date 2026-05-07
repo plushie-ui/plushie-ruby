@@ -286,11 +286,13 @@ class TestProtocolDecode < Minitest::Test
   def test_decode_window_opened
     event = D.decode_event({
       "family" => "window_opened",
-      "value" => {"window_id" => "main", "position" => {"x" => 100, "y" => 200}, "width" => 800, "height" => 600}
+      "value" => {"window_id" => "main", "x" => 100, "y" => 200, "width" => 800, "height" => 600}
     })
     assert_instance_of Plushie::Event::Window, event
     assert_equal :opened, event.type
     assert_equal "main", event.window_id
+    assert_equal 100, event.x
+    assert_equal 200, event.y
     assert_equal 800, event.width
   end
 

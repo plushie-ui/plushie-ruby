@@ -596,10 +596,9 @@ module Plushie
         # -- Window subscription events -> Event::Window ----------------------
 
         when "window_opened"
-          pos = data["position"] || {}
           Event::Window.new(
             type: :opened, window_id: data["window_id"],
-            x: pos["x"], y: pos["y"],
+            x: data["x"], y: data["y"],
             width: data["width"], height: data["height"],
             scale_factor: data["scale_factor"]
           )
