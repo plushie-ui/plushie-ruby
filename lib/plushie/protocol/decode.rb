@@ -382,16 +382,19 @@ module Plushie
               }
             )
           else
-            kd = data.empty? ? msg : data
+            # Subscription form: the renderer writes the structured key
+            # payload (key, modified_key, physical_key, location, text,
+            # repeat) under `value`, with `modifiers` and `captured` as
+            # top-level envelope siblings.
             Event::Key.new(
               type: :press,
-              key: Keys.parse_key(kd["key"]),
-              modified_key: Keys.parse_key(kd["modified_key"] || kd["key"]),
-              physical_key: Keys.parse_physical_key(kd["physical_key"]),
-              location: Keys.parse_location(kd["location"]),
-              modifiers: parse_modifiers(msg["modifiers"] || kd["modifiers"] || {}),
-              text: kd["text"],
-              repeat: kd["repeat"] || false,
+              key: Keys.parse_key(data["key"]),
+              modified_key: Keys.parse_key(data["modified_key"] || data["key"]),
+              physical_key: Keys.parse_physical_key(data["physical_key"]),
+              location: Keys.parse_location(data["location"]),
+              modifiers: parse_modifiers(msg["modifiers"]),
+              text: data["text"],
+              repeat: data["repeat"] || false,
               captured: msg["captured"] || false,
               window_id: msg["window_id"]
             )
@@ -411,14 +414,14 @@ module Plushie
               }
             )
           else
-            kd = data.empty? ? msg : data
+            # Subscription form: see key_press above for the wire shape.
             Event::Key.new(
               type: :release,
-              key: Keys.parse_key(kd["key"]),
-              modified_key: Keys.parse_key(kd["modified_key"] || kd["key"]),
-              physical_key: Keys.parse_physical_key(kd["physical_key"]),
-              location: Keys.parse_location(kd["location"]),
-              modifiers: parse_modifiers(msg["modifiers"] || kd["modifiers"] || {}),
+              key: Keys.parse_key(data["key"]),
+              modified_key: Keys.parse_key(data["modified_key"] || data["key"]),
+              physical_key: Keys.parse_physical_key(data["physical_key"]),
+              location: Keys.parse_location(data["location"]),
+              modifiers: parse_modifiers(msg["modifiers"]),
               text: nil,
               repeat: false,
               captured: msg["captured"] || false,
@@ -570,20 +573,28 @@ module Plushie
             captured: msg["captured"] || false, window_id: msg["window_id"])
 
         when "ime_preedit"
+          # Renderer writes {"text": string, "cursor": {start,end}|null}
+          # to value. A missing or non-Hash value is a wire-shape bug, not
+          # a user-input bug; raise so it surfaces instead of producing
+          # an Event::Ime with nil text and cursor.
+          require_hash_value!(wire_value, family)
           id, scope = split_scoped_id(msg["id"])
           Event::Ime.new(
             type: :preedit, id: id, scope: scope,
-            text: data["text"],
-            cursor: parse_ime_cursor(data["cursor"]),
+            text: wire_value["text"],
+            cursor: parse_ime_cursor(wire_value["cursor"]),
             captured: msg["captured"] || false,
             window_id: msg["window_id"]
           )
 
         when "ime_commit"
+          # Renderer writes {"text": string} to value. Missing or
+          # non-Hash value is a wire-shape bug; see ime_preedit above.
+          require_hash_value!(wire_value, family)
           id, scope = split_scoped_id(msg["id"])
           Event::Ime.new(
             type: :commit, id: id, scope: scope,
-            text: data["text"],
+            text: wire_value["text"],
             captured: msg["captured"] || false,
             window_id: msg["window_id"]
           )
@@ -651,10 +662,12 @@ module Plushie
         # -- System events -> Event::System -----------------------------------
 
         when "animation_frame"
-          Event::System.new(type: :animation_frame, value: data["timestamp"] || wire_value)
+          # Renderer writes {"timestamp": u64} to value.
+          Event::System.new(type: :animation_frame, value: data["timestamp"])
 
         when "theme_changed"
-          Event::System.new(type: :theme_changed, value: wire_value || data["mode"])
+          # Renderer writes the mode name as a scalar string in value.
+          Event::System.new(type: :theme_changed, value: wire_value)
 
         when "all_windows_closed"
           Event::System.new(type: :all_windows_closed)
@@ -935,6 +948,18 @@ module Plushie
         return window_id if window_id.is_a?(String) && !window_id.empty?
 
         raise ArgumentError, "event family #{family.inspect} is missing required window_id"
+      end
+
+      # Raise unless +value+ is a Hash. Used by event families whose
+      # renderer wire shape always carries a structured payload in
+      # `value`; a non-Hash here means the wire shape changed without
+      # the decoder catching up, and silently producing an Event with
+      # nil fields hides the regression.
+      def require_hash_value!(value, family)
+        return if value.is_a?(Hash)
+
+        raise ArgumentError,
+          "event family #{family.inspect} expected Hash value, got #{value.class}"
       end
 
       # Lenient window_id extraction for events embedded in interact

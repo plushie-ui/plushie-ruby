@@ -147,7 +147,8 @@ class TestProtocolDecode < Minitest::Test
 
   def test_decode_key_press
     event = D.decode_event({
-      "family" => "key_press", "key" => "Escape",
+      "family" => "key_press",
+      "value" => {"key" => "Escape"},
       "modifiers" => {"shift" => false, "ctrl" => true, "alt" => false, "logo" => false, "command" => true}
     })
     assert_instance_of Plushie::Event::Key, event
@@ -156,25 +157,30 @@ class TestProtocolDecode < Minitest::Test
     assert_equal true, event.modifiers[:ctrl]
   end
 
-  def test_decode_key_press_with_data_subobject
+  def test_decode_key_press_with_full_value_payload
     event = D.decode_event({
       "family" => "key_press", "tag" => "keys",
-      "value" => {"key" => "a", "text" => "a", "repeat" => false},
+      "value" => {"key" => "a", "modified_key" => "A", "physical_key" => "KeyA",
+                  "location" => "standard", "text" => "a", "repeat" => false},
       "modifiers" => {}
     })
     assert_equal :press, event.type
     assert_equal "a", event.key
+    assert_equal "A", event.modified_key
+    assert_equal "a", event.text
+    assert_equal false, event.repeat
   end
 
   def test_decode_key_release
-    event = D.decode_event({"family" => "key_release", "key" => "Enter", "modifiers" => {}})
+    event = D.decode_event({"family" => "key_release", "value" => {"key" => "Enter"}, "modifiers" => {}})
     assert_equal :release, event.type
     assert_equal :enter, event.key
   end
 
   def test_decode_key_press_modified_key_parsed
     event = D.decode_event({
-      "family" => "key_press", "key" => "a", "modified_key" => "A",
+      "family" => "key_press",
+      "value" => {"key" => "a", "modified_key" => "A"},
       "modifiers" => {"shift" => true, "ctrl" => false, "alt" => false, "logo" => false, "command" => false}
     })
     assert_equal "a", event.key
@@ -183,7 +189,8 @@ class TestProtocolDecode < Minitest::Test
 
   def test_decode_key_press_modified_key_falls_back_to_key
     event = D.decode_event({
-      "family" => "key_press", "key" => "Escape",
+      "family" => "key_press",
+      "value" => {"key" => "Escape"},
       "modifiers" => {}
     })
     assert_equal :escape, event.key
@@ -192,7 +199,8 @@ class TestProtocolDecode < Minitest::Test
 
   def test_decode_key_press_modified_key_named
     event = D.decode_event({
-      "family" => "key_press", "key" => "a", "modified_key" => "Tab",
+      "family" => "key_press",
+      "value" => {"key" => "a", "modified_key" => "Tab"},
       "modifiers" => {}
     })
     assert_equal "a", event.key
@@ -448,7 +456,7 @@ class TestProtocolDecode < Minitest::Test
   # -- Key events (additional) --------------------------------------------
 
   def test_decode_key_release_hardcoded_text_nil_repeat_false
-    event = D.decode_event({"family" => "key_release", "key" => "a", "modifiers" => {}})
+    event = D.decode_event({"family" => "key_release", "value" => {"key" => "a"}, "modifiers" => {}})
     assert_instance_of Plushie::Event::Key, event
     assert_equal :release, event.type
     assert_equal "a", event.key
@@ -636,6 +644,97 @@ class TestProtocolDecode < Minitest::Test
     assert_equal "unknown_node", event.reason
     assert_equal "g1", event.id
     assert_equal "set_value", event.family
+  end
+
+  # -- Wire-shape regression coverage --------------------------------------
+  #
+  # The five tests below pin the decoder to the renderer's wire shape for
+  # families that previously read fields from the wrong location. Each
+  # uses a fixture that mirrors what `OutgoingEvent` actually emits in
+  # `crates/plushie-core/src/protocol/outgoing.rs`. Drift surfaces here
+  # rather than as silent nil values in app code.
+
+  def test_decode_animation_frame_reads_timestamp_from_value_hash
+    event = D.decode_event({"family" => "animation_frame", "value" => {"timestamp" => 16_000}})
+    assert_instance_of Plushie::Event::System, event
+    assert_equal :animation_frame, event.type
+    assert_equal 16_000, event.value
+  end
+
+  def test_decode_theme_changed_reads_scalar_string_value
+    event = D.decode_event({"family" => "theme_changed", "value" => "dark"})
+    assert_instance_of Plushie::Event::System, event
+    assert_equal :theme_changed, event.type
+    assert_equal "dark", event.value
+  end
+
+  def test_decode_ime_preedit_reads_text_and_cursor_from_value_hash
+    event = D.decode_event({
+      "family" => "ime_preedit",
+      "value" => {"text" => "compose", "cursor" => {"start" => 0, "end" => 7}}
+    })
+    assert_instance_of Plushie::Event::Ime, event
+    assert_equal :preedit, event.type
+    assert_equal "compose", event.text
+    assert_equal [0, 7], event.cursor
+  end
+
+  def test_decode_ime_preedit_raises_when_value_missing
+    assert_raises(ArgumentError) do
+      D.decode_event({"family" => "ime_preedit"})
+    end
+  end
+
+  def test_decode_ime_commit_reads_text_from_value_hash
+    event = D.decode_event({
+      "family" => "ime_commit",
+      "value" => {"text" => "committed"}
+    })
+    assert_instance_of Plushie::Event::Ime, event
+    assert_equal :commit, event.type
+    assert_equal "committed", event.text
+  end
+
+  def test_decode_ime_commit_raises_when_value_non_hash
+    assert_raises(ArgumentError) do
+      D.decode_event({"family" => "ime_commit", "value" => "committed"})
+    end
+  end
+
+  def test_decode_subscription_key_press_reads_key_from_value
+    event = D.decode_event({
+      "family" => "key_press",
+      "value" => {"key" => "Enter", "text" => "\r", "repeat" => false},
+      "modifiers" => {"shift" => true}
+    })
+    assert_instance_of Plushie::Event::Key, event
+    assert_equal :press, event.type
+    assert_equal :enter, event.key
+    assert_equal true, event.modifiers[:shift]
+    assert_equal "\r", event.text
+  end
+
+  def test_decode_subscription_key_press_does_not_read_top_level_key
+    # If the renderer ever started writing key at the top level, this
+    # would silently return nil; the test pins the value-hash path.
+    event = D.decode_event({
+      "family" => "key_press", "key" => "Escape",
+      "value" => {"key" => "Enter"},
+      "modifiers" => {}
+    })
+    assert_equal :enter, event.key
+  end
+
+  def test_decode_subscription_key_release_reads_modifiers_from_top_level
+    event = D.decode_event({
+      "family" => "key_release",
+      "value" => {"key" => "Tab"},
+      "modifiers" => {"ctrl" => true}
+    })
+    assert_instance_of Plushie::Event::Key, event
+    assert_equal :release, event.type
+    assert_equal :tab, event.key
+    assert_equal true, event.modifiers[:ctrl]
   end
 
   # -- Fallback (extension events) -----------------------------------------

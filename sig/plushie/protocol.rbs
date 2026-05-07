@@ -97,6 +97,7 @@ module Plushie
       def atomize_data: (Hash[String, untyped]? data) -> Hash[Symbol, untyped]?
       def parse_canvas_key_data: (Hash[String, untyped] data, Symbol type) -> Hash[Symbol, untyped]
       def require_window_id!: (Hash[String, untyped] msg, String family) -> String
+      def require_hash_value!: (untyped value, String family) -> void
       def optional_window_id: (Hash[String, untyped] msg, String family) -> String?
 
       def self.decode: (String data, ?Symbol format) -> Hash[String, untyped]
@@ -126,6 +127,7 @@ module Plushie
       def self.atomize_data: (Hash[String, untyped]? data) -> Hash[Symbol, untyped]?
       def self.parse_canvas_key_data: (Hash[String, untyped] data, Symbol type) -> Hash[Symbol, untyped]
       def self.require_window_id!: (Hash[String, untyped] msg, String family) -> String
+      def self.require_hash_value!: (untyped value, String family) -> void
       def self.optional_window_id: (Hash[String, untyped] msg, String family) -> String?
     end
   end

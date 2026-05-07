@@ -42,6 +42,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - The checked-in `native/plushie/Cargo.lock` stash. cargo-plushie
   manages the scratch workspace's lock file.
 
+### Fixed
+
+- Subscription `key_press` and `key_release` events now read the
+  structured key payload (`key`, `modified_key`, `physical_key`,
+  `location`, `text`, `repeat`) from the `value` field. The previous
+  fallback to top-level message fields read modifiers from the wrong
+  location when value was non-Hash and would silently misread future
+  shape changes.
+- `animation_frame` and `theme_changed` no longer carry dead fallback
+  reads alongside the canonical `value` access; the fallbacks could
+  never fire against the real renderer and masked the intended source
+  field.
+- `ime_preedit` and `ime_commit` now raise `ArgumentError` when the
+  `value` payload is missing or non-Hash, surfacing wire-shape drift
+  instead of producing an `Event::Ime` with nil text and cursor.
+
 ## [0.5.0] - 2026-03-23
 
 Initial release. Targets plushie-renderer 0.5.0.
