@@ -148,9 +148,11 @@ Wire IDs use the canonical format `window#scope/path/id`:
 - `"main"`: the window itself.
 
 Events on the runtime side carry split fields: `id` (local),
-`scope` (reversed ancestor chain, immediate parent first,
-window_id at the end), `window_id`. This shape is what user
-pattern matching operates on:
+`scope` (reversed ancestor chain, immediate parent first, with
+`window_id` appended as the last element), `window_id`. User
+pattern matching usually only cares about the head of the scope
+(the immediate parent), so the trailing `window_id` does not
+get in the way:
 
 ```ruby
 case event
@@ -163,14 +165,15 @@ end
 
 Commands use forward-order path strings: `Command.focus("form/email")`.
 `Plushie::Event.target(event)` reconstructs the full path from
-an event when needed (the window_id is stripped from the scope
-list before joining).
+an event when needed (the trailing `window_id` is stripped from
+the scope list before joining).
 
-Auto-ID containers (no explicit ID) do not create a scope;
-their generated IDs (`"auto:..."`) are stripped during
-normalization. Window nodes do not create a scope; they are
-the window component of the wire ID. `"#"` is reserved for the
-window separator and is not allowed in user-provided IDs.
+Auto-ID containers (no explicit ID) do not create a scope; their
+generated IDs (`"auto:..."`) are stripped during normalization.
+Window nodes do not create a scope; they are the window
+component of the wire ID. Both `"/"` and `"#"` are forbidden in
+user-provided IDs (`/` is the scope separator; `#` is the
+window separator).
 
 ## What these invariants buy
 
