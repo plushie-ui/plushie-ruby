@@ -46,6 +46,10 @@ module Plushie
         when :widget_op
           send_widget_op(cmd.payload[:op], cmd.payload.except(:op))
 
+        # Typed font load message (carries raw TTF/OTF bytes)
+        when :load_font
+          send_load_font(cmd.payload[:family], cmd.payload[:data])
+
         # Window operations
         when :window_op
           send_window_op(cmd.payload)
@@ -240,6 +244,13 @@ module Plushie
       def send_widget_op(op, payload)
         @bridge.send_encoded(
           Protocol::Encode.encode_widget_op(op, payload, @format)
+        )
+      end
+
+      # Send a typed load_font message to the renderer.
+      def send_load_font(family, data)
+        @bridge.send_encoded(
+          Protocol::Encode.encode_load_font(family, data, @format)
         )
       end
 

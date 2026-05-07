@@ -32,6 +32,9 @@ module Plushie
       # Widget operations
       def self.encode_widget_op: (String | Symbol op, Hash[Symbol, untyped] payload, ?Symbol format) -> String
 
+      # Font load (typed top-level message; carries raw TTF/OTF bytes)
+      def self.encode_load_font: (String family, String data, ?Symbol format) -> String
+
       # Window operations
       def self.encode_window_op: (String | Symbol op, String window_id, Hash[Symbol | String, untyped] settings, ?Symbol format) -> String
       def self.encode_system_op: (String | Symbol op, Hash[Symbol, untyped] settings, ?Symbol format) -> String

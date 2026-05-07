@@ -312,7 +312,7 @@ class TestCommand < Minitest::Test
 
   def test_load_font
     cmd = C.load_font("Inter", "ttf_bytes")
-    assert_equal "load_font", cmd.payload[:op]
+    assert_equal :load_font, cmd.type
     assert_equal "Inter", cmd.payload[:family]
     assert_equal "ttf_bytes", cmd.payload[:data]
   end

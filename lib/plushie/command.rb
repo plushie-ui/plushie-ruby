@@ -235,10 +235,15 @@ module Plushie
     # -------------------------------------------------------------------
 
     # Load a font at runtime from TTF/OTF data.
+    #
+    # The renderer accepts this as a typed top-level +load_font+ message.
+    # MessagePack carries the font bytes as native binary; JSON carries
+    # them base64-encoded. Framing handles the per-format conversion.
+    #
     # @param family [String] font family name the app will refer to this font by
     # @param data [String] font file bytes
     # @return [Cmd]
-    def self.load_font(family, data) = Cmd.new(type: :widget_op, payload: {op: "load_font", family:, data:})
+    def self.load_font(family, data) = Cmd.new(type: :load_font, payload: {family:, data:})
 
     # -------------------------------------------------------------------
     # Accessibility

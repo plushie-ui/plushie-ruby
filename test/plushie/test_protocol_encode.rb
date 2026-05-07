@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "base64"
 
 class TestProtocolEncode < Minitest::Test
   E = Plushie::Protocol::Encode
@@ -78,6 +79,21 @@ class TestProtocolEncode < Minitest::Test
     assert_equal "widget_op", result["type"]
     assert_equal "focus", result["op"]
     assert_equal "input1", result["payload"]["target"]
+  end
+
+  def test_encode_load_font_json_base64s_data
+    result = JSON.parse(E.encode_load_font("Inter", "\x00\x01\x02".b, :json))
+    assert_equal "load_font", result["type"]
+    assert_equal "Inter", result["payload"]["family"]
+    assert_equal Base64.strict_encode64("\x00\x01\x02".b), result["payload"]["data"]
+  end
+
+  def test_encode_load_font_msgpack_keeps_data_binary
+    require "msgpack"
+    result = MessagePack.unpack(E.encode_load_font("Inter", "\x00\x01\x02".b, :msgpack))
+    assert_equal "load_font", result["type"]
+    assert_equal "Inter", result["payload"]["family"]
+    assert_equal "\x00\x01\x02".b, result["payload"]["data"]
   end
 
   def test_encode_window_op
@@ -181,6 +197,7 @@ class TestProtocolEncode < Minitest::Test
       E.encode_subscribe(:on_key_press, :k, :json),
       E.encode_unsubscribe(:on_key_press, format: :json),
       E.encode_widget_op(:focus, {}, :json),
+      E.encode_load_font("Inter", "\x00".b, :json),
       E.encode_window_op(:close, "w", {}, :json),
       E.encode_effect("e1", "clipboard_read", {}, :json),
       E.encode_image_op("delete_image", {handle: "x"}, :json),

@@ -110,7 +110,8 @@ the transport.
 | `encode_effect(id, kind, payload, format)` | `effect` | Platform effect requests |
 | `encode_command(id, family, value, format)` | `command` | Widget-targeted commands |
 | `encode_commands(commands, format)` | `commands` | Batch of widget-targeted commands |
-| `encode_widget_op(op, payload, format)` | `widget_op` | Non-targeted operations (focus cycling, announce, load_font) |
+| `encode_widget_op(op, payload, format)` | `widget_op` | Non-targeted operations (focus cycling, announce) |
+| `encode_load_font(family, data, format)` | `load_font` | Runtime font registration (typed message; data is native binary on MessagePack, base64 on JSON) |
 | `encode_window_op(op, window_id, payload, format)` | `window_op` | Window open, close, update |
 | `encode_system_op(op, payload, format)` | `system_op` | System-level operations |
 | `encode_system_query(op, payload, format)` | `system_query` | System-level queries |
@@ -135,10 +136,10 @@ never has to think about the atom-vs-string boundary.
 ### Binary fields
 
 `encode_binary` picks the right transform per format: base64 for
-JSON, raw bytes for MessagePack. The image and font helpers call
-it automatically for `data` and `pixels`; direct callers to
-`encode_widget_op` with a binary `data` field get the same
-treatment via `encode_binary_field`.
+JSON, raw bytes for MessagePack. The image and font helpers
+(`encode_image_op`, `encode_load_font`) call `encode_binary_field`
+internally for `data` and `pixels`, so callers always pass raw
+bytes and the wire format is handled per message type.
 
 ## Decoding (renderer to SDK)
 

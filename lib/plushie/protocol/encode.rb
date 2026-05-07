@@ -112,17 +112,27 @@ module Plushie
 
       # Perform an operation on a widget (focus, scroll, etc.).
       #
-      # Binary fields (e.g. :data for load_font) are automatically
-      # base64-encoded for JSON and passed as raw binary for msgpack.
-      #
       # @param op [String, Symbol] operation name
       # @param payload [Hash] operation-specific parameters
       # @param format [:msgpack, :json]
       # @return [String]
       def encode_widget_op(op, payload, format = :msgpack)
-        # Encode binary fields if present (load_font sends raw TTF/OTF data)
-        payload = encode_binary_field(payload, :data, format)
         encode({type: "widget_op", session: "", op: op.to_s, payload: payload}, format)
+      end
+
+      # Encode a typed +load_font+ message.
+      #
+      # Wire shape: +type = "load_font"+ with +payload = {family, data}+.
+      # JSON framing emits +data+ as a base64 string; MessagePack framing
+      # emits +data+ as a native binary value.
+      #
+      # @param family [String] font family name the renderer registers the data under
+      # @param data [String] raw TrueType or OpenType font bytes
+      # @param format [:msgpack, :json]
+      # @return [String]
+      def encode_load_font(family, data, format = :msgpack)
+        payload = encode_binary_field({family: family, data: data}, :data, format)
+        encode({type: "load_font", session: "", payload: payload}, format)
       end
 
       # ---------------------------------------------------------------
