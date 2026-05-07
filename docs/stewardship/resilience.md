@@ -20,23 +20,22 @@ holds up that half.
   `view` are caught by the runtime (`rescue StandardError`),
   logged, and the model reverts to its pre-call state. The user
   does not need to wrap callbacks in `begin/rescue`. After a
-  flood threshold (100 consecutive errors) the runtime
-  suppresses further log output until every 1000th error; the
-  next clean call clears the suppression.
-  `NoMatchingPatternError` gets a special hint suggesting an
-  `else` clause in the user's `case/in` block.
+  flood threshold the runtime suppresses further log output and
+  emits one log per sample interval; the next clean call clears
+  the suppression. `NoMatchingPatternError` gets a special hint
+  suggesting an `else` clause in the user's `case/in` block.
 - **Renderer crash auto-recovery.** The Bridge owns connection
-  lifecycle. On unexpected exit it reconnects with exponential
-  backoff (100ms doubling to 5000ms, max 5 retries) and pushes a
-  `[:renderer_exited, reason]` then `[:renderer_restarted]` pair
-  through the event queue. The Runtime owns the resync flow:
-  re-send settings, render a fresh snapshot, re-sync
-  subscriptions. The user's `handle_renderer_exit` callback can
-  adjust the model before re-sync (e.g., reset transient UI
-  state).
+  lifecycle. On unexpected exit it reconnects with bounded
+  exponential backoff and pushes a `[:renderer_exited, reason]`
+  then `[:renderer_restarted]` pair through the event queue. The
+  Runtime owns the resync flow: re-send settings, render a fresh
+  snapshot, re-sync subscriptions. The user's
+  `handle_renderer_exit` callback can adjust the model before
+  re-sync (e.g., reset transient UI state).
 - **Bridge heartbeat.** A watchdog timer detects hung renderers.
-  When no message arrives within `heartbeat_interval` (default
-  30s), a synthetic close is pushed through the queue to trigger
+  When no message arrives within the configured
+  `heartbeat_interval`, a synthetic close is pushed through the
+  queue to trigger
   the restart path. A renderer that wedges instead of crashing
   cannot leave the host running against a half-open transport.
 - **StandardError, not Exception.** Rescues in the runtime catch

@@ -20,8 +20,7 @@ Three layers, each with a single concern:
   scripting.
 - **Bridge** (`Plushie::Bridge`). Wraps a Connection with
   restart logic. On unexpected exit, reconnects with bounded
-  exponential backoff (100ms doubling to 5000ms, max 5
-  retries) and pushes
+  exponential backoff and pushes
   `[:renderer_event | :renderer_exited | :renderer_restarted]`
   pairs through the event queue. Owns the heartbeat watchdog.
   Knows nothing about app state.
