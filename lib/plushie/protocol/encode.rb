@@ -47,11 +47,25 @@ module Plushie
       # @param format [:msgpack, :json]
       # @return [String]
       def encode_settings(settings, format = :msgpack)
-        encode({
-          type: "settings",
-          session: "",
-          settings: {protocol_version: Protocol::PROTOCOL_VERSION}.merge(settings)
-        }, format)
+        merged = {protocol_version: Protocol::PROTOCOL_VERSION}.merge(settings)
+        merged = normalize_default_font(merged)
+        encode({type: "settings", session: "", settings: merged}, format)
+      end
+
+      # The renderer reads +default_font+ strictly as an object with
+      # at least a +family+ key; a bare string is silently dropped and
+      # the renderer falls back to the platform default. The Font
+      # encoder returns a string for the +:default+ and +:monospace+
+      # shorthands but a hash for everything else, so wrap any string
+      # result back into the canonical +{family: ...}+ shape.
+      #
+      # @api private
+      def normalize_default_font(settings)
+        return settings unless settings.key?(:default_font)
+
+        encoded = Type::Font.encode(settings[:default_font])
+        encoded = {family: encoded} if encoded.is_a?(String)
+        settings.merge(default_font: encoded)
       end
 
       # ---------------------------------------------------------------

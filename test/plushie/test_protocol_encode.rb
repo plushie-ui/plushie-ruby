@@ -33,6 +33,48 @@ class TestProtocolEncode < Minitest::Test
       "empty settings hash should not introduce required_widgets"
   end
 
+  def test_encode_settings_wraps_string_default_font_as_family_object
+    result = JSON.parse(E.encode_settings({default_font: "Inter"}, :json))
+    assert_equal({"family" => "Inter"}, result["settings"]["default_font"])
+  end
+
+  def test_encode_settings_wraps_default_symbol_as_family_object
+    result = JSON.parse(E.encode_settings({default_font: :default}, :json))
+    assert_equal({"family" => "default"}, result["settings"]["default_font"])
+  end
+
+  def test_encode_settings_wraps_monospace_symbol_as_family_object
+    result = JSON.parse(E.encode_settings({default_font: :monospace}, :json))
+    assert_equal({"family" => "monospace"}, result["settings"]["default_font"])
+  end
+
+  def test_encode_settings_passes_through_default_font_hash
+    font = {family: "Inter", weight: :bold, style: :italic}
+    result = JSON.parse(E.encode_settings({default_font: font}, :json))
+    assert_equal "Inter", result["settings"]["default_font"]["family"]
+    assert_equal "bold", result["settings"]["default_font"]["weight"]
+    assert_equal "italic", result["settings"]["default_font"]["style"]
+  end
+
+  def test_encode_settings_passes_through_default_font_spec
+    spec = Plushie::Type::Font.from_opts(family: "Fira Code", weight: :medium)
+    result = JSON.parse(E.encode_settings({default_font: spec}, :json))
+    assert_equal "Fira Code", result["settings"]["default_font"]["family"]
+    assert_equal "medium", result["settings"]["default_font"]["weight"]
+  end
+
+  def test_encode_settings_msgpack_default_font_is_object
+    data = E.encode_settings({default_font: "Inter"}, :msgpack)
+    result = MessagePack.unpack(data)
+    assert_equal({"family" => "Inter"}, result["settings"]["default_font"])
+  end
+
+  def test_encode_settings_omits_default_font_when_not_set
+    result = JSON.parse(E.encode_settings({}, :json))
+    refute result["settings"].key?("default_font"),
+      "missing default_font should not introduce a key"
+  end
+
   def test_encode_snapshot
     tree = {id: "root", type: "window", props: {}, children: []}
     result = JSON.parse(E.encode_snapshot(tree, :json))
