@@ -145,6 +145,7 @@ module Plushie
     def format_interact_target: (String action, untyped selector) -> String
     def format_interact_timeout: (String action, untyped selector) -> String
     def format_await_async_timeout: (Symbol tag) -> String
+    def format_hash: (Hash[untyped, untyped] hash) -> String
 
     # View errors
     VIEW_ERROR_WARN_THRESHOLD: Integer

@@ -575,7 +575,7 @@ module Plushie
       # payload into a typed Event::Effect::Result.*.
       if event.is_a?(Hash) && event[:type] == :effect_response
         wire_id = event[:wire_id]
-        @logger.debug("plushie: effect response with nil wire_id: #{event.inspect}") if wire_id.nil?
+        @logger.debug("plushie: effect response with nil wire_id: #{format_hash(event)}") if wire_id.nil?
         timer = @pending_effects.delete(wire_id)
         stop_thread(timer)
         tag = @effect_ids.delete(wire_id)
@@ -1115,7 +1115,11 @@ module Plushie
       target = "action=#{action}"
       return target if selector.nil?
 
-      "#{target} selector=#{selector.inspect}"
+      "#{target} selector=#{format_hash(selector)}"
+    end
+
+    def format_hash(hash)
+      "{#{hash.map { |k, v| "#{k}: #{v.inspect}" }.join(", ")}}"
     end
 
     def format_interact_timeout(action, selector)
