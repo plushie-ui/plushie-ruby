@@ -79,7 +79,7 @@ module Plushie
     end
 
     # Pull the version token out of a +cargo-plushie --version+ line.
-    # Typical output: +"cargo-plushie 0.6.1\n"+.
+    # Typical output: +"cargo-plushie 0.7.1\n"+.
     #
     # @param output [String]
     # @return [String, nil]

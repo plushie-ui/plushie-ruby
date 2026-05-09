@@ -61,7 +61,7 @@ Pre-1.0, pin to an exact version once the gem is installed to avoid
 surprise breakage from minor releases. After `bundle install`,
 Bundler records the resolved version in `Gemfile.lock`, which is
 enough for most projects; if you want the pin visible in the
-Gemfile itself, change it to `gem "plushie", "== 0.5.0"` (or
+Gemfile itself, change it to `gem "plushie", "== 0.6.0"` (or
 whichever version `bundle install` resolved).
 
 Create `Rakefile`:

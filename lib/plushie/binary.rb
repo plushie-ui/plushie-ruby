@@ -228,18 +228,19 @@ module Plushie
     # Fetch a URL, following one redirect if needed.
     # @param url [String]
     # @return [String] response body
-    def fetch_url(url)
+    def fetch_url(url, redirect_limit: 10)
+      raise Error, "too many redirects for #{url}" if redirect_limit.zero?
+
       uri = URI.parse(url)
 
       Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
-        response = http.get(uri.path)
+        response = http.get(uri.request_uri)
 
         case response
         when Net::HTTPSuccess
           response.body
         when Net::HTTPRedirection
-          redirect_uri = URI.parse(response["location"])
-          Net::HTTP.get(redirect_uri)
+          fetch_url(response["location"], redirect_limit: redirect_limit - 1)
         else
           raise Error, "download failed for #{url}: #{response.code} #{response.message}"
         end

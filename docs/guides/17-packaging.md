@@ -356,7 +356,7 @@ rules:
   `rake plushie:download` or `rake plushie:build` to pick up the
   matching renderer, run the test suite, and bump `MyApp::VERSION`
   with a CHANGELOG entry noting the renderer upgrade.
-- Pin `plushie` to an exact version (`= 0.5.0`) if your users
+- Pin `plushie` to an exact version (`= 0.6.0`) if your users
   share a binary out of band, so the protocol version they get
   never drifts from the one your gem expects.
 
