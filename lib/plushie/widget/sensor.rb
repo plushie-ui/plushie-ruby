@@ -12,10 +12,11 @@ module Plushie
     # Props:
     # - delay (integer): delay in ms before emitting events.
     # - anticipate (number): anticipation distance in pixels.
-    # - on_resize (string): event tag for resize events.
+    # - on_resize (boolean): enable resize events.
     Sensor = Plushie::Widget.define(:sensor) do
       children :single
-      prop :delay, :anticipate, :on_resize
+      prop :delay, :anticipate
+      prop :on_resize, :boolean
       prop :a11y, :event_rate
     end
   end

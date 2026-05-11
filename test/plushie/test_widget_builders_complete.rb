@@ -352,9 +352,17 @@ class TestWidgetBuildersComplete < Minitest::Test
 
   def test_sensor_chainable_setters
     s = Plushie::Widget::Sensor.new("s")
-    s2 = s.set_on_resize("resized").set_event_rate(10)
-    assert_equal "resized", s2.on_resize
+    s2 = s.set_on_resize(true).set_event_rate(10)
+    assert_equal true, s2.on_resize
     assert_equal 10, s2.event_rate
+  end
+
+  def test_sensor_on_resize_is_boolean_enablement
+    s = Plushie::Widget::Sensor.new("s", on_resize: true)
+      .push(Plushie::Widget::Text.new("content", "Watched"))
+    node = s.build
+    assert_equal true, node.props[:on_resize]
+    assert_raises(ArgumentError) { s.set_on_resize("resized") }
   end
 
   def test_themer_new_and_build
