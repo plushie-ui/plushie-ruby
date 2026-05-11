@@ -191,12 +191,14 @@ module Plushie
 
         when "press"
           id, scope = split_scoped_id(msg["id"])
+          button = parse_pointer_button!(data["button"], family)
+          pointer = parse_pointer_kind!(data["pointer"], family)
           Event::Widget.new(
             type: :press, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             value: {
               x: data["x"], y: data["y"],
-              button: Parsers.parse_mouse_button(data["button"] || "left"),
-              pointer: (data["pointer"] || "mouse").to_sym,
+              button: button,
+              pointer: pointer,
               finger: data["finger"],
               modifiers: parse_modifiers(data["modifiers"]),
               captured: data["captured"] || msg["captured"] || false
@@ -205,26 +207,30 @@ module Plushie
 
         when "release"
           id, scope = split_scoped_id(msg["id"])
+          button = parse_pointer_button!(data["button"], family)
+          pointer = parse_pointer_kind!(data["pointer"], family)
+          lost = parse_pointer_lost!(data, family)
           Event::Widget.new(
             type: :release, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             value: {
               x: data["x"], y: data["y"],
-              button: Parsers.parse_mouse_button(data["button"] || "left"),
-              pointer: (data["pointer"] || "mouse").to_sym,
+              button: button,
+              pointer: pointer,
               finger: data["finger"],
               modifiers: parse_modifiers(data["modifiers"]),
               captured: data["captured"] || msg["captured"] || false,
-              lost: data["lost"]
+              lost: lost
             }
           )
 
         when "move"
           id, scope = split_scoped_id(msg["id"])
+          pointer = parse_pointer_kind!(data["pointer"], family)
           Event::Widget.new(
             type: :move, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             value: {
               x: data["x"], y: data["y"],
-              pointer: (data["pointer"] || "mouse").to_sym,
+              pointer: pointer,
               finger: data["finger"],
               modifiers: parse_modifiers(data["modifiers"]),
               captured: data["captured"] || msg["captured"] || false
@@ -233,13 +239,14 @@ module Plushie
 
         when "scroll"
           id, scope = split_scoped_id(msg["id"])
+          pointer = parse_pointer_kind!(data["pointer"], family)
           Event::Widget.new(
             type: :scroll, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             value: {
               x: data["x"], y: data["y"],
               delta_x: data["delta_x"], delta_y: data["delta_y"],
               unit: data["unit"] ? Parsers.parse_scroll_unit(data["unit"]) : nil,
-              pointer: (data["pointer"] || "mouse").to_sym,
+              pointer: pointer,
               modifiers: parse_modifiers(data["modifiers"]),
               captured: data["captured"] || msg["captured"] || false
             }
@@ -267,11 +274,12 @@ module Plushie
 
         when "double_click"
           id, scope = split_scoped_id(msg["id"])
+          pointer = parse_pointer_kind!(data["pointer"], family)
           Event::Widget.new(
             type: :double_click, id: id, window_id: window_id_fn.call(msg, family), scope: scope,
             value: {
               x: data["x"], y: data["y"],
-              pointer: (data["pointer"] || "mouse").to_sym,
+              pointer: pointer,
               modifiers: parse_modifiers(data["modifiers"])
             }
           )
@@ -472,11 +480,12 @@ module Plushie
         when "button_pressed"
           window_id = msg["window_id"]
           btn_value = wire_value.is_a?(String) ? wire_value : data["button"]
+          button = parse_pointer_button!(btn_value, family)
           Event::Widget.new(
             type: :press,
             id: window_id || "__global__", scope: [], window_id: window_id,
             value: {
-              button: Parsers.parse_mouse_button(btn_value),
+              button: button,
               pointer: :mouse, x: nil, y: nil,
               captured: msg["captured"] || false,
               modifiers: parse_modifiers(msg["modifiers"])
@@ -486,12 +495,14 @@ module Plushie
         when "button_released"
           window_id = msg["window_id"]
           btn_value = wire_value.is_a?(String) ? wire_value : data["button"]
+          button = parse_pointer_button!(btn_value, family)
           Event::Widget.new(
             type: :release,
             id: window_id || "__global__", scope: [], window_id: window_id,
             value: {
-              button: Parsers.parse_mouse_button(btn_value),
+              button: button,
               pointer: :mouse, x: nil, y: nil,
+              lost: false,
               captured: msg["captured"] || false,
               modifiers: parse_modifiers(msg["modifiers"])
             }
@@ -987,6 +998,31 @@ module Plushie
           logo: mods["logo"] || false,
           command: mods["command"] || false
         }.freeze
+      end
+
+      # Missing button and pointer fields have protocol defaults. Present
+      # fields must be canonical wire strings so renderer-to-host drift is
+      # visible instead of becoming arbitrary Ruby symbols.
+      def parse_pointer_button!(value, family)
+        value = "left" if value.nil?
+        button = Parsers.parse_mouse_button(value)
+        return button if button.is_a?(Symbol)
+
+        raise ArgumentError, "event family #{family.inspect} has invalid pointer button #{value.inspect}"
+      end
+
+      def parse_pointer_kind!(value, family)
+        value = "mouse" if value.nil?
+        return value.to_sym if %w[mouse touch pen].include?(value)
+
+        raise ArgumentError, "event family #{family.inspect} has invalid pointer kind #{value.inspect}"
+      end
+
+      def parse_pointer_lost!(data, family)
+        return false unless data.key?("lost")
+        return data["lost"] if data["lost"] == true || data["lost"] == false
+
+        raise ArgumentError, "event family #{family.inspect} has invalid lost #{data["lost"].inspect}"
       end
 
       # Parse a canvas button string to a symbol.

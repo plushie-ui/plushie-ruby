@@ -101,6 +101,18 @@ class TestProtocolDecode < Minitest::Test
     assert_equal :mouse, event.value[:pointer]
   end
 
+  def test_decode_press_rejects_unknown_button
+    assert_raises(ArgumentError) do
+      D.decode_event(windowed({"family" => "press", "id" => "area", "value" => {"button" => "primary"}}))
+    end
+  end
+
+  def test_decode_press_rejects_unknown_pointer
+    assert_raises(ArgumentError) do
+      D.decode_event(windowed({"family" => "press", "id" => "area", "value" => {"pointer" => "trackpad"}}))
+    end
+  end
+
   def test_decode_move
     event = D.decode_event(windowed({"family" => "move", "id" => "zone", "value" => {"x" => 10, "y" => 20, "pointer" => "mouse"}}))
     assert_instance_of Plushie::Event::Widget, event
@@ -451,6 +463,13 @@ class TestProtocolDecode < Minitest::Test
     assert_equal 30, event.value[:x]
     assert_equal 40, event.value[:y]
     assert_equal :right, event.value[:button]
+    assert_equal false, event.value[:lost]
+  end
+
+  def test_decode_release_rejects_malformed_lost
+    assert_raises(ArgumentError) do
+      D.decode_event(windowed({"family" => "release", "id" => "draw", "value" => {"lost" => "false"}}))
+    end
   end
 
   # -- Key events (additional) --------------------------------------------
