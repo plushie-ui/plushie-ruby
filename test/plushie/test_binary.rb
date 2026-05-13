@@ -1,6 +1,8 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "fileutils"
+require "tmpdir"
 
 class TestBinary < Minitest::Test
   B = Plushie::Binary
@@ -26,20 +28,66 @@ class TestBinary < Minitest::Test
     assert_includes url, "0.4.1"
   end
 
-  def test_which_finds_ruby
-    path = B.which("ruby")
-    refute_nil path
-    assert File.executable?(path)
-  end
-
-  def test_which_returns_nil_for_nonexistent
-    assert_nil B.which("definitely_not_a_real_command_#{rand(10000)}")
-  end
-
   def test_resolve_returns_nil_without_binary
     # Don't set PLUSHIE_BINARY_PATH, don't download
     # resolve should return nil or a valid path
     result = B.resolve
     assert(result.nil? || File.exist?(result))
+  end
+
+  def test_resolve_does_not_use_path
+    Dir.mktmpdir do |tmpdir|
+      binary = File.join(tmpdir, "plushie")
+      File.write(binary, "renderer")
+      File.chmod(0o755, binary)
+
+      with_env("PATH" => tmpdir, "PLUSHIE_BINARY_PATH" => nil) do
+        B.stub(:custom_build_path, nil) do
+          B.stub(:downloaded_path, nil) do
+            assert_nil B.resolve
+          end
+        end
+      end
+    end
+  end
+
+  def test_resolve_does_not_use_sibling_rust_checkout
+    Dir.mktmpdir do |tmpdir|
+      binary = File.join(tmpdir, "target", "release", "plushie-renderer")
+      FileUtils.mkdir_p(File.dirname(binary))
+      File.write(binary, "renderer")
+      File.chmod(0o755, binary)
+
+      with_env("PLUSHIE_RUST_SOURCE_PATH" => tmpdir, "PLUSHIE_BINARY_PATH" => nil) do
+        B.stub(:custom_build_path, nil) do
+          B.stub(:downloaded_path, nil) do
+            assert_nil B.resolve
+          end
+        end
+      end
+    end
+  end
+
+  private
+
+  def with_env(values)
+    previous = values.transform_values { nil }
+    values.each_key { |key| previous[key] = ENV[key] }
+    values.each do |key, value|
+      if value.nil?
+        ENV.delete(key)
+      else
+        ENV[key] = value
+      end
+    end
+    yield
+  ensure
+    previous.each do |key, value|
+      if value.nil?
+        ENV.delete(key)
+      else
+        ENV[key] = value
+      end
+    end
   end
 end

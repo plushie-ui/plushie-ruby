@@ -47,13 +47,13 @@ module Plushie
       # @param format [:msgpack, :json]
       # @return [String]
       def encode_settings(settings, format = :msgpack)
-        reject_plaintext_token!(settings)
+        reject_token_setting!(settings)
         merged = {protocol_version: Protocol::PROTOCOL_VERSION}.merge(settings)
         merged = normalize_default_font(merged)
         encode({type: "settings", session: "", settings: merged}, format)
       end
 
-      def reject_plaintext_token!(settings)
+      def reject_token_setting!(settings)
         return unless settings.key?(:token) || settings.key?("token")
 
         raise ArgumentError, "settings token is not supported; use token_sha256"

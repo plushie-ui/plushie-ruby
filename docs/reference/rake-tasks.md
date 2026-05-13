@@ -411,11 +411,9 @@ resolves it in priority order:
    `rake plushie:build`.
 4. Downloaded binary in `_build/plushie/bin/` after
    `rake plushie:download`.
-5. Sibling `plushie-rust` checkout's `target/{release,debug}/`.
-6. `plushie` on `PATH`.
 
-Steps 1 and 2 are explicit; the rest are silent fall-through. See
-`Plushie::Binary` for the full resolution logic.
+Steps 1 and 2 are explicit; steps 3 and 4 stay within the current
+project. See `Plushie::Binary` for the full resolution logic.
 
 ## Environment variables
 

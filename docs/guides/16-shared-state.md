@@ -443,9 +443,9 @@ TCP exposes a wire-protocol endpoint on a network. Pre-flight notes:
   `"0.0.0.0"` unless there is a firewall, a reverse proxy, or some
   other access control in front.
 - **No built-in auth.** The SDK has an optional `token:` runtime
-  option that is forwarded in the Settings handshake, but the
-  renderer does not enforce it and no SDK-side check compares it
-  against an allowed list. Treat the token as a marker, not a
+  option that adds a `token_sha256` value to the Settings handshake,
+  but the renderer does not enforce it and no SDK-side check compares
+  it against an allowed list. Treat the token as a marker, not a
   credential. Real authentication belongs in the accept loop (TLS
   client certs, a PAM check, whatever fits).
 - **No arbitrary eval.** The wire protocol carries widget patches and

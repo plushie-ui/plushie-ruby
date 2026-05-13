@@ -96,7 +96,7 @@ class TestBridge < Minitest::Test
       connection_args = kwargs
       ConnectionDouble.new
     }) do
-      bridge.start(settings: {title: "Test", token: "plaintext"})
+      bridge.start(settings: {title: "Test", token: "do-not-send"})
     end
 
     assert_equal Digest::SHA256.hexdigest("secret-123"), connection_args[:settings][:token_sha256]

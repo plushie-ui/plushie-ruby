@@ -65,9 +65,6 @@ silently advance to the next option:
 2. `Plushie.configuration.binary_path`
 3. Custom extension build under `_build/plushie/custom/target/`
 4. Downloaded binary under `_build/plushie/bin/`
-5. Sibling plushie-rust checkout's `target/{release,debug}/`
-6. `plushie` on system `PATH`
-
 If nothing resolves, the error message lists the three usable
 remedies: `rake plushie:download`, `rake plushie:build`, or exporting
 `PLUSHIE_BINARY_PATH`.
@@ -131,7 +128,7 @@ handle.stop
 | `daemon` | `Boolean` | `false` | When `true`, the runtime keeps running after the last window closes so it can open new ones. |
 | `binary` | `String, nil` | auto-resolved | Renderer binary path. Defaults to `Plushie::Binary.path!`. |
 | `log_level` | `Symbol` | `:error` | Renderer log verbosity (`:off`, `:error`, `:warn`, `:info`, `:debug`, `:trace`). Mapped to `RUST_LOG` via `Plushie::RendererEnv`. |
-| `token` | `String, nil` | `nil` | Authentication token sent on the initial handshake. |
+| `token` | `String, nil` | `nil` | Authentication token used to derive the `token_sha256` value sent on the initial handshake. |
 | `dev` | `Boolean` | `false` | Enable live code reloading via `Plushie::DevServer`. |
 | `dev_dirs` | `Array<String>, nil` | `["lib/"]` | Directories the dev server watches for changes. |
 

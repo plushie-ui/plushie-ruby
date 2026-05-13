@@ -33,9 +33,9 @@ class TestProtocolEncode < Minitest::Test
       "empty settings hash should not introduce required_widgets"
   end
 
-  def test_encode_settings_rejects_plaintext_token
+  def test_encode_settings_rejects_token_setting
     error = assert_raises(ArgumentError) do
-      E.encode_settings({token: "secret"}, :json)
+      E.encode_settings({token: "do-not-send"}, :json)
     end
 
     assert_includes error.message, "token_sha256"

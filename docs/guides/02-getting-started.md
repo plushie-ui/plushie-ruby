@@ -316,12 +316,10 @@ The resolution order, in full:
 2. `Plushie.configuration.binary_path`.
 3. Custom widget build under `_build/plushie/custom/target/`.
 4. Downloaded binary under `_build/plushie/bin/`.
-5. Sibling `../plushie-rust/target/{release,debug}/`.
-6. `plushie` on system `PATH`.
 
 Explicit paths (the first two) raise if set but pointing to a
-missing file. Implicit fallbacks silently advance to the next
-option. See the
+missing file. Implicit fallbacks stay within the current project.
+See the
 [Configuration reference](../reference/configuration.md).
 
 ### plushie binary not executable
