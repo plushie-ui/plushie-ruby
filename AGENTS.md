@@ -60,10 +60,10 @@ protected today (typed event decoding, no opaque-blob path, effect/
 query response correlation by wire ID, no host-side eval, no `to_sym`
 on renderer-supplied strings on hot paths, strict enums via Parsers).
 Host-to-renderer = broad by design (file paths, fonts, images,
-screenshots, effects, `--exec`); bounding it is the capability-manifest
-roadmap in plushie-rust. Wire = byte-stream agnostic; confidentiality
-+ integrity delegated to outer transport. Same-access (user attacking
-themselves) out of scope.
+screenshots, effects, structured renderer exec args); bounding it is
+the capability-manifest roadmap in plushie-rust. Wire = byte-stream
+agnostic; confidentiality + integrity delegated to outer transport.
+Same-access (user attacking themselves) out of scope.
 
 ### Resilience
 

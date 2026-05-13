@@ -186,8 +186,8 @@ Initial release. Targets plushie-renderer 0.5.0.
 - WASM renderer download via `rake plushie:download[wasm]`
 - `PLUSHIE_BIN_FILE` and `PLUSHIE_WASM_DIR` env vars for overriding
   download and build output paths
-- `rake plushie:connect` task for stdio transport (plushie --exec)
-- Token authentication for --exec and remote rendering
+- `rake plushie:connect` task for renderer-parent stdio transport
+- Token authentication for renderer-parent and remote rendering
 - `RendererEnv` to filter sensitive environment variables from renderer
   subprocess
 - Dev server with hot code reloading
