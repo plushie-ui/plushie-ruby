@@ -33,6 +33,14 @@ class TestProtocolEncode < Minitest::Test
       "empty settings hash should not introduce required_widgets"
   end
 
+  def test_encode_settings_rejects_plaintext_token
+    error = assert_raises(ArgumentError) do
+      E.encode_settings({token: "secret"}, :json)
+    end
+
+    assert_includes error.message, "token_sha256"
+  end
+
   def test_encode_settings_wraps_string_default_font_as_family_object
     result = JSON.parse(E.encode_settings({default_font: "Inter"}, :json))
     assert_equal({"family" => "Inter"}, result["settings"]["default_font"])

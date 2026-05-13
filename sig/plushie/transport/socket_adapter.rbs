@@ -1,0 +1,7 @@
+module Plushie
+  module Transport
+    class SocketAdapter < TCPAdapter
+      def self.connect: (String address) -> SocketAdapter
+    end
+  end
+end

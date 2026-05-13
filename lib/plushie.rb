@@ -86,6 +86,7 @@ require_relative "plushie/app"
 require_relative "plushie/tree"
 require_relative "plushie/protocol"
 require_relative "plushie/transport/framing"
+require_relative "plushie/transport/socket_adapter"
 require_relative "plushie/thread_pool"
 require_relative "plushie/bounded_queue"
 require_relative "plushie/renderer_env"
@@ -263,5 +264,16 @@ module Plushie
     runtime = Runtime.new(app:, **opts)
     runtime.start
     runtime
+  end
+
+  # Connect an app to a renderer-owned socket and block until it exits.
+  #
+  # Used by renderer-parent standalone launches where the renderer sets
+  # PLUSHIE_SOCKET and PLUSHIE_TOKEN before execing the Ruby host.
+  def self.connect(app_class, socket: ENV["PLUSHIE_SOCKET"], token: ENV["PLUSHIE_TOKEN"], format: :msgpack)
+    raise Error, "PLUSHIE_SOCKET is not set" if socket.nil? || socket.empty?
+
+    adapter = Transport::SocketAdapter.connect(socket)
+    run(app_class, transport: [:iostream, adapter], token: token, format: format)
   end
 end

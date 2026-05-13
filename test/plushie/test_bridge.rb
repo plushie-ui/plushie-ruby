@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "digest"
 
 class TestBridge < Minitest::Test
   class ThreadDouble
@@ -79,6 +80,27 @@ class TestBridge < Minitest::Test
     end
 
     assert_equal :error, connection_args[:log_level]
+  ensure
+    bridge&.stop
+  end
+
+  def test_token_is_sent_as_digest
+    bridge = Plushie::Bridge.new(
+      event_queue: Thread::Queue.new,
+      token: "secret-123",
+      heartbeat_interval: nil
+    )
+    connection_args = nil
+
+    Plushie::Connection.stub(:spawn, ->(**kwargs) {
+      connection_args = kwargs
+      ConnectionDouble.new
+    }) do
+      bridge.start(settings: {title: "Test", token: "plaintext"})
+    end
+
+    assert_equal Digest::SHA256.hexdigest("secret-123"), connection_args[:settings][:token_sha256]
+    refute connection_args[:settings].key?(:token)
   ensure
     bridge&.stop
   end

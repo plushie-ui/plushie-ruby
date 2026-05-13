@@ -9,7 +9,7 @@
 #   plushie:download : download precompiled renderer binary or WASM
 #   plushie:build    : build renderer from Rust source
 #   plushie:run      : run a Plushie app
-#   plushie:connect  : connect to a renderer via stdio
+#   plushie:connect  : connect to a renderer via stdio or PLUSHIE_SOCKET
 #   plushie:inspect  : print UI tree as JSON
 #   plushie:script   : run .plushie test scripts
 #   plushie:replay   : replay a .plushie script with real windows
@@ -98,14 +98,19 @@ namespace :plushie do
     Plushie.run(app_class, **opts)
   end
 
-  desc "Connect to a renderer via stdio (for plushie --exec)"
+  desc "Connect to a renderer via stdio or PLUSHIE_SOCKET"
   task :connect, [:app_class] do |_t, args|
     unless args[:app_class]
       abort "Usage: rake plushie:connect[AppClass]"
     end
     require "plushie"
     app_class = Object.const_get(args[:app_class])
-    Plushie.run(app_class, transport: :stdio)
+    format = (ENV["PLUSHIE_FORMAT"] == "json") ? :json : :msgpack
+    if ENV["PLUSHIE_SOCKET"] && !ENV["PLUSHIE_SOCKET"].empty?
+      Plushie.connect(app_class, format: format)
+    else
+      Plushie.run(app_class, transport: :stdio, format: format)
+    end
   end
 
   desc "Print the initial UI tree as JSON"

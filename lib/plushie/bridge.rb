@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "logger"
+require "digest"
 require_relative "bounded_queue"
 
 module Plushie
@@ -126,7 +127,7 @@ module Plushie
 
     def connect!
       queue = BoundedQueue.new(BoundedQueue::CONNECTION_CAPACITY)
-      settings = @token ? @settings.merge(token: @token) : @settings
+      settings = settings_with_token_digest
 
       @connection = case @transport
       when :spawn
@@ -161,6 +162,14 @@ module Plushie
     rescue => e
       handle_connect_failure(e)
       false
+    end
+
+    def settings_with_token_digest
+      return @settings unless @token
+
+      @settings
+        .reject { |key, _value| key.to_s == "token" }
+        .merge(token_sha256: Digest::SHA256.hexdigest(@token))
     end
 
     def sdk_log_level(level)

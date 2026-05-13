@@ -283,14 +283,14 @@ class TestIoStream < Minitest::Test
     adapter.stop
   end
 
-  def test_iostream_connection_settings_include_token_when_provided
+  def test_iostream_connection_settings_accept_token_digest
     queue = Thread::Queue.new
     adapter = PipeAdapter.new(@renderer_out_r, @host_out_w)
 
     conn_thread = Thread.new do
       Plushie::Connection.iostream(
         adapter: adapter, format: :json,
-        settings: {title: "Test", token: "secret-123"},
+        settings: {title: "Test", token_sha256: "a" * 64},
         queue: queue
       )
     end
@@ -301,7 +301,8 @@ class TestIoStream < Minitest::Test
     length = header.unpack1("N")
     settings_data = @host_out_r.read(length)
     settings_msg = JSON.parse(settings_data)
-    assert_equal "secret-123", settings_msg["settings"]["token"]
+    assert_equal "a" * 64, settings_msg["settings"]["token_sha256"]
+    refute settings_msg["settings"].key?("token")
 
     # Send hello to unblock
     hello = {

@@ -29,6 +29,10 @@ class DocsRunningTest < Minitest::Test
     assert_respond_to Plushie, :start
   end
 
+  def test_connect_method_exists
+    assert_respond_to Plushie, :connect
+  end
+
   # -- Runtime accepts daemon option (from running.md) --
 
   def test_runtime_accepts_daemon_option

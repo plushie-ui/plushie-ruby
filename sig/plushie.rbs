@@ -24,6 +24,14 @@ module Plushie
   # Start a Plushie app and block until it exits.
   def self.run: (singleton(App) app_class, **untyped opts) -> void
 
+  # Connect an app to a renderer-owned socket and block until it exits.
+  def self.connect: (
+    singleton(App) app_class,
+    ?socket: String?,
+    ?token: String?,
+    ?format: Symbol
+  ) -> void
+
   # Start a Plushie app in the background. Returns a runtime handle.
   def self.start: (singleton(App) app_class, **untyped opts) -> Runtime
 end

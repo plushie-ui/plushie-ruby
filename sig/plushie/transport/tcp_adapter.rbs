@@ -1,0 +1,10 @@
+module Plushie
+  module Transport
+    class TCPAdapter
+      def initialize: (untyped socket) -> void
+      def on_bridge: (Connection connection) -> void
+      def send_data: (String data) -> void
+      def stop: () -> void
+    end
+  end
+end

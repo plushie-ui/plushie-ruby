@@ -23,7 +23,7 @@ module Plushie
         @reader = nil
 
         # Disable Nagle's algorithm for low-latency protocol messages.
-        if socket.respond_to?(:setsockopt)
+        if socket.is_a?(TCPSocket)
           socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, 1)
         end
       end
