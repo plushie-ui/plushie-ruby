@@ -84,7 +84,10 @@ speaks wire protocol directly over those pipes. Use this for the
 "renderer runs locally, app runs on a server" pattern:
 
 ```bash
-plushie --exec "ssh pad-server bundle exec rake plushie:connect[Pad]"
+plushie \
+  --exec-bin ssh \
+  --exec-arg pad-server \
+  --exec-arg plushie
 ```
 
 The `plushie:connect` Rake task in `plushie/rake.rb` is a one-liner
@@ -368,7 +371,10 @@ Plushie.run(CollabPad.new(Shared.global_store), transport: :stdio)
 Put it on the user's PATH as `collab-pad`. Then from a client:
 
 ```bash
-plushie --exec "ssh pad-server collab-pad"
+plushie \
+  --exec-bin ssh \
+  --exec-arg pad-server \
+  --exec-arg collab-pad
 ```
 
 Two clients, two SSH sessions, two Ruby processes, two

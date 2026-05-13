@@ -20,7 +20,7 @@ Plushie's wire boundary is asymmetric:
 - **Host-to-renderer.** Broader by design. The host asks the
   renderer to load fonts and images by path, render screenshots,
   exercise effects (clipboard, file dialogs, notifications),
-  spawn subprocesses in `--exec` mode. A compromised host can
+  spawn subprocesses through structured renderer exec args. A compromised host can
   drive the full operation set against the user's machine
   wherever the renderer runs. Bounding this is the
   capability-manifest direction in plushie-rust's roadmap, not
@@ -71,7 +71,7 @@ plushie-ruby's load-bearing pieces:
   per-subscription rates; a host SDK still has to handle the
   firehose gracefully (see `resilience.md`).
 - **Host-to-renderer surface.** Effect dispatch, file path
-  inputs, font and image loading by path, and `--exec` spawn are
+  inputs, font and image loading by path, and renderer-owned child process spawn are
   full-trust today. Bounding them is the capability-manifest
   direction.
 - **Same-access channels.** A user with shell access on the

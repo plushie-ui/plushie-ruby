@@ -268,7 +268,7 @@ format.
 Runs a Plushie application with `transport: :stdio`. The Rust
 renderer spawns the Ruby process (not the other way around) and
 communicates over the Ruby process's stdin and stdout. Use this when
-the renderer is launched externally via `plushie --exec`.
+the renderer is launched externally through renderer-parent exec.
 
 ```bash
 rake 'plushie:connect[Counter]'
@@ -283,11 +283,16 @@ rake 'plushie:connect[Counter]'
 `app_class` is required; the task aborts with a usage message when
 omitted.
 
-The typical pattern is to run the renderer with an `--exec` string
+The typical pattern is to run the renderer with structured exec args
 that launches this task:
 
 ```bash
-plushie --listen --exec "bundle exec rake 'plushie:connect[Counter]'"
+plushie \
+  --listen \
+  --exec-bin bundle \
+  --exec-arg exec \
+  --exec-arg rake \
+  --exec-arg 'plushie:connect[Counter]'
 ```
 
 All log output is routed off of stdout so the protocol channel

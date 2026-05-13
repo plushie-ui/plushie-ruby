@@ -133,7 +133,7 @@ The Connection accepts three transport modes:
   standard production transport.
 - `:stdio`: use the current process's stdin/stdout. Used when
   this Ruby process was itself spawned by another process
-  (e.g., `plushie --listen --exec ruby app.rb`).
+  (e.g., `plushie --listen --exec-bin ruby --exec-arg app.rb`).
 - `[:iostream, adapter]`: a Ruby object that mediates between
   the Connection and an external I/O source (TCP socket, SSH
   channel, WebSocket). The adapter responds to `on_bridge`,
