@@ -51,7 +51,7 @@ Full prop tables for all layout containers are in the
 |---|---|---|
 | `button` | `button(id, label, **opts)` | `:click` |
 | `text_input` | `text_input(id, value, **opts)` | `:input`, `:submit`, `:paste` |
-| `text_editor` | `text_editor(id, content, **opts)` | `:input` |
+| `text_editor` | `text_editor(id, content, **opts)` | `:input`, `:paste` |
 | `checkbox` | `checkbox(id, checked, **opts)` | `:toggle` (value: boolean) |
 | `toggler` | `toggler(id, active, **opts)` | `:toggle` (value: boolean) |
 | `radio` | `radio(id, label, group:, value:, ...)` | `:select` |
@@ -73,8 +73,10 @@ button("save", "Save", style: :primary)
 
 **text_input** is a single-line editable field. Emits `:input` on
 every keystroke with the full text as `value`. Emits `:submit` on
-Enter when `on_submit: true` is set, and `:paste` when the user
-pastes into the field.
+Enter when `on_submit: true` is set, and `:paste` when
+`on_paste: true` is set and the user pastes into the field. Use
+`text_direction: :auto`, `:ltr`, or `:rtl` to provide the logical
+direction hint.
 
 ```ruby
 text_input("email", model.email, placeholder: "you@example.com", on_submit: true)
@@ -83,7 +85,9 @@ text_input("email", model.email, placeholder: "you@example.com", on_submit: true
 **text_editor** is a multi-line editable area with syntax
 highlighting support (`highlight_syntax: "ruby"`). The `content`
 argument seeds the initial text. Holds renderer-side state (cursor,
-selection, scroll).
+selection, scroll). Use `text_direction: :auto`, `:ltr`, or `:rtl`
+to configure logical direction. Set `on_paste: true` to receive
+`:paste` events with the pasted text.
 
 ```ruby
 text_editor("notes", model.notes, highlight_syntax: "markdown", wrapping: :word)
@@ -610,6 +614,27 @@ Used by: `text`, `rich_text`.
 | `:word` | Break at word boundaries |
 | `:glyph` | Break at any character |
 | `:word_or_glyph` | Try word boundaries first, fall back to glyph |
+
+### Text direction
+
+Used by: `text`, `text_input`, `text_editor`.
+
+| Value | Meaning |
+|---|---|
+| `:auto` | Renderer chooses direction from content |
+| `:ltr` | Left-to-right text |
+| `:rtl` | Right-to-left text |
+
+### Ellipsis
+
+Used by: `text`, `rich_text`, `pick_list`, `combo_box`.
+
+| Value | Meaning |
+|---|---|
+| `:none` | No ellipsis |
+| `:start` | Omit the beginning |
+| `:middle` | Omit the middle |
+| `:end` | Omit the end |
 
 ### Content fit
 

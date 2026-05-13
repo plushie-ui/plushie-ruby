@@ -148,7 +148,7 @@ module Plushie
         if names.length == 1 && (type || doc)
           # Rich form: prop :name, type: :string, doc: "..."
           name = names[0].to_sym
-          if type && !KNOWN_PROP_TYPES.include?(type.to_sym)
+          if type && !type.is_a?(Hash) && !KNOWN_PROP_TYPES.include?(type.to_sym)
             raise ArgumentError,
               "unsupported prop type #{type.inspect} for #{name.inspect}. " \
               "Known types: #{KNOWN_PROP_TYPES.inspect}"

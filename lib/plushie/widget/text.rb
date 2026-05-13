@@ -10,7 +10,8 @@ module Plushie
       children :none
       positional :content, default: nil
       prop :content, :size, :color, :font, :width, :height, :line_height,
-        :align_x, :align_y, :wrapping, :ellipsis, :shaping, :style
+        :align_x, :align_y, :wrapping, :text_direction, :shaping, :style
+      prop :ellipsis, type: {enum: %i[none start middle end]}
       prop :a11y, :event_rate
       default_a11y role: :label, label_from: :content
     end

@@ -112,7 +112,7 @@ by the `type:` symbol. The common ones:
 | `:select` | `value` | Pick list, combo box |
 | `:slide` | `value` (Float) | Slider being dragged |
 | `:slide_release` | `value` (Float) | Slider released |
-| `:paste` | `value` (String) | Text input paste |
+| `:paste` | `value` (String) | Text input or text editor paste |
 | `:open`, `:close` | none | Expandable |
 | `:link_click` | `value` (String) | Markdown link, rich text |
 | `:sort` | `value` (String) | Table column |

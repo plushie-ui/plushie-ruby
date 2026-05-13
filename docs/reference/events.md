@@ -49,7 +49,7 @@ hash inside `value`).
 | `:select` | value (any) | Pick list / combo box selection |
 | `:slide` | value (number) | Slider moved |
 | `:slide_release` | value (number) | Slider released at final value |
-| `:paste` | value (string) | Paste action on a text input |
+| `:paste` | value (string) | Paste action on a text input or text editor |
 | `:open` | none | Expandable opened |
 | `:close` | none | Expandable closed |
 | `:option_hovered` | value (any) | Pick list option hovered |

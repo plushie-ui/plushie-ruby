@@ -21,7 +21,7 @@ module Plushie
     # - menu_height (number): max dropdown menu height in pixels.
     # - shaping (symbol): text shaping strategy.
     # - handle (hash): dropdown handle indicator config.
-    # - ellipsis (string): text ellipsis strategy.
+    # - ellipsis (symbol): text ellipsis strategy: :none, :start, :middle, or :end.
     # - menu_style (hash): dropdown menu style overrides.
     # - style (symbol|hash): named style or style map.
     # - on_open (boolean): emit open event.
@@ -30,9 +30,10 @@ module Plushie
       children :none
       positional :options, default: []
       prop :options, :selected, :placeholder, :width, :padding, :text_size,
-        :font, :line_height, :menu_height, :shaping, :handle, :ellipsis,
+        :font, :line_height, :menu_height, :shaping, :handle,
         :menu_style, :style, :on_open, :on_close,
         :required, :validation
+      prop :ellipsis, type: {enum: %i[none start middle end]}
       prop :a11y, :event_rate
       default_a11y role: :combo_box, label_from: :placeholder
     end

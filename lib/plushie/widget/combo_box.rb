@@ -24,7 +24,7 @@ module Plushie
     # - on_open (boolean): emit open event.
     # - on_close (boolean): emit close event.
     # - shaping (symbol): text shaping strategy.
-    # - ellipsis (string): text ellipsis strategy.
+    # - ellipsis (symbol): text ellipsis strategy: :none, :start, :middle, or :end.
     # - menu_style (hash): dropdown menu style overrides.
     # - style (symbol|hash): named style or style map.
     ComboBox = Plushie::Widget.define(:combo_box) do
@@ -32,8 +32,9 @@ module Plushie
       positional :options, default: []
       prop :options, :selected, :placeholder, :width, :padding, :size, :font,
         :line_height, :menu_height, :icon, :on_option_hovered, :on_open,
-        :on_close, :shaping, :ellipsis, :menu_style, :style,
+        :on_close, :shaping, :menu_style, :style,
         :required, :validation
+      prop :ellipsis, type: {enum: %i[none start middle end]}
       prop :a11y, :event_rate
       default_a11y role: :combo_box, label_from: :placeholder
     end

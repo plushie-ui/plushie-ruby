@@ -232,6 +232,20 @@ class TestTree < Minitest::Test
     a11y = input.props["a11y"] || input.props[:a11y]
     assert_equal true, a11y["invalid"] || a11y[:invalid]
     assert_equal "Not valid", a11y["error_message"] || a11y[:error_message]
+    assert_equal({"state" => "invalid", "message" => "Not valid"}, input.props["validation"])
+  end
+
+  def test_validation_invalid_string_array_normalizes_before_wire_encoding
+    tree = container("form") do
+      text_editor("body", "", validation: ["invalid", "Required"])
+    end
+    normalized = Plushie::Tree.normalize(tree).first
+    editor = Plushie::Tree.find(normalized, "form/body")
+    a11y = editor.props["a11y"] || editor.props[:a11y]
+
+    assert_equal true, a11y["invalid"] || a11y[:invalid]
+    assert_equal "Required", a11y["error_message"] || a11y[:error_message]
+    assert_equal({"state" => "invalid", "message" => "Required"}, editor.props["validation"])
   end
 
   def test_validation_valid_sets_invalid_false

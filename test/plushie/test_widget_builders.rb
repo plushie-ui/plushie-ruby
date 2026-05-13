@@ -41,20 +41,31 @@ class TestWidgetBuilders < Minitest::Test
   end
 
   def test_text_new_and_build
-    txt = Plushie::Widget::Text.new("title", "Hello World", size: 24, color: "#ff0000")
+    txt = Plushie::Widget::Text.new("title", "Hello World",
+      size: 24, color: "#ff0000", text_direction: :rtl, ellipsis: :end)
     node = txt.build
     assert_equal "text", node.type
     assert_equal "Hello World", node.props[:content]
     assert_equal 24, node.props[:size]
     assert_equal "#ff0000", node.props[:color]
+    assert_equal :rtl, node.props[:text_direction]
+    assert_equal :end, node.props[:ellipsis]
+  end
+
+  def test_text_rejects_invalid_ellipsis
+    assert_raises(ArgumentError) do
+      Plushie::Widget::Text.new("title", "Hello", ellipsis: :tail)
+    end
   end
 
   def test_text_input_new_and_build
-    ti = Plushie::Widget::TextInput.new("search", "query", placeholder: "Type here...")
+    ti = Plushie::Widget::TextInput.new("search", "query",
+      placeholder: "Type here...", text_direction: :rtl)
     node = ti.build
     assert_equal "text_input", node.type
     assert_equal "query", node.props[:value]
     assert_equal "Type here...", node.props[:placeholder]
+    assert_equal :rtl, node.props[:text_direction]
   end
 
   def test_column_with_children

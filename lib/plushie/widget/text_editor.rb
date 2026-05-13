@@ -21,6 +21,7 @@ module Plushie
     # - line_height (number|hash): line height.
     # - padding (number): uniform padding in pixels.
     # - wrapping (symbol): text wrapping mode.
+    # - text_direction (symbol): logical text direction: :auto, :ltr, or :rtl.
     # - input_purpose (string): input purpose hint: "normal", "secure", "terminal", "number", "decimal", "phone", "email", "url", "search".
     # - highlight_syntax (string): language for syntax highlighting.
     # - highlight_theme (string): highlighter theme.
@@ -28,12 +29,13 @@ module Plushie
     # - key_bindings (array of hashes): declarative key binding rules.
     # - placeholder_color (string): placeholder text color.
     # - selection_color (string): selection highlight color.
+    # - on_paste (boolean): emit paste events with pasted text.
     TextEditor = Plushie::Widget.define(:text_editor) do
       children :none
       prop :content, :placeholder, :width, :height, :min_height, :max_height,
-        :font, :size, :line_height, :padding, :wrapping, :input_purpose,
-        :highlight_syntax, :highlight_theme, :style, :key_bindings,
-        :placeholder_color, :selection_color,
+        :font, :size, :line_height, :padding, :wrapping, :text_direction,
+        :input_purpose, :highlight_syntax, :highlight_theme, :style,
+        :key_bindings, :placeholder_color, :selection_color, :on_paste,
         :required, :validation
       prop :a11y, :event_rate
       default_a11y role: :multiline_text_input, label_from: :placeholder

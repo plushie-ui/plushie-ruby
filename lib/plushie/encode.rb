@@ -63,9 +63,25 @@ module Plushie
     def encode_props(props)
       result = {} #: Hash[String, untyped]
       props.each do |k, v|
-        result[k.to_s] = encode_value(v)
+        key = k.to_s
+        value = (key == "validation") ? normalize_validation(v) : v
+        result[key] = encode_value(value)
       end
       result
     end
+
+    def normalize_validation(value)
+      case value
+      when Array
+        if value.length == 2 && (value[0] == :invalid || value[0] == "invalid")
+          {state: :invalid, message: value[1]}
+        else
+          value
+        end
+      else
+        value
+      end
+    end
+    private_class_method :normalize_validation
   end
 end

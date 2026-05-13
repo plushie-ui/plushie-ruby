@@ -92,6 +92,9 @@ module Plushie
       def split_scoped_id: (String? full_id) -> [String, Array[String]]
       def split_scoped_id_with_window: (String? full_id, String? window_id) -> [String, Array[String]]
       def parse_modifiers: (Hash[String, untyped]? mods) -> Hash[Symbol, bool]
+      def parse_pointer_button!: (untyped value, String family) -> Symbol
+      def parse_pointer_kind!: (untyped value, String family) -> Symbol
+      def parse_pointer_lost!: (Hash[String, untyped] data, String family) -> bool
       def parse_ime_cursor: (Hash[String, untyped] | Array[Integer] | nil cursor) -> [Integer, Integer]?
       def parse_canvas_button: (String? button) -> Symbol
       def atomize_data: (Hash[String, untyped]? data) -> Hash[Symbol, untyped]?
@@ -122,6 +125,9 @@ module Plushie
       # Helpers
       def self.split_scoped_id: (String? full_id) -> [String, Array[String]]
       def self.parse_modifiers: (Hash[String, untyped]? mods) -> Hash[Symbol, bool]
+      def self.parse_pointer_button!: (untyped value, String family) -> Symbol
+      def self.parse_pointer_kind!: (untyped value, String family) -> Symbol
+      def self.parse_pointer_lost!: (Hash[String, untyped] data, String family) -> bool
       def self.parse_ime_cursor: (Hash[String, untyped] | Array[Integer] | nil cursor) -> [Integer, Integer]?
       def self.parse_canvas_button: (String? button) -> Symbol
       def self.atomize_data: (Hash[String, untyped]? data) -> Hash[Symbol, untyped]?

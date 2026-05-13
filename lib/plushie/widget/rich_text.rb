@@ -21,11 +21,12 @@ module Plushie
     # - color (string): default text color.
     # - line_height (number|hash): line height.
     # - wrapping (symbol): text wrapping mode.
-    # - ellipsis (string): text ellipsis mode.
+    # - ellipsis (symbol): text ellipsis mode: :none, :start, :middle, or :end.
     RichText = Plushie::Widget.define(:rich_text) do
       children :none
       prop :spans, :width, :height, :size, :font, :color, :line_height,
-        :wrapping, :ellipsis
+        :wrapping
+      prop :ellipsis, type: {enum: %i[none start middle end]}
       prop :a11y, :event_rate
       default_a11y role: :label
     end

@@ -113,12 +113,15 @@ class TestWidgetBuildersComplete < Minitest::Test
 
   def test_text_editor_new_and_build
     ed = Plushie::Widget::TextEditor.new("editor",
-      content: "Hello", placeholder: "Type...", size: 14)
+      content: "Hello", placeholder: "Type...", size: 14,
+      text_direction: :rtl, on_paste: true)
     node = ed.build
     assert_equal "text_editor", node.type
     assert_equal "Hello", node.props[:content]
     assert_equal "Type...", node.props[:placeholder]
     assert_equal 14, node.props[:size]
+    assert_equal :rtl, node.props[:text_direction]
+    assert_equal true, node.props[:on_paste]
   end
 
   def test_text_editor_chainable_setters
@@ -190,9 +193,15 @@ class TestWidgetBuildersComplete < Minitest::Test
 
   def test_rich_text_chainable_setters
     rt = Plushie::Widget::RichText.new("r")
-    rt2 = rt.set_wrapping(:word).set_ellipsis("end")
+    rt2 = rt.set_wrapping(:word).set_ellipsis(:end)
     assert_equal :word, rt2.wrapping
-    assert_equal "end", rt2.ellipsis
+    assert_equal :end, rt2.ellipsis
+  end
+
+  def test_rich_text_rejects_invalid_ellipsis
+    assert_raises(ArgumentError) do
+      Plushie::Widget::RichText.new("r", ellipsis: :tail)
+    end
   end
 
   def test_rule_new_and_build
