@@ -24,7 +24,7 @@ module Plushie
       target: nil,
       renderer_path: nil,
       renderer_kind: "stock",
-      renderer_source: "local-resolve",
+      renderer_source: nil,
       entrypoint: "bin/connect",
       sdk_source_path: ENV["PLUSHIE_RUBY_DIR"],
       bundle_without: "development test"
@@ -231,13 +231,27 @@ module Plushie
       end
     end
 
-    def resolve_renderer!(path: nil, kind: "stock", source: "local-resolve")
+    def resolve_renderer!(path: nil, kind: "stock", source: nil)
       unless kind == "stock"
         raise Error, "Ruby package helper currently supports stock renderers only"
       end
 
-      source_path = path || ENV["PLUSHIE_BINARY_PATH"] || renderer_from_source_path || Binary.path ||
-        find_executable("plushie-renderer") || find_executable("plushie")
+      source_path = nil
+      resolved_source = source
+
+      if path && !path.empty?
+        source_path = path
+        resolved_source ||= "local-path"
+      elsif ENV["PLUSHIE_BINARY_PATH"] && !ENV["PLUSHIE_BINARY_PATH"].empty?
+        source_path = ENV["PLUSHIE_BINARY_PATH"]
+        resolved_source ||= "local-path"
+      elsif (source_path = renderer_from_source_path)
+        resolved_source ||= "local-build"
+      elsif (source_path = Binary.path)
+        resolved_source ||= "local-resolve"
+      elsif (source_path = find_executable("plushie-renderer") || find_executable("plushie"))
+        resolved_source ||= "local-resolve"
+      end
 
       unless source_path
         raise Error, "No renderer binary found. Run bundle exec rake plushie:download or set PLUSHIE_BINARY_PATH."
@@ -247,7 +261,7 @@ module Plushie
 
       {
         kind: kind,
-        source: source,
+        source: resolved_source || "local-resolve",
         source_path: source_path,
         payload_path: renderer_payload_path
       }
@@ -258,7 +272,7 @@ module Plushie
         project_dir: Dir.pwd,
         output_dir: "dist",
         renderer_kind: "stock",
-        renderer_source: "local-resolve",
+        renderer_source: nil,
         entrypoint: "bin/connect",
         bundle_without: "development test"
       }
@@ -314,7 +328,7 @@ module Plushie
         target: env_value("PLUSHIE_PACKAGE_TARGET"),
         renderer_path: env_value("PLUSHIE_PACKAGE_RENDERER_PATH"),
         renderer_kind: env_value("PLUSHIE_PACKAGE_RENDERER_KIND", "stock"),
-        renderer_source: env_value("PLUSHIE_PACKAGE_RENDERER_SOURCE", "local-resolve"),
+        renderer_source: env_value("PLUSHIE_PACKAGE_RENDERER_SOURCE"),
         entrypoint: env_value("PLUSHIE_PACKAGE_ENTRYPOINT", "bin/connect"),
         sdk_source_path: env_value("PLUSHIE_RUBY_DIR"),
         bundle_without: env_value("PLUSHIE_PACKAGE_BUNDLE_WITHOUT", "development test")

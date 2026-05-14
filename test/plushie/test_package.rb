@@ -75,4 +75,85 @@ class TestPackage < Minitest::Test
       assert_equal P.render_manifest(manifest), File.read(output)
     end
   end
+
+  def test_resolve_renderer_records_explicit_paths_as_local_paths
+    Dir.mktmpdir do |tmpdir|
+      renderer = File.join(tmpdir, "plushie-renderer")
+      write_executable(renderer)
+
+      result = P.resolve_renderer!(path: renderer)
+
+      assert_equal "local-path", result.fetch(:source)
+      assert_equal renderer, result.fetch(:source_path)
+    end
+  end
+
+  def test_resolve_renderer_preserves_explicit_source
+    Dir.mktmpdir do |tmpdir|
+      renderer = File.join(tmpdir, "plushie-renderer")
+      write_executable(renderer)
+
+      result = P.resolve_renderer!(path: renderer, source: "test-fixture")
+
+      assert_equal "test-fixture", result.fetch(:source)
+    end
+  end
+
+  def test_resolve_renderer_records_environment_paths_as_local_paths
+    Dir.mktmpdir do |tmpdir|
+      renderer = File.join(tmpdir, "plushie-renderer")
+      write_executable(renderer)
+
+      with_env("PLUSHIE_BINARY_PATH" => renderer) do
+        result = P.resolve_renderer!
+
+        assert_equal "local-path", result.fetch(:source)
+        assert_equal renderer, result.fetch(:source_path)
+      end
+    end
+  end
+
+  def test_resolve_renderer_records_source_builds_as_local_builds
+    Dir.mktmpdir do |tmpdir|
+      renderer = File.join(tmpdir, "target", "release", "plushie-renderer")
+      write_executable(renderer)
+
+      with_env("PLUSHIE_RUST_SOURCE_PATH" => tmpdir, "PLUSHIE_BINARY_PATH" => nil) do
+        P.stub(:renderer_from_source_path, renderer) do
+          result = P.resolve_renderer!
+
+          assert_equal "local-build", result.fetch(:source)
+          assert_equal renderer, result.fetch(:source_path)
+        end
+      end
+    end
+  end
+
+  private
+
+  def write_executable(path)
+    FileUtils.mkdir_p(File.dirname(path))
+    File.write(path, "#!/bin/sh\nexit 0\n")
+    FileUtils.chmod(0o755, path)
+  end
+
+  def with_env(values)
+    old_values = values.to_h { |key, _value| [key, ENV[key]] }
+    values.each do |key, value|
+      if value.nil?
+        ENV.delete(key)
+      else
+        ENV[key] = value
+      end
+    end
+    yield
+  ensure
+    old_values.each do |key, value|
+      if value.nil?
+        ENV.delete(key)
+      else
+        ENV[key] = value
+      end
+    end
+  end
 end
