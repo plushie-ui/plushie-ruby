@@ -569,18 +569,18 @@ module Plushie
       _plushie_container("floating", id || _plushie_auto_id, props, &block)
     end
 
-    # Mouse area container. Tracks mouse events over its children.
+    # Pointer area container. Tracks pointer events over its children.
     #
     # @param id [String] widget ID
-    # @param props [Hash] mouse area options (:on_press, :on_release, :on_move, :on_enter, :on_exit, etc.)
-    # @yield children to track mouse events over
+    # @param props [Hash] pointer area options (:on_press, :on_release, :on_move, :on_enter, :on_exit, etc.)
+    # @yield children to track pointer events over
     # @return [Node]
     # @example
     #   pointer_area("canvas_area", on_press: true, on_move: true) do
     #     canvas("drawing", width: 400, height: 300)
     #   end
     def pointer_area(id, **props, &block)
-      _plushie_container("mouse_area", id, props, &block)
+      _plushie_container("pointer_area", id, props, &block)
     end
 
     # Sensor container. Tracks layout and size changes of its children.

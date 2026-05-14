@@ -169,7 +169,7 @@ class TestUIComplete < Minitest::Test
 
   def test_pointer_area
     node = pointer_area("ma") { button("b", "Click") }
-    assert_equal "mouse_area", node.type # wire type unchanged
+    assert_equal "pointer_area", node.type
   end
 
   def test_sensor

@@ -335,7 +335,7 @@ class TestWidgetBuildersComplete < Minitest::Test
       cursor: :pointer, on_right_press: true, on_scroll: true)
       .push(Plushie::Widget::Text.new("label", "Right-click me"))
     node = pa.build
-    assert_equal "mouse_area", node.type # wire type unchanged
+    assert_equal "pointer_area", node.type
     assert_equal :pointer, node.props[:cursor]
     assert_equal true, node.props[:on_right_press]
     assert_equal true, node.props[:on_scroll]

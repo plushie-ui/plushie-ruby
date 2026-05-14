@@ -687,6 +687,17 @@ class TestParityFeatures < Minitest::Test
     assert_equal "focused", event.value
   end
 
+  def test_decode_status_event_uses_window_from_scoped_id
+    event = Plushie::Protocol::Decode.decode_event({
+      "family" => "status",
+      "id" => "main#email",
+      "value" => "focused"
+    })
+    assert_equal :status, event.type
+    assert_equal "main", event.window_id
+    assert_equal ["main"], event.scope
+  end
+
   # ======================================================================
   # Event::Specs: built-in event catalog
   # ======================================================================

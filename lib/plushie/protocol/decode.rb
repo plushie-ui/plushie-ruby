@@ -958,6 +958,12 @@ module Plushie
         window_id = msg["window_id"]
         return window_id if window_id.is_a?(String) && !window_id.empty?
 
+        id = msg["id"]
+        if id.is_a?(String) && id.include?("#")
+          window = id.split("#", 2).first
+          return window if window && !window.empty?
+        end
+
         raise ArgumentError, "event family #{family.inspect} is missing required window_id"
       end
 
