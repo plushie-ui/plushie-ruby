@@ -58,6 +58,11 @@ class TestRakeTasks < Minitest::Test
       "plushie:preflight task should be defined"
   end
 
+  def test_package_task_exists
+    assert Rake::Task.task_defined?("plushie:package"),
+      "plushie:package task should be defined"
+  end
+
   def test_download_task_has_description
     desc = Rake::Task["plushie:download"].comment
     assert_includes desc, "Download"
@@ -86,6 +91,11 @@ class TestRakeTasks < Minitest::Test
   def test_connect_task_has_description
     desc = Rake::Task["plushie:connect"].comment
     assert_includes desc, "Connect"
+  end
+
+  def test_package_task_has_description
+    desc = Rake::Task["plushie:package"].comment
+    assert_includes desc, "package"
   end
 
   def test_download_task_accepts_args

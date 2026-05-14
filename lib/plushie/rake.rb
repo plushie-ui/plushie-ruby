@@ -10,6 +10,7 @@
 #   plushie:build    : build renderer from Rust source
 #   plushie:run      : run a Plushie app
 #   plushie:connect  : connect to a renderer via stdio or PLUSHIE_SOCKET
+#   plushie:package  : build standalone package payload and manifest
 #   plushie:inspect  : print UI tree as JSON
 #   plushie:script   : run .plushie test scripts
 #   plushie:replay   : replay a .plushie script with real windows
@@ -111,6 +112,22 @@ namespace :plushie do
     else
       Plushie.run(app_class, transport: :stdio, format: format)
     end
+  end
+
+  desc "Build standalone package payload and manifest (env: PLUSHIE_PACKAGE_APP_ID required)"
+  task :package do
+    require "plushie/package"
+
+    begin
+      result = Plushie::Package.build_from_env
+    rescue Plushie::Error => e
+      abort e.message
+    end
+
+    puts "Wrote #{result.fetch(:archive_path)}"
+    puts "Wrote #{result.fetch(:manifest_path)}"
+    puts "Build launcher with:"
+    puts "  cargo plushie package --manifest #{result.fetch(:manifest_path)} --release"
   end
 
   desc "Print the initial UI tree as JSON"

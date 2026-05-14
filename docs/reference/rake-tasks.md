@@ -20,6 +20,7 @@ invoked with `rake plushie:<task>`.
 | [`plushie:clean`](#plushieclean) | Remove build artifacts |
 | [`plushie:run`](#plushierun) | Run a Plushie app |
 | [`plushie:connect`](#plushieconnect) | Run a Plushie app over stdio transport |
+| [`plushie:package`](#plushiepackage) | Build a standalone package payload and manifest |
 | [`plushie:inspect`](#plushieinspect) | Print the initial UI tree as JSON |
 | [`plushie:script`](#plushiescript) | Run `.plushie` automation scripts |
 | [`plushie:replay`](#plushiereplay) | Replay a `.plushie` script with real windows |
@@ -208,6 +209,51 @@ Deletes:
   directory)
 
 Prints "Nothing to clean" when both directories are already gone.
+
+## plushie:package
+
+Builds a renderer-parent payload archive and `plushie-package.toml`
+for the shared Rust package launcher. Ruby-specific work stays in
+the SDK: copying the app, copying a conservative Ruby runtime,
+installing runtime gems, adding the renderer to the payload, hashing
+the archive, and writing SDK/protocol metadata into the manifest.
+
+```bash
+PLUSHIE_PACKAGE_APP_ID=dev.example.notes \
+PLUSHIE_PACKAGE_APP_NAME="Notes" \
+PLUSHIE_PACKAGE_APP_VERSION=0.1.0 \
+rake plushie:package
+```
+
+The output defaults to `dist/payload.tar.zst` and
+`dist/plushie-package.toml`. Build the outer launcher with:
+
+```bash
+cargo plushie package --manifest dist/plushie-package.toml --release
+```
+
+### Configuration inputs
+
+| Input | Default | Effect |
+|---|---|---|
+| `PLUSHIE_PACKAGE_APP_ID` | required | Package app identifier |
+| `PLUSHIE_PACKAGE_APP_NAME` | unset | Optional display name written to the manifest |
+| `PLUSHIE_PACKAGE_APP_VERSION` | `0.1.0` | App version written to the manifest |
+| `PLUSHIE_PACKAGE_PROJECT_DIR` | current directory | App directory containing `lib/`, `bin/connect`, and `Gemfile` |
+| `PLUSHIE_PACKAGE_OUTPUT` | `dist` | Directory for payload and manifest output |
+| `PLUSHIE_PACKAGE_TARGET` | current Ruby host | Package target override such as `linux-x86_64` |
+| `PLUSHIE_PACKAGE_RENDERER_PATH` | auto-resolve | Existing renderer binary to copy into the payload |
+| `PLUSHIE_PACKAGE_RENDERER_KIND` | `stock` | Renderer kind recorded in `[renderer]` |
+| `PLUSHIE_PACKAGE_RENDERER_SOURCE` | `local-resolve` | Renderer source recorded in `[renderer]` |
+| `PLUSHIE_PACKAGE_ENTRYPOINT` | `bin/connect` | App entrypoint used as the host command |
+| `PLUSHIE_PACKAGE_BUNDLE_WITHOUT` | `development test` | Bundler groups excluded from the packaged app |
+| `PLUSHIE_RUBY_DIR` | unset | Local SDK checkout to vendor into the packaged app |
+
+Renderer resolution checks `PLUSHIE_PACKAGE_RENDERER_PATH`,
+`PLUSHIE_BINARY_PATH`, `PLUSHIE_RUST_SOURCE_PATH`, the SDK binary
+resolver, and finally `PATH` for `plushie-renderer` or `plushie`.
+When `PLUSHIE_RUST_SOURCE_PATH` is set, the package helper builds
+`plushie-renderer` from that checkout before copying it.
 
 ## plushie:run
 

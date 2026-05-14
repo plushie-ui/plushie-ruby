@@ -41,7 +41,7 @@ Three additional constraints shape the packaging options:
   on the consumer's machine, which means they need a Rust
   toolchain anyway.
 
-The four options below trade these constraints against each other.
+The options below trade these constraints against each other.
 
 ## Option A: run from source
 
@@ -246,7 +246,49 @@ runs several times larger than the base gem. Document the
 download size in the README, and consider whether Option B gives
 a better first-install experience.
 
-## Option D: native widget distribution
+## Option D: standalone launcher package
+
+For a single-file app launcher, let the Ruby SDK prepare the
+host payload and manifest, then hand that manifest to the shared
+Rust package launcher. The language-specific work stays in Ruby:
+copying a conservative Ruby runtime, installing runtime gems,
+copying the app files, including a payload-local renderer, writing
+`plushie-package.toml`, and archiving the payload.
+
+The default shape expects:
+
+- `lib/` for application code
+- `bin/connect` as the renderer-parent entrypoint
+- `Gemfile` for runtime dependencies
+- a renderer available through `PLUSHIE_BINARY_PATH`,
+  `PLUSHIE_RUST_SOURCE_PATH`, `rake plushie:download`, or `PATH`
+
+Add `require "plushie/rake"` to the app's `Rakefile`, then run:
+
+```bash
+PLUSHIE_PACKAGE_APP_ID=dev.example.notes \
+PLUSHIE_PACKAGE_APP_NAME="Notes" \
+PLUSHIE_PACKAGE_APP_VERSION=0.1.0 \
+bundle exec rake plushie:package
+```
+
+The task writes `dist/payload.tar.zst` and
+`dist/plushie-package.toml`. Build the outer launcher with:
+
+```bash
+cargo plushie package --manifest dist/plushie-package.toml --release
+```
+
+The manifest records `host_sdk = "ruby"`, the Ruby SDK version,
+`PLUSHIE_RUST_VERSION`, the protocol version, the package target,
+payload hash and size, and renderer provenance (`kind` and
+`source`). `cargo-plushie` remains language agnostic: it receives
+only the manifest and archived payload.
+
+For scripts that need a direct helper instead of Rake, use
+`Plushie::Package.build` from `require "plushie/package"`.
+
+## Option E: native widget distribution
 
 A gem that extends Plushie with a custom Rust widget can't ship a
 prebuilt binary: the consumer's renderer has to include the
@@ -403,7 +445,7 @@ The sequence that keeps a release clean:
    an example. If the gem ships a download URL or install guide,
    verify both still resolve.
 
-The same checklist works for Option D (native widget gems). The
+The same checklist works for Option E (native widget gems). The
 clean-install step is the key safeguard there too: it confirms
 the Rust source files shipped in the gem and `rake plushie:build`
 finds them from the install location.
@@ -429,7 +471,11 @@ my_app
 gem install my_app --platform=x86_64-linux
 my_app
 
-# Option D: native widget gem (consumer has a Rust toolchain)
+# Option D: standalone launcher
+bundle exec rake plushie:package
+cargo plushie package --manifest dist/plushie-package.toml --release
+
+# Option E: native widget gem (consumer has a Rust toolchain)
 bundle add my_sparkline
 bundle exec rake plushie:build
 bundle exec rake 'plushie:run[MyApp]'
@@ -437,7 +483,8 @@ bundle exec rake 'plushie:run[MyApp]'
 
 Pick the option that matches the audience. A developer tool is
 fine on A; a commercial app on Windows is better served by C; a
-widget library has no choice but D.
+managed standalone distribution can use D; a widget library has no
+choice but E.
 
 ## Troubleshooting for packagers
 
@@ -520,7 +567,7 @@ Bonus rounds:
 
 - Publish a platform-specific gem (Option C) alongside the
   generic one, bundling the Linux-x86_64 renderer.
-- Wrap the pad in a native widget gem (Option D) that ships a
+- Wrap the pad in a native widget gem (Option E) that ships a
   custom spell-check widget. Publish the widget gem first, then
   publish a pad release that depends on it.
 

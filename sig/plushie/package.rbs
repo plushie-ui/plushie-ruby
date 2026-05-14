@@ -1,0 +1,72 @@
+module Plushie
+  module Package
+    type renderer_manifest = {
+      kind: String,
+      source: String,
+      path: String
+    }
+
+    type manifest = {
+      app_id: String,
+      app_name: String?,
+      app_version: String,
+      target: String,
+      renderer: renderer_manifest,
+      host_command: Array[String],
+      working_dir: String,
+      payload_archive: String,
+      payload_hash: String,
+      payload_size: Integer
+    }
+
+    type build_result = {
+      output_dir: String,
+      payload_dir: String,
+      archive_path: String,
+      manifest_path: String,
+      payload_hash: String,
+      payload_size: Integer
+    }
+
+    def self.build: (
+      app_id: String,
+      ?app_version: String,
+      ?app_name: String?,
+      ?project_dir: String,
+      ?output_dir: String,
+      ?target: String?,
+      ?renderer_path: String?,
+      ?renderer_kind: String,
+      ?renderer_source: String,
+      ?entrypoint: String,
+      ?sdk_source_path: String?,
+      ?bundle_without: String
+    ) -> build_result
+
+    def self.normalize_package_target: (untyped os_name, untyped arch) -> String
+    def self.package_target: () -> String
+    def self.sha256_file: (String path) -> String
+    def self.file_size: (String path) -> Integer
+
+    def self.manifest_for_payload: (
+      app_id: String,
+      app_version: String,
+      renderer_path: String,
+      host_command: Array[String],
+      payload_archive: String,
+      ?app_name: String?,
+      ?target: String?,
+      ?renderer_kind: String,
+      ?renderer_source: String,
+      ?working_dir: String
+    ) -> manifest
+
+    def self.render_manifest: (manifest manifest) -> String
+    def self.write_manifest: (String path, manifest manifest) -> void
+    def self.archive_payload!: (String payload_dir, String archive_path) -> void
+    def self.validate_payload_archive_inputs!: (String payload_dir) -> void
+    def self.resolve_renderer!: (?path: String?, ?kind: String, ?source: String) -> Hash[Symbol, String]
+    def self.run_cli: (Array[String] argv) -> void
+    def self.build_from_env: () -> build_result
+  end
+end
