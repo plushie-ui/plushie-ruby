@@ -353,9 +353,9 @@ module Plushie
 
     def install_runtime_gems!(app_dir, bundle_without)
       Dir.chdir(app_dir) do
-        run!(%w[bundle config set --local path vendor/bundle])
-        run!(["bundle", "config", "set", "--local", "without", bundle_without])
-        run!(%w[bundle install])
+        run_unbundled!(%w[bundle config set --local path vendor/bundle])
+        run_unbundled!(["bundle", "config", "set", "--local", "without", bundle_without])
+        run_unbundled!(%w[bundle install])
       end
     end
 
@@ -464,6 +464,19 @@ module Plushie
 
     def run!(command)
       success = system(*command)
+      raise Error, "#{command.first} failed" unless success
+    end
+
+    def run_unbundled!(command)
+      success =
+        if defined?(::Bundler) && ::Bundler.respond_to?(:with_unbundled_env)
+          ::Bundler.with_unbundled_env { system(*command) }
+        else
+          env = ENV.to_h.reject do |key, _value|
+            key.start_with?("BUNDLE_") || %w[GEM_HOME GEM_PATH RUBYLIB RUBYOPT].include?(key)
+          end
+          system(env, *command)
+        end
       raise Error, "#{command.first} failed" unless success
     end
 
