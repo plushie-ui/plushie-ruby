@@ -252,8 +252,9 @@ For a single-file app launcher, let the Ruby SDK prepare the
 host payload and manifest, then hand that manifest to the shared
 Rust package launcher. The language-specific work stays in Ruby:
 copying a conservative Ruby runtime, installing runtime gems,
-copying the app files, including a payload-local renderer, writing
-`plushie-package.toml`, and archiving the payload.
+copying the app files, including a payload-local renderer,
+materializing default launcher icons, writing `plushie-package.toml`,
+and archiving the payload.
 
 The default shape expects:
 
@@ -281,9 +282,13 @@ cargo plushie package --manifest dist/plushie-package.toml --release
 
 The manifest records `host_sdk = "ruby"`, the Ruby SDK version,
 `PLUSHIE_RUST_VERSION`, the protocol version, the package target,
-payload hash and size, and renderer provenance (`kind` and
-`source`). `cargo-plushie` remains language agnostic: it receives
-only the manifest and archived payload.
+payload hash and size, renderer provenance (`kind` and `source`),
+and `[platform].icon`. By default the Ruby helper invokes
+`cargo-plushie default-icons --out dist/payload/assets` before
+archiving and records `assets/plushie-checkbox-512x512.png`. Set
+`PLUSHIE_PACKAGE_ICON_PATH` to copy an app icon into `assets/` and
+record that payload-relative path instead. `cargo-plushie` remains
+language agnostic: it receives only the manifest and archived payload.
 
 For scripts that need a direct helper instead of Rake, use
 `Plushie::Package.build` from `require "plushie/package"`.

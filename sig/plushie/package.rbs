@@ -6,12 +6,17 @@ module Plushie
       path: String
     }
 
+    type platform_manifest = {
+      icon: String
+    }
+
     type manifest = {
       app_id: String,
       app_name: String?,
       app_version: String,
       target: String,
       renderer: renderer_manifest,
+      platform: platform_manifest,
       host_command: Array[String],
       working_dir: String,
       payload_archive: String,
@@ -38,6 +43,7 @@ module Plushie
       ?renderer_path: String?,
       ?renderer_kind: String,
       ?renderer_source: String,
+      ?icon_path: String?,
       ?entrypoint: String,
       ?sdk_source_path: String?,
       ?bundle_without: String
@@ -58,6 +64,7 @@ module Plushie
       ?target: String?,
       ?renderer_kind: String,
       ?renderer_source: String,
+      ?icon_path: String,
       ?working_dir: String
     ) -> manifest
 

@@ -49,10 +49,31 @@ class TestPackage < Minitest::Test
       assert_includes toml, 'renderer_path = "bin/plushie-renderer"'
       assert_includes toml, 'host_command = ["ruby/bin/ruby", "bin/connect"]'
       assert_includes toml, 'working_dir = "app"'
+      assert_includes toml, "[platform]\nicon = \"assets/plushie-checkbox-512x512.png\""
       assert_includes toml, 'kind = "custom"'
       assert_includes toml, 'source = "local-build"'
       assert_includes toml, 'archive = "payload.tar.zst"'
       assert_includes toml, "hash = \"sha256:#{manifest.fetch(:payload_hash)}\""
+    end
+  end
+
+  def test_manifest_for_payload_accepts_app_icon_path
+    Dir.mktmpdir do |tmpdir|
+      archive = File.join(tmpdir, "payload.tar.zst")
+      File.binwrite(archive, "payload")
+
+      manifest = P.manifest_for_payload(
+        app_id: "dev.plushie.test",
+        app_version: "0.1.0",
+        target: "linux-x86_64",
+        renderer_path: "bin/plushie-renderer",
+        icon_path: "assets/app.png",
+        host_command: ["bin/connect"],
+        payload_archive: archive
+      )
+
+      assert_equal "assets/app.png", manifest.fetch(:platform).fetch(:icon)
+      assert_includes P.render_manifest(manifest), 'icon = "assets/app.png"'
     end
   end
 
@@ -127,6 +148,114 @@ class TestPackage < Minitest::Test
         end
       end
     end
+  end
+
+  def test_materialize_default_icons_invokes_cargo_plushie
+    Dir.mktmpdir do |tmpdir|
+      assets = File.join(tmpdir, "payload", "assets")
+      commands = []
+
+      Plushie::CargoPlushie.stub(:resolve, ["cargo-plushie", []]) do
+        P.stub(:run!, ->(command) { commands << command }) do
+          P.materialize_default_icons!(assets)
+        end
+      end
+
+      assert_equal [["cargo-plushie", "default-icons", "--out", assets]], commands
+      assert File.directory?(assets)
+    end
+  end
+
+  def test_materialize_default_icons_uses_source_checkout_resolver_shape
+    Dir.mktmpdir do |tmpdir|
+      assets = File.join(tmpdir, "payload", "assets")
+      manifest = File.join(tmpdir, "plushie-rust", "Cargo.toml")
+      command = nil
+
+      resolver = [
+        "cargo",
+        ["run", "--manifest-path", manifest, "-p", "cargo-plushie", "--"]
+      ]
+
+      Plushie::CargoPlushie.stub(:resolve, resolver) do
+        P.stub(:run!, ->(value) { command = value }) do
+          P.materialize_default_icons!(assets)
+        end
+      end
+
+      assert_equal [
+        "cargo", "run", "--manifest-path", manifest, "-p", "cargo-plushie",
+        "--", "default-icons", "--out", assets
+      ], command
+    end
+  end
+
+  def test_install_package_icons_uses_default_icon
+    Dir.mktmpdir do |tmpdir|
+      payload = File.join(tmpdir, "payload")
+
+      P.stub(:materialize_default_icons!, ->(assets) { FileUtils.mkdir_p(assets) }) do
+        icon = P.install_package_icons!(payload, tmpdir, nil)
+
+        assert_equal "assets/plushie-checkbox-512x512.png", icon
+      end
+    end
+  end
+
+  def test_install_package_icons_copies_app_icon
+    Dir.mktmpdir do |tmpdir|
+      icon_path = File.join(tmpdir, "app-icon.png")
+      File.binwrite(icon_path, "icon")
+      payload = File.join(tmpdir, "payload")
+
+      P.stub(:materialize_default_icons!, ->(assets) { FileUtils.mkdir_p(assets) }) do
+        icon = P.install_package_icons!(payload, tmpdir, icon_path)
+
+        assert_equal "assets/app-icon.png", icon
+        assert_equal "icon", File.binread(File.join(payload, "assets", "app-icon.png"))
+      end
+    end
+  end
+
+  def test_run_cli_accepts_icon_option
+    captured = nil
+    result = {
+      archive_path: "dist/payload.tar.zst",
+      manifest_path: "dist/plushie-package.toml"
+    }
+
+    P.stub(:build, ->(**options) {
+      captured = options
+      result
+    }) do
+      capture_io do
+        P.run_cli(["--app-id", "dev.plushie.test", "--icon", "icons/app.png"])
+      end
+    end
+
+    assert_equal "icons/app.png", captured.fetch(:icon_path)
+  end
+
+  def test_build_from_env_accepts_icon_path
+    captured = nil
+    result = {
+      archive_path: "dist/payload.tar.zst",
+      manifest_path: "dist/plushie-package.toml"
+    }
+
+    with_env(
+      "PLUSHIE_PACKAGE_APP_ID" => "dev.plushie.test",
+      "PLUSHIE_PACKAGE_ICON_PATH" => "icons/app.png"
+    ) do
+      P.stub(:build, ->(**options) {
+        captured = options
+        result
+      }) do
+        assert_equal result, P.build_from_env
+      end
+    end
+
+    assert_equal "icons/app.png", captured.fetch(:icon_path)
   end
 
   private

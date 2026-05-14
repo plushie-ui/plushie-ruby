@@ -217,6 +217,8 @@ for the shared Rust package launcher. Ruby-specific work stays in
 the SDK: copying the app, copying a conservative Ruby runtime,
 installing runtime gems, adding the renderer to the payload, hashing
 the archive, and writing SDK/protocol metadata into the manifest.
+The helper also asks `cargo-plushie` to materialize the default
+launcher icons under `payload/assets` before archiving.
 
 ```bash
 PLUSHIE_PACKAGE_APP_ID=dev.example.notes \
@@ -245,6 +247,7 @@ cargo plushie package --manifest dist/plushie-package.toml --release
 | `PLUSHIE_PACKAGE_RENDERER_PATH` | auto-resolve | Existing renderer binary to copy into the payload |
 | `PLUSHIE_PACKAGE_RENDERER_KIND` | `stock` | Renderer kind recorded in `[renderer]` |
 | `PLUSHIE_PACKAGE_RENDERER_SOURCE` | `local-resolve` | Renderer source recorded in `[renderer]` |
+| `PLUSHIE_PACKAGE_ICON_PATH` | default Plushie icon | App icon copied into the payload and recorded in `[platform].icon` |
 | `PLUSHIE_PACKAGE_ENTRYPOINT` | `bin/connect` | App entrypoint used as the host command |
 | `PLUSHIE_PACKAGE_BUNDLE_WITHOUT` | `development test` | Bundler groups excluded from the packaged app |
 | `PLUSHIE_RUBY_DIR` | unset | Local SDK checkout to vendor into the packaged app |
@@ -254,6 +257,9 @@ Renderer resolution checks `PLUSHIE_PACKAGE_RENDERER_PATH`,
 resolver, and finally `PATH` for `plushie-renderer` or `plushie`.
 When `PLUSHIE_RUST_SOURCE_PATH` is set, the package helper builds
 `plushie-renderer` from that checkout before copying it.
+Default icon generation uses the same `cargo-plushie` resolver:
+local Rust checkouts run the checkout copy through `cargo run`, and
+released SDKs use the installed matching `cargo-plushie`.
 
 ## plushie:run
 

@@ -13,6 +13,8 @@ require_relative "../plushie"
 module Plushie
   # Standalone package payload and manifest helpers.
   module Package
+    DEFAULT_ICON_PATH = "assets/plushie-checkbox-512x512.png"
+
     module_function
 
     def build(
@@ -25,6 +27,7 @@ module Plushie
       renderer_path: nil,
       renderer_kind: "stock",
       renderer_source: nil,
+      icon_path: nil,
       entrypoint: "bin/connect",
       sdk_source_path: ENV["PLUSHIE_RUBY_DIR"],
       bundle_without: "development test"
@@ -57,6 +60,7 @@ module Plushie
       copy_app!(project_dir, app_dir, entrypoint, sdk_source_path)
       install_runtime_gems!(app_dir, bundle_without)
       install_renderer!(renderer.fetch(:source_path), File.join(payload_dir, renderer.fetch(:payload_path)))
+      package_icon_path = install_package_icons!(payload_dir, project_dir, icon_path)
       dereference_payload_symlinks!(payload_dir)
 
       archive_payload!(payload_dir, archive_path)
@@ -69,6 +73,7 @@ module Plushie
         renderer_kind: renderer.fetch(:kind),
         renderer_source: renderer.fetch(:source),
         renderer_path: renderer.fetch(:payload_path),
+        icon_path: package_icon_path,
         host_command: host_command(entrypoint),
         working_dir: "app",
         payload_archive: archive_path
@@ -134,6 +139,7 @@ module Plushie
       target: nil,
       renderer_kind: "stock",
       renderer_source: "local-resolve",
+      icon_path: DEFAULT_ICON_PATH,
       working_dir: "."
     )
       archive_path = File.expand_path(payload_archive)
@@ -146,6 +152,9 @@ module Plushie
           kind: renderer_kind,
           source: renderer_source,
           path: renderer_path
+        },
+        platform: {
+          icon: icon_path
         },
         host_command: host_command,
         working_dir: working_dir,
@@ -173,6 +182,9 @@ module Plushie
         "host_command = #{toml_array(manifest.fetch(:host_command))}",
         "working_dir = #{toml_string(manifest.fetch(:working_dir))}",
         "exec_env = []",
+        "",
+        "[platform]",
+        "icon = #{toml_string(manifest.fetch(:platform).fetch(:icon))}",
         "",
         "[renderer]",
         "kind = #{toml_string(manifest.fetch(:renderer).fetch(:kind))}",
@@ -289,6 +301,7 @@ module Plushie
         opts.on("--renderer-path PATH", "Renderer binary to copy") { |value| options[:renderer_path] = value }
         opts.on("--renderer-kind KIND", "Renderer kind") { |value| options[:renderer_kind] = value }
         opts.on("--renderer-source SOURCE", "Renderer provenance source") { |value| options[:renderer_source] = value }
+        opts.on("--icon PATH", "App icon to copy into the payload") { |value| options[:icon_path] = value }
         opts.on("--entrypoint PATH", "Payload app entrypoint") { |value| options[:entrypoint] = value }
         opts.on("--sdk-source-path DIR", "Local plushie Ruby SDK source to vendor") { |value| options[:sdk_source_path] = value }
         opts.on("--bundle-without GROUPS", "Bundler groups to exclude") { |value| options[:bundle_without] = value }
@@ -329,6 +342,7 @@ module Plushie
         renderer_path: env_value("PLUSHIE_PACKAGE_RENDERER_PATH"),
         renderer_kind: env_value("PLUSHIE_PACKAGE_RENDERER_KIND", "stock"),
         renderer_source: env_value("PLUSHIE_PACKAGE_RENDERER_SOURCE"),
+        icon_path: env_value("PLUSHIE_PACKAGE_ICON_PATH"),
         entrypoint: env_value("PLUSHIE_PACKAGE_ENTRYPOINT", "bin/connect"),
         sdk_source_path: env_value("PLUSHIE_RUBY_DIR"),
         bundle_without: env_value("PLUSHIE_PACKAGE_BUNDLE_WITHOUT", "development test")
@@ -377,6 +391,30 @@ module Plushie
       FileUtils.mkdir_p(File.dirname(dest_path))
       FileUtils.cp(source_path, dest_path)
       FileUtils.chmod(0o755, dest_path)
+    end
+
+    def install_package_icons!(payload_dir, project_dir, icon_path)
+      assets_dir = File.join(payload_dir, "assets")
+      materialize_default_icons!(assets_dir)
+      return DEFAULT_ICON_PATH if icon_path.nil? || icon_path.empty?
+
+      install_app_icon!(project_dir, assets_dir, icon_path)
+    end
+
+    def materialize_default_icons!(assets_dir)
+      FileUtils.mkdir_p(assets_dir)
+      program, preamble = Plushie::CargoPlushie.resolve
+      run!([program, *preamble, "default-icons", "--out", assets_dir])
+    end
+
+    def install_app_icon!(project_dir, assets_dir, icon_path)
+      source = File.expand_path(icon_path, project_dir)
+      raise Error, "App icon path is missing: #{source}" unless File.file?(source)
+
+      name = File.basename(source)
+      dest = File.join(assets_dir, name)
+      FileUtils.cp(source, dest)
+      "assets/#{name}"
     end
 
     def dereference_payload_symlinks!(payload_dir)
