@@ -42,9 +42,9 @@ Examples below assume the surrounding single quotes.
 
 ## plushie:download
 
-Downloads a precompiled renderer binary (and/or WASM bundle) from
+Downloads the precompiled native tool set (and/or WASM bundle) from
 GitHub releases. This is the fastest way to get a working renderer.
-The binary is platform-specific (OS plus architecture) and
+The release assets are platform-specific (OS plus architecture) and
 version-matched to the SDK via `Plushie::PLUSHIE_RUST_VERSION`.
 
 ```bash
@@ -74,8 +74,9 @@ variables) to decide what to download and where to put it:
 
 Default destinations:
 
-- Native binary: `bin/plushie-renderer` (or `bin/plushie-renderer.exe`
-  on Windows)
+- Native tool set: `bin/plushie`, `bin/plushie-renderer`, and
+  `bin/plushie-launcher` (with `.exe` on Windows). `bin/plushie` owns
+  renderer and launcher sync.
 - WASM bundle: `_build/plushie-renderer/wasm/` (contains
   `plushie_renderer_wasm.js` and `plushie_renderer_wasm_bg.wasm`)
 

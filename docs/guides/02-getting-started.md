@@ -93,8 +93,8 @@ ways.
 
 ### Option 1: download a precompiled binary
 
-The fastest path. `rake plushie:download` fetches a precompiled
-binary from GitHub releases, verifies its SHA-256 checksum, and
+The fastest path. `rake plushie:download` fetches the precompiled
+native tool set from GitHub releases, verifies SHA-256 checksums, and
 places it under `bin/`:
 
 ```bash
@@ -102,11 +102,12 @@ bundle exec rake plushie:download
 ```
 
 The version is pinned by the `Plushie::PLUSHIE_RUST_VERSION`
-constant in the SDK, so the binary and the gem always match.
+constant in the SDK, so the native tool set and the gem always match.
 Release assets are selected for the current platform, then installed
-locally as `bin/plushie-renderer` (or `bin/plushie-renderer.exe` on
-Windows). See the [Versioning reference](../reference/versioning.md)
-for how the two version numbers evolve.
+locally as `bin/plushie`, `bin/plushie-renderer`, and
+`bin/plushie-launcher` (with `.exe` on Windows). See the
+[Versioning reference](../reference/versioning.md) for how the two
+version numbers evolve.
 
 To force a re-download, quote the argument for your shell:
 
