@@ -442,6 +442,78 @@ class TestPackage < Minitest::Test
     assert_equal "packaging.toml", captured.fetch(:package_config)
   end
 
+  def test_run_cli_prints_portable_handoff_by_default
+    result = {
+      archive_path: "dist/payload.tar.zst",
+      manifest_path: "dist/plushie-package.toml"
+    }
+
+    P.stub(:build, result) do
+      P.stub(:run!, ->(_command) { flunk "portable command should not run" }) do
+        stdout, = capture_io do
+          P.run_cli(["--app-id", "dev.plushie.test"])
+        end
+
+        assert_includes stdout, "Build launcher with:"
+        assert_includes stdout, "  bin/plushie package portable --manifest dist/plushie-package.toml"
+      end
+    end
+  end
+
+  def test_run_cli_invokes_portable_command_with_manifest
+    result = {
+      archive_path: "dist/payload.tar.zst",
+      manifest_path: "dist/plushie-package.toml"
+    }
+    captured = nil
+
+    P.stub(:build, result) do
+      P.stub(:run!, ->(command) { captured = command }) do
+        capture_io do
+          P.run_cli(["--app-id", "dev.plushie.test", "--portable"])
+        end
+      end
+    end
+
+    assert_equal [
+      "bin/plushie",
+      "package",
+      "portable",
+      "--manifest",
+      "dist/plushie-package.toml"
+    ], captured
+  end
+
+  def test_run_cli_invokes_portable_command_with_out_path
+    result = {
+      archive_path: "dist/payload.tar.zst",
+      manifest_path: "dist/plushie-package.toml"
+    }
+    captured = nil
+
+    P.stub(:build, result) do
+      P.stub(:run!, ->(command) { captured = command }) do
+        capture_io do
+          P.run_cli([
+            "--app-id", "dev.plushie.test",
+            "--portable",
+            "--portable-out", "dist/app"
+          ])
+        end
+      end
+    end
+
+    assert_equal [
+      "bin/plushie",
+      "package",
+      "portable",
+      "--manifest",
+      "dist/plushie-package.toml",
+      "--out",
+      "dist/app"
+    ], captured
+  end
+
   def test_run_cli_accepts_ruby_runtime_provider_options
     captured = nil
     result = {

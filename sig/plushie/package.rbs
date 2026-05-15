@@ -62,7 +62,10 @@ module Plushie
       ?entrypoint: String,
       ?package_config: String?,
       ?sdk_source_path: String?,
-      ?bundle_without: String
+      ?bundle_without: String,
+      ?ruby_provider: String,
+      ?ruby_root: String?,
+      ?ruby_version: String?
     ) -> build_result
 
     def self.normalize_package_target: (untyped os_name, untyped arch) -> String
@@ -100,6 +103,7 @@ module Plushie
     def self.validate_payload_archive_inputs!: (String payload_dir) -> void
     def self.resolve_renderer!: (?path: String?, ?kind: String, ?source: String) -> Hash[Symbol, String]
     def self.run_cli: (Array[String] argv) -> void
+    def self.portable_package_command: (String manifest_path, ?String? portable_out) -> Array[String]
     def self.build_from_env: () -> build_result
     def self.resolve_start_config: (String project_dir, String? package_config, String entrypoint) -> PackageStartConfig
     def self.start_command: (String entrypoint) -> Array[String]

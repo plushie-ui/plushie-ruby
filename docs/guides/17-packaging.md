@@ -275,6 +275,10 @@ The task writes `dist/payload.tar.zst` and
 bin/plushie package portable --manifest dist/plushie-package.toml
 ```
 
+When using `Plushie::Package.run_cli`, pass `--portable` to run that
+final step immediately. Use `--portable-out PATH` to pass an output
+path to the portable package command.
+
 The manifest records `host_sdk = "ruby"`, the Ruby SDK version,
 `PLUSHIE_RUST_VERSION`, the protocol version, the package target,
 payload hash and size, renderer provenance (`kind` and `source`),
