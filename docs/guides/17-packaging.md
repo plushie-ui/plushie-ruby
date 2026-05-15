@@ -259,7 +259,7 @@ and archiving the payload.
 The default shape expects:
 
 - `lib/` for application code
-- `bin/connect` as the renderer-parent entrypoint
+- `bin/connect` as the standalone host entrypoint
 - `Gemfile` for runtime dependencies
 - a renderer available through `PLUSHIE_BINARY_PATH`,
   `PLUSHIE_RUST_SOURCE_PATH`, `rake plushie:download`, or `PATH`
