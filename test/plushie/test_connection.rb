@@ -3,6 +3,7 @@
 require "test_helper"
 require "json"
 require "stringio"
+require "tmpdir"
 
 class TestConnection < Minitest::Test
   class ThreadDouble
@@ -213,6 +214,36 @@ class TestConnection < Minitest::Test
     end
   end
 
+  def test_spawn_writes_package_ready_file_after_hello
+    Dir.mktmpdir do |tmpdir|
+      binary = File.join(tmpdir, "renderer")
+      ready_file = File.join(tmpdir, "ready")
+      write_json_hello_renderer(binary)
+
+      with_env("PLUSHIE_PACKAGE_READY_FILE" => ready_file) do
+        conn = Plushie::Connection.spawn(format: :json, binary: binary)
+        conn.close
+      end
+
+      assert_equal "ready\n", File.read(ready_file)
+    end
+  end
+
+  def test_spawn_skips_package_ready_file_for_explicit_renderer_modes
+    Dir.mktmpdir do |tmpdir|
+      binary = File.join(tmpdir, "renderer")
+      ready_file = File.join(tmpdir, "ready")
+      write_json_hello_renderer(binary)
+
+      with_env("PLUSHIE_PACKAGE_READY_FILE" => ready_file) do
+        conn = Plushie::Connection.spawn(format: :json, binary: binary, mode: :mock)
+        conn.close
+      end
+
+      refute File.exist?(ready_file)
+    end
+  end
+
   def test_reader_dispatches_connection_error_for_oversized_json_line
     with_message_limit(8) do
       queue = Thread::Queue.new
@@ -316,5 +347,50 @@ class TestConnection < Minitest::Test
     assert reader.killed
     assert_equal 1, reader.joined
     assert adapter.stopped
+  end
+
+  private
+
+  def write_json_hello_renderer(path)
+    File.write(path, <<~RUBY)
+      #!/usr/bin/env ruby
+      $stdin.gets
+      puts #{hello_json.dump}
+      $stdout.flush
+    RUBY
+    FileUtils.chmod(0o755, path)
+  end
+
+  def hello_json
+    {
+      type: "hello",
+      protocol: Plushie::Protocol::PROTOCOL_VERSION,
+      version: Plushie::PLUSHIE_RUST_VERSION,
+      name: "plushie",
+      mode: "windowed",
+      backend: "none",
+      extensions: [],
+      transport: "stdio"
+    }.to_json
+  end
+
+  def with_env(values)
+    old_values = values.to_h { |key, _value| [key, ENV[key]] }
+    values.each do |key, value|
+      if value.nil?
+        ENV.delete(key)
+      else
+        ENV[key] = value
+      end
+    end
+    yield
+  ensure
+    old_values.each do |key, value|
+      if value.nil?
+        ENV.delete(key)
+      else
+        ENV[key] = value
+      end
+    end
   end
 end

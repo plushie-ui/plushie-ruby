@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "open3"
+require "fileutils"
 require_relative "bounded_queue"
 
 module Plushie
@@ -42,6 +43,7 @@ module Plushie
       conn = new(format: format, queue: queue, on_message: on_message)
       conn.send(:spawn_process, binary, mode, max_sessions, log_level)
       conn.send(:perform_handshake, settings)
+      conn.send(:write_package_ready_file) if mode.nil?
       conn.send(:start_reader)
       conn
     end
@@ -378,6 +380,23 @@ module Plushie
       raise Error,
         "renderer is missing required widgets #{missing.inspect}. " \
         "Renderer reported #{available.inspect}"
+    end
+
+    def write_package_ready_file
+      return unless @hello.is_a?(Hash) && @hello[:type] == :hello
+
+      path = ENV["PLUSHIE_PACKAGE_READY_FILE"]
+      return if path.nil? || path.empty?
+
+      dir = File.dirname(path)
+      FileUtils.mkdir_p(dir)
+
+      tmp = File.join(dir, ".#{File.basename(path)}.#{$$}.tmp")
+      File.write(tmp, "ready\n")
+      FileUtils.rm_f(path)
+      File.rename(tmp, path)
+    ensure
+      File.delete(tmp) if tmp && File.exist?(tmp)
     end
   end
 end

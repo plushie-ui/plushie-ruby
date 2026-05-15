@@ -153,6 +153,14 @@ class TestPackage < Minitest::Test
         command = ["bin/notes"]
         forward_env = ["PLUSHIE_BINARY_PATH"]
       TOML
+      <<~TOML,
+        config_version = 1
+
+        [start]
+        working_dir = "."
+        command = ["bin/notes"]
+        forward_env = ["PLUSHIE_PACKAGE_READY_FILE"]
+      TOML
       <<~TOML
         config_version = 1
 

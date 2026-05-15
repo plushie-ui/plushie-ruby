@@ -26,7 +26,11 @@ module Plushie
     ].freeze
     SOURCE_CONFIG = "plushie-package.config.toml"
     SOURCE_CONFIG_VERSION = 1
-    RESERVED_FORWARD_ENV = ["PLUSHIE_BINARY_PATH", "PLUSHIE_PACKAGE_DIR"].freeze
+    RESERVED_FORWARD_ENV = [
+      "PLUSHIE_BINARY_PATH",
+      "PLUSHIE_PACKAGE_DIR",
+      "PLUSHIE_PACKAGE_READY_FILE"
+    ].freeze
 
     PackageStartConfig = Data.define(:working_dir, :command, :forward_env)
     PackageSourceConfig = Data.define(:start)
