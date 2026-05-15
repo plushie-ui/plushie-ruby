@@ -16,6 +16,8 @@ module Plushie
   module Binary
     module_function
 
+    RELEASE_BASE_URL = "https://github.com/plushie-ui/plushie-rust/releases/download"
+
     # Resolve and return the binary path, or raise with helpful instructions.
     #
     # @return [String] path to the plushie binary
@@ -211,8 +213,32 @@ module Plushie
     # @param force [Boolean] forward --force to the tool
     # @return [String] path to the synced renderer
     def sync_renderer_with_tool!(version: PLUSHIE_RUST_VERSION, force: false)
-      tool = download_tool!(version: version, force: force)
-      args = [tool, "tools", "sync", "--required-version", version]
+      args =
+        if (source = ENV["PLUSHIE_RUST_SOURCE_PATH"] || Plushie.configuration.source_path) && !source.empty?
+          manifest = File.join(source, "Cargo.toml")
+          raise Error, "PLUSHIE_RUST_SOURCE_PATH does not contain Cargo.toml: #{source}" unless File.exist?(manifest)
+
+          [
+            "cargo",
+            "run",
+            "--manifest-path",
+            manifest,
+            "-p",
+            "cargo-plushie",
+            "--bin",
+            "plushie",
+            "--release",
+            "--quiet",
+            "--",
+            "tools",
+            "sync",
+            "--required-version",
+            version
+          ]
+        else
+          tool = download_tool!(version: version, force: force)
+          [tool, "tools", "sync", "--required-version", version]
+        end
       args << "--force" if force
       ok = system(*args)
       raise Error, "bin/plushie download failed" unless ok
@@ -222,12 +248,12 @@ module Plushie
 
     # @return [String] GitHub release download URL
     def release_url(version)
-      "https://github.com/plushie-ui/plushie-renderer/releases/download/v#{version}/#{release_name}"
+      "#{RELEASE_BASE_URL}/v#{version}/#{release_name}"
     end
 
     # @return [String] GitHub release download URL for the plushie tool
     def tool_release_url(version)
-      "https://github.com/plushie-ui/plushie-renderer/releases/download/v#{version}/#{tool_release_name}"
+      "#{RELEASE_BASE_URL}/v#{version}/#{tool_release_name}"
     end
 
     # @return [String] stable project-local binary filename
@@ -302,7 +328,7 @@ module Plushie
       end
 
       archive_name = "plushie-renderer-wasm.tar.gz"
-      url = "https://github.com/plushie-ui/plushie-renderer/releases/download/v#{version}/#{archive_name}"
+      url = "#{RELEASE_BASE_URL}/v#{version}/#{archive_name}"
       checksum_url = "#{url}.sha256"
 
       warn "Downloading #{archive_name}..."

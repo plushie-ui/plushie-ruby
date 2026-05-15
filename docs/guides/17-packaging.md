@@ -534,7 +534,7 @@ but will scare off consumers of a commercial gem.
 sidecar and aborts on mismatch. Check that the consumer's gem
 version matches what you published, that no HTTP proxy is
 serving a cached error page, and that the release on
-[github.com/plushie-ui/plushie-renderer/releases](https://github.com/plushie-ui/plushie-renderer/releases)
+[github.com/plushie-ui/plushie-rust/releases](https://github.com/plushie-ui/plushie-rust/releases)
 still exists and has a sidecar. Re-running the task is almost
 always enough.
 

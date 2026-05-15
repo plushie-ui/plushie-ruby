@@ -339,7 +339,7 @@ mismatch means the release was tampered with, the CDN served a
 stale response, or the SDK's `PLUSHIE_RUST_VERSION` does not
 match any published release. Re-run the task. If it fails again,
 check the release page directly at
-`https://github.com/plushie-ui/plushie-renderer/releases`.
+`https://github.com/plushie-ui/plushie-rust/releases`.
 
 ### cargo not found during build
 

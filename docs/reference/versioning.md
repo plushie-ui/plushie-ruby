@@ -73,7 +73,7 @@ compatibility.
 `PLUSHIE_RUST_VERSION` and the current platform:
 
 ```
-https://github.com/plushie-ui/plushie-renderer/releases/download/vX.Y.Z/plushie-renderer-<os>-<arch>
+https://github.com/plushie-ui/plushie-rust/releases/download/vX.Y.Z/plushie-renderer-<os>-<arch>
 ```
 
 The download is verified against a `.sha256` sidecar file before

@@ -40,13 +40,13 @@ class TestBinary < Minitest::Test
 
   def test_release_url
     url = B.release_url("0.4.1")
-    assert_match(%r{\Ahttps://github\.com/plushie-ui/plushie-renderer/releases/}, url)
+    assert_match(%r{\Ahttps://github\.com/plushie-ui/plushie-rust/releases/}, url)
     assert_includes url, "0.4.1"
   end
 
   def test_tool_release_url
     url = B.tool_release_url("0.4.1")
-    assert_match(%r{\Ahttps://github\.com/plushie-ui/plushie-renderer/releases/}, url)
+    assert_match(%r{\Ahttps://github\.com/plushie-ui/plushie-rust/releases/}, url)
     assert_includes url, "0.4.1"
     assert_includes url, "/plushie-"
   end
