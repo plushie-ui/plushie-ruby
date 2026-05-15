@@ -64,7 +64,7 @@ silently advance to the next option:
 1. `PLUSHIE_BINARY_PATH` environment variable
 2. `Plushie.configuration.binary_path`
 3. Custom extension build under `_build/plushie/custom/target/`
-4. Downloaded binary under `_build/plushie/bin/`
+4. Downloaded binary under `bin/`
 If nothing resolves, the error message lists the three usable
 remedies: `rake plushie:download`, `rake plushie:build`, or exporting
 `PLUSHIE_BINARY_PATH`.

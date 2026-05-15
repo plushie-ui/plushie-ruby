@@ -19,6 +19,11 @@ class TestBinary < Minitest::Test
 
   def test_binary_name
     name = B.binary_name
+    assert_includes ["plushie-renderer", "plushie-renderer.exe"], name
+  end
+
+  def test_release_name
+    name = B.release_name
     assert_match(/\Aplushie-renderer-(linux|darwin|windows)-(x86_64|aarch64)/, name)
   end
 

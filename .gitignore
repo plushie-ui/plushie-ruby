@@ -4,6 +4,8 @@
 /_build/
 /coverage/
 /doc/
+/bin/plushie-renderer
+/bin/plushie-renderer.exe
 /pkg/
 /spec/reports/
 /tmp/

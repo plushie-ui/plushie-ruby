@@ -85,7 +85,7 @@ bundle exec ruby bin/my_app
 
 `rake plushie:download` fetches a precompiled renderer from GitHub
 releases, verifies the SHA-256 sidecar, and places it under
-`_build/plushie/bin/`. The version is pinned by the gem's
+`bin/`. The version is pinned by the gem's
 `Plushie::PLUSHIE_RUST_VERSION` constant, so the binary and the
 gem always agree. No publishing, no release pipeline, no gem
 build step.
@@ -232,12 +232,10 @@ Plushie.configure do |config|
 end
 ```
 
-`Plushie::Binary.binary_name` returns the platform-specific
-filename (`plushie-renderer-linux-x86_64`,
-`plushie-renderer-darwin-aarch64`, and so on, with `.exe` on
-Windows). The resolver treats `binary_path` as explicit: if the
-file is missing, it raises immediately rather than falling
-through to `_build/plushie/bin/`. See the
+`Plushie::Binary.binary_name` returns the stable project-local
+filename (`plushie-renderer`, with `.exe` on Windows). The resolver
+treats `binary_path` as explicit: if the file is missing, it raises
+immediately rather than falling through to `bin/`. See the
 [Configuration reference](../reference/configuration.md) for the
 full resolution order.
 
@@ -274,7 +272,7 @@ The task writes `dist/payload.tar.zst` and
 `dist/plushie-package.toml`. Build the outer launcher with:
 
 ```bash
-cargo plushie package --manifest dist/plushie-package.toml --release
+cargo plushie package portable --manifest dist/plushie-package.toml --release
 ```
 
 The manifest records `host_sdk = "ruby"`, the Ruby SDK version,
@@ -478,7 +476,7 @@ my_app
 
 # Option D: standalone launcher
 bundle exec rake plushie:package
-cargo plushie package --manifest dist/plushie-package.toml --release
+cargo plushie package portable --manifest dist/plushie-package.toml --release
 
 # Option E: native widget gem (consumer has a Rust toolchain)
 bundle add my_sparkline

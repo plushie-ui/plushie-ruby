@@ -95,19 +95,18 @@ ways.
 
 The fastest path. `rake plushie:download` fetches a precompiled
 binary from GitHub releases, verifies its SHA-256 checksum, and
-places it under `_build/plushie/bin/`:
+places it under `bin/`:
 
 ```bash
 bundle exec rake plushie:download
 ```
 
 The version is pinned by the `Plushie::PLUSHIE_RUST_VERSION`
-constant in the SDK, so the binary and the gem always match. The
-download URL and destination are both derived from the current
-platform (`plushie-renderer-linux-x86_64`,
-`plushie-renderer-darwin-aarch64`, and so on). See the
-[Versioning reference](../reference/versioning.md) for how the two
-version numbers evolve.
+constant in the SDK, so the binary and the gem always match.
+Release assets are selected for the current platform, then installed
+locally as `bin/plushie-renderer` (or `bin/plushie-renderer.exe` on
+Windows). See the [Versioning reference](../reference/versioning.md)
+for how the two version numbers evolve.
 
 To force a re-download, quote the argument for your shell:
 
@@ -315,7 +314,7 @@ The resolution order, in full:
 1. `PLUSHIE_BINARY_PATH` environment variable.
 2. `Plushie.configuration.binary_path`.
 3. Custom widget build under `_build/plushie/custom/target/`.
-4. Downloaded binary under `_build/plushie/bin/`.
+4. Downloaded binary under `bin/`.
 
 Explicit paths (the first two) raise if set but pointing to a
 missing file. Implicit fallbacks stay within the current project.
@@ -329,7 +328,7 @@ automatically. If you copied the binary manually or restored it
 from an archive that lost permissions, re-apply them:
 
 ```bash
-chmod +x _build/plushie/bin/plushie-renderer-*
+chmod +x bin/plushie-renderer
 ```
 
 ### checksum mismatch on download

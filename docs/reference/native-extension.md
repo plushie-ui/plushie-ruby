@@ -297,8 +297,8 @@ The task, in order:
    renderer workspace (with `[patch.crates-io]` entries for every
    plushie crate), runs `cargo build`, and locates the produced
    binary.
-6. Copies the binary to `_build/plushie/bin/` using a
-   platform-suffixed name so `Plushie::Binary.path!` finds it.
+6. Copies the binary to `bin/plushie-renderer` so
+   `Plushie::Binary.path!` finds it.
 
 `cargo-plushie` itself is resolved in priority order:
 

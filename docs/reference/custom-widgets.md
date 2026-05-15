@@ -626,11 +626,11 @@ the build.
    with each native crate listed as a path dependency.
 4. Shells out to `cargo plushie build`, which generates the renderer
    workspace, runs `cargo build`, and locates the built binary.
-5. Installs the binary to `_build/plushie/bin/`.
+5. Installs the binary to `bin/`.
 
 See the [Rake Tasks reference](rake-tasks.md) for build and download
 task options. The renderer discovery chain then picks up the custom
-binary from `_build/plushie/bin/` on the next `Plushie.run`.
+binary from `bin/` on the next `Plushie.run`.
 
 ### Sending commands
 

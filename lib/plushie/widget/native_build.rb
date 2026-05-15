@@ -12,7 +12,7 @@ module Plushie
     # lists the configured native widget crates as path dependencies,
     # and delegates the actual workspace generation and `cargo build`
     # to +cargo plushie build+. The built binary is then copied into
-    # +_build/plushie/bin/+ where the renderer discovery chain expects
+    # +bin/+ where the renderer discovery chain expects
     # to find it.
     #
     # All of the heavy lifting (workspace generation, [patch.crates-io]
@@ -295,8 +295,8 @@ module Plushie
         raise Error, "multiple built binaries named #{expected_name.inspect} found under #{target_root.inspect}"
       end
 
-      # Install the built binary under +_build/plushie/bin/+ using the
-      # platform-suffixed name so the renderer discovery chain finds it.
+      # Install the built binary under +bin/+ using the stable renderer
+      # name so the renderer discovery chain finds it.
       #
       # @param src [String]
       # @return [String]
@@ -306,7 +306,7 @@ module Plushie
           dest = bin_file
           FileUtils.mkdir_p(File.dirname(dest))
         else
-          dest_dir = File.join("_build", "plushie", "bin")
+          dest_dir = "bin"
           FileUtils.mkdir_p(dest_dir)
           dest = File.join(dest_dir, Plushie::Binary.binary_name)
         end

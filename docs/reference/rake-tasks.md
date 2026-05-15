@@ -74,7 +74,8 @@ variables) to decide what to download and where to put it:
 
 Default destinations:
 
-- Native binary: `_build/plushie/bin/plushie-renderer-<os>-<arch>`
+- Native binary: `bin/plushie-renderer` (or `bin/plushie-renderer.exe`
+  on Windows)
 - WASM bundle: `_build/plushie-renderer/wasm/` (contains
   `plushie_renderer_wasm.js` and `plushie_renderer_wasm_bg.wasm`)
 
@@ -124,7 +125,7 @@ via `cargo metadata`:
 
 `cargo-plushie` produces the real renderer workspace under
 `_build/plushie-renderer-spec/target/plushie-renderer/`. On success,
-the compiled binary is copied to `_build/plushie/bin/`, where the
+the compiled binary is copied to `bin/`, where the
 renderer discovery chain will find it.
 
 ### cargo-plushie resolution
@@ -228,7 +229,7 @@ The output defaults to `dist/payload.tar.zst` and
 `dist/plushie-package.toml`. Build the outer launcher with:
 
 ```bash
-cargo plushie package --manifest dist/plushie-package.toml --release
+cargo plushie package portable --manifest dist/plushie-package.toml --release
 ```
 
 ### Configuration inputs
@@ -467,7 +468,7 @@ resolves it in priority order:
    is missing.
 3. Custom widget build under `_build/plushie/custom/target/` after
    `rake plushie:build`.
-4. Downloaded binary in `_build/plushie/bin/` after
+4. Downloaded binary in `bin/` after
    `rake plushie:download`.
 
 Steps 1 and 2 are explicit; steps 3 and 4 stay within the current

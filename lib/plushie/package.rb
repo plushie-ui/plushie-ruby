@@ -453,7 +453,7 @@ module Plushie
       puts "Wrote #{result.fetch(:archive_path)}"
       puts "Wrote #{result.fetch(:manifest_path)}"
       puts "Build launcher with:"
-      puts "  cargo plushie package --manifest #{result.fetch(:manifest_path)} --release"
+      puts "  cargo plushie package portable --manifest #{result.fetch(:manifest_path)} --release"
     end
 
     def env_value(name, default = nil)

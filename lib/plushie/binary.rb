@@ -11,7 +11,7 @@ module Plushie
   # 1. PLUSHIE_BINARY_PATH environment variable (explicit)
   # 2. Plushie.configuration.binary_path (explicit)
   # 3. Custom extension build in _build/plushie/custom/target/ (implicit)
-  # 4. Downloaded binary in _build/plushie/bin/ (implicit)
+  # 4. Downloaded binary in bin/ (implicit)
   #
   module Binary
     module_function
@@ -96,7 +96,7 @@ module Plushie
     #
     # @return [String, nil]
     def downloaded_path
-      dir = File.join("_build", "plushie", "bin")
+      dir = "bin"
       name = binary_name
       path = File.join(dir, name)
       File.exist?(path) ? path : nil
@@ -127,7 +127,7 @@ module Plushie
     # Verifies the SHA-256 checksum against a .sha256 sidecar file.
     #
     # @param version [String] plushie-rust version (default: PLUSHIE_RUST_VERSION)
-    # @param dest [String, nil] override destination path (default: _build/plushie/bin/{name})
+    # @param dest [String, nil] override destination path (default: bin/{name})
     # @return [String] path to the downloaded binary
     def download!(version: PLUSHIE_RUST_VERSION, dest: nil)
       require "net/http"
@@ -140,7 +140,7 @@ module Plushie
       if dest
         FileUtils.mkdir_p(File.dirname(dest))
       else
-        dir = File.join("_build", "plushie", "bin")
+        dir = "bin"
         FileUtils.mkdir_p(dir)
         dest = File.join(dir, binary_name)
       end
@@ -169,11 +169,16 @@ module Plushie
 
     # @return [String] GitHub release download URL
     def release_url(version)
-      "https://github.com/plushie-ui/plushie-renderer/releases/download/v#{version}/#{binary_name}"
+      "https://github.com/plushie-ui/plushie-renderer/releases/download/v#{version}/#{release_name}"
     end
 
-    # @return [String] platform-specific binary filename
+    # @return [String] stable project-local binary filename
     def binary_name
+      Gem.win_platform? ? "plushie-renderer.exe" : "plushie-renderer"
+    end
+
+    # @return [String] platform-specific release artifact filename
+    def release_name
       name = "plushie-renderer-#{os_name}-#{arch_name}"
       name += ".exe" if Gem.win_platform?
       name

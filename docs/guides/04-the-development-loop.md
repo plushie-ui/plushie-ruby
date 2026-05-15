@@ -427,7 +427,7 @@ first time. Use `model.with(source: source)` instead.
 ### Stale renderer binary
 
 Pulling a new version of the gem updates the SDK's wire protocol
-but not the renderer binary under `_build/plushie/bin/`. The
+but not the renderer binary under `bin/`. The
 handshake will fail with a protocol-version mismatch and the
 runtime will exit with a message pointing at the version
 disagreement. Re-download the binary:

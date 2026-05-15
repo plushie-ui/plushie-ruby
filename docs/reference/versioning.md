@@ -77,7 +77,8 @@ https://github.com/plushie-ui/plushie-renderer/releases/download/vX.Y.Z/plushie-
 ```
 
 The download is verified against a `.sha256` sidecar file before
-being written to `_build/plushie/bin/`. A checksum mismatch aborts
+being written to `bin/plushie-renderer` (or
+`bin/plushie-renderer.exe` on Windows). A checksum mismatch aborts
 the download and leaves the existing binary untouched.
 
 `rake plushie:download[wasm]` does the same for the
