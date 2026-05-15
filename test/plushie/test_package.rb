@@ -252,6 +252,50 @@ class TestPackage < Minitest::Test
     end
   end
 
+  def test_resolve_renderer_allows_custom_renderer_with_explicit_path
+    Dir.mktmpdir do |tmpdir|
+      renderer = File.join(tmpdir, "custom-renderer")
+      write_executable(renderer)
+
+      with_package_tools(tmpdir) do
+        result = P.resolve_renderer!(path: renderer, kind: "custom")
+
+        assert_equal "custom", result.fetch(:kind)
+        assert_equal "local-path", result.fetch(:source)
+        assert_equal renderer, result.fetch(:source_path)
+      end
+    end
+  end
+
+  def test_resolve_renderer_allows_custom_renderer_from_binary_path
+    Dir.mktmpdir do |tmpdir|
+      renderer = File.join(tmpdir, "custom-renderer")
+      write_executable(renderer)
+
+      with_package_tools(tmpdir) do
+        with_env("PLUSHIE_BINARY_PATH" => renderer) do
+          result = P.resolve_renderer!(kind: "custom")
+
+          assert_equal "custom", result.fetch(:kind)
+          assert_equal "local-path", result.fetch(:source)
+          assert_equal renderer, result.fetch(:source_path)
+        end
+      end
+    end
+  end
+
+  def test_resolve_renderer_rejects_custom_renderer_without_explicit_path
+    Dir.mktmpdir do |tmpdir|
+      with_package_tools(tmpdir) do
+        with_env("PLUSHIE_BINARY_PATH" => nil, "PLUSHIE_RUST_SOURCE_PATH" => nil) do
+          error = assert_raises(Plushie::Error) { P.resolve_renderer!(kind: "custom") }
+
+          assert_match(/Custom renderer packages require/, error.message)
+        end
+      end
+    end
+  end
+
   def test_resolve_renderer_requires_managed_package_tools_for_explicit_paths
     Dir.mktmpdir do |tmpdir|
       renderer = File.join(tmpdir, "plushie-renderer")
@@ -467,8 +511,8 @@ class TestPackage < Minitest::Test
     }
     captured = nil
 
-    P.stub(:build, result) do
-      P.stub(:run!, ->(command) { captured = command }) do
+    with_package_method(:build, result) do
+      with_package_method(:run!, ->(command) { captured = command }) do
         capture_io do
           P.run_cli(["--app-id", "dev.plushie.test", "--portable"])
         end
@@ -491,8 +535,8 @@ class TestPackage < Minitest::Test
     }
     captured = nil
 
-    P.stub(:build, result) do
-      P.stub(:run!, ->(command) { captured = command }) do
+    with_package_method(:build, result) do
+      with_package_method(:run!, ->(command) { captured = command }) do
         capture_io do
           P.run_cli([
             "--app-id", "dev.plushie.test",
@@ -521,14 +565,16 @@ class TestPackage < Minitest::Test
     }
     captured = nil
 
-    P.stub(:build, result) do
-      P.stub(:run!, ->(command) { captured = command }) do
-        capture_io do
-          P.run_cli([
-            "--app-id", "dev.plushie.test",
-            "--portable",
-            "--strict-tools"
-          ])
+    with_package_method(:build, result) do
+      with_package_method(:verify_strict_package_tools!, nil) do
+        with_package_method(:run!, ->(command) { captured = command }) do
+          capture_io do
+            P.run_cli([
+              "--app-id", "dev.plushie.test",
+              "--portable",
+              "--strict-tools"
+            ])
+          end
         end
       end
     end
@@ -549,13 +595,15 @@ class TestPackage < Minitest::Test
       manifest_path: "dist/plushie-package.toml"
     }
 
-    P.stub(:build, result) do
-      P.stub(:run!, ->(_command) { flunk "portable command should not run" }) do
-        stdout, = capture_io do
-          P.run_cli(["--app-id", "dev.plushie.test", "--strict-tools"])
-        end
+    with_package_method(:build, result) do
+      with_package_method(:verify_strict_package_tools!, nil) do
+        with_package_method(:run!, ->(_command) { flunk "portable command should not run" }) do
+          stdout, = capture_io do
+            P.run_cli(["--app-id", "dev.plushie.test", "--strict-tools"])
+          end
 
-        assert_includes stdout, "  bin/plushie package portable --manifest dist/plushie-package.toml --strict-tools"
+          assert_includes stdout, "  bin/plushie package portable --manifest dist/plushie-package.toml --strict-tools"
+        end
       end
     end
   end
@@ -662,6 +710,22 @@ class TestPackage < Minitest::Test
     assert_equal "/opt/ruby", captured.fetch(:ruby_root)
   end
 
+  def test_env_flag_accepts_boolean_spellings
+    with_env("PLUSHIE_PACKAGE_PORTABLE" => "yes") do
+      assert_equal true, P.env_flag("PLUSHIE_PACKAGE_PORTABLE")
+    end
+
+    with_env("PLUSHIE_PACKAGE_PORTABLE" => "off") do
+      assert_equal false, P.env_flag("PLUSHIE_PACKAGE_PORTABLE", true)
+    end
+  end
+
+  def test_env_flag_rejects_ambiguous_values
+    with_env("PLUSHIE_PACKAGE_PORTABLE" => "maybe") do
+      assert_raises(Plushie::Error) { P.env_flag("PLUSHIE_PACKAGE_PORTABLE") }
+    end
+  end
+
   def test_build_from_env_accepts_overrides
     captured = nil
     result = {
@@ -721,6 +785,21 @@ class TestPackage < Minitest::Test
     write_executable(File.join(tmpdir, "bin", Plushie::Binary.tool_name))
     write_executable(File.join(tmpdir, "bin", Plushie::Binary.launcher_name))
     Dir.chdir(tmpdir) { yield }
+  end
+
+  def with_package_method(name, implementation)
+    singleton = P.singleton_class
+    had_original = singleton.method_defined?(name)
+    original = singleton.instance_method(name) if had_original
+    if implementation.respond_to?(:call)
+      singleton.define_method(name, implementation)
+    else
+      singleton.define_method(name) { |*_args, **_kwargs| implementation }
+    end
+    yield
+  ensure
+    singleton.send(:remove_method, name)
+    singleton.define_method(name, original) if had_original
   end
 
   def with_env(values)

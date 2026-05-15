@@ -129,14 +129,27 @@ namespace :plushie do
 
     begin
       result = Plushie::Package.build_from_env(overrides)
+      portable = Plushie::Package.env_flag("PLUSHIE_PACKAGE_PORTABLE")
+      portable_out = Plushie::Package.env_value("PLUSHIE_PACKAGE_PORTABLE_OUT")
+      strict_tools = Plushie::Package.env_flag("PLUSHIE_PACKAGE_STRICT_TOOLS")
+      portable_command = Plushie::Package.portable_package_command(
+        result.fetch(:manifest_path),
+        portable_out,
+        strict_tools
+      )
     rescue Plushie::Error => e
       abort e.message
     end
 
     puts "Wrote #{result.fetch(:archive_path)}"
     puts "Wrote #{result.fetch(:manifest_path)}"
-    puts "Build launcher with:"
-    puts "  bin/plushie package portable --manifest #{result.fetch(:manifest_path)}"
+    Plushie::Package.verify_strict_package_tools! if strict_tools
+    if portable
+      Plushie::Package.run!(portable_command)
+    else
+      puts "Build launcher with:"
+      puts "  #{portable_command.join(" ")}"
+    end
   end
 
   desc "Print the initial UI tree as JSON"

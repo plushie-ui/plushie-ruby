@@ -378,10 +378,6 @@ module Plushie
     end
 
     def resolve_renderer!(path: nil, kind: "stock", source: nil)
-      unless kind == "stock"
-        raise Error, "Ruby package helper currently supports stock renderers only"
-      end
-
       source_path = nil
       resolved_source = source
 
@@ -393,6 +389,8 @@ module Plushie
         source_path = ENV["PLUSHIE_BINARY_PATH"]
         resolved_source ||= "local-path"
         ensure_package_tools_available!
+      elsif kind != "stock"
+        raise Error, "Custom renderer packages require --renderer-path or PLUSHIE_BINARY_PATH"
       elsif (source_path = renderer_from_source_path)
         resolved_source ||= "local-build"
         ensure_package_tools_available!
@@ -488,6 +486,7 @@ module Plushie
       result = build(**build_options)
       puts "Wrote #{result.fetch(:archive_path)}"
       puts "Wrote #{result.fetch(:manifest_path)}"
+      verify_strict_package_tools! if options[:strict_tools]
       portable_command = portable_package_command(
         result.fetch(:manifest_path),
         options[:portable_out],
@@ -508,9 +507,30 @@ module Plushie
       command
     end
 
+    def verify_strict_package_tools!
+      run!([
+        File.join("bin", Binary.tool_name),
+        "tools",
+        "check",
+        "--required-version",
+        PLUSHIE_RUST_VERSION
+      ])
+    end
+
     def env_value(name, default = nil)
       value = ENV[name]
       (value.nil? || value.empty?) ? default : value
+    end
+
+    def env_flag(name, default = false)
+      value = ENV[name]
+      return default if value.nil? || value.empty?
+
+      case value.downcase
+      when "1", "true", "yes", "on" then true
+      when "0", "false", "no", "off" then false
+      else raise Error, "#{name} must be true or false"
+      end
     end
 
     def build_from_env(overrides = {})
@@ -641,16 +661,34 @@ module Plushie
 
     def install_package_icons!(payload_dir, project_dir, icon_path)
       assets_dir = File.join(payload_dir, "assets")
-      materialize_default_icons!(assets_dir)
-      return DEFAULT_ICON_PATH if icon_path.nil? || icon_path.empty?
+      return DEFAULT_ICON_PATH.tap { materialize_default_icons!(assets_dir) } if icon_path.nil? || icon_path.empty?
 
       install_app_icon!(project_dir, assets_dir, icon_path)
     end
 
     def materialize_default_icons!(assets_dir)
       FileUtils.mkdir_p(assets_dir)
-      program, preamble = Plushie::CargoPlushie.resolve
-      run!([program, *preamble, "default-icons", "--out", assets_dir])
+      source_path = ENV["PLUSHIE_RUST_SOURCE_PATH"] || Plushie.configuration.source_path
+      if source_path && !source_path.empty?
+        run!([
+          "cargo",
+          "run",
+          "--manifest-path",
+          File.join(source_path, "Cargo.toml"),
+          "-p",
+          "cargo-plushie",
+          "--bin",
+          "plushie",
+          "--release",
+          "--quiet",
+          "--",
+          "default-icons",
+          "--out",
+          assets_dir
+        ])
+      else
+        run!([File.join("bin", Binary.tool_name), "default-icons", "--out", assets_dir])
+      end
     end
 
     def install_app_icon!(project_dir, assets_dir, icon_path)

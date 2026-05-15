@@ -87,6 +87,26 @@ class TestBinary < Minitest::Test
     end
   end
 
+  def test_sync_renderer_with_tool_verifies_complete_managed_tool_set
+    Dir.mktmpdir do |tmpdir|
+      source = File.join(tmpdir, "plushie-rust")
+      FileUtils.mkdir_p(source)
+      File.write(File.join(source, "Cargo.toml"), "[workspace]\n")
+
+      Dir.chdir(tmpdir) do
+        with_env("PLUSHIE_RUST_SOURCE_PATH" => source, "PLUSHIE_BINARY_PATH" => nil) do
+          with_binary_method(:system, ->(*_args) { true }) do
+            error = assert_raises(Plushie::Error) { B.sync_renderer_with_tool!(version: "0.4.1") }
+
+            assert_includes error.message, File.join("bin", B.tool_name)
+            assert_includes error.message, File.join("bin", B.binary_name)
+            assert_includes error.message, File.join("bin", B.launcher_name)
+          end
+        end
+      end
+    end
+  end
+
   def test_resolve_returns_nil_without_binary
     # Don't set PLUSHIE_BINARY_PATH, don't download
     # resolve should return nil or a valid path
@@ -101,8 +121,8 @@ class TestBinary < Minitest::Test
       File.chmod(0o755, binary)
 
       with_env("PATH" => tmpdir, "PLUSHIE_BINARY_PATH" => nil) do
-        B.stub(:custom_build_path, nil) do
-          B.stub(:downloaded_path, nil) do
+        with_binary_method(:custom_build_path, nil) do
+          with_binary_method(:downloaded_path, nil) do
             assert_nil B.resolve
           end
         end
@@ -118,8 +138,8 @@ class TestBinary < Minitest::Test
       File.chmod(0o755, binary)
 
       with_env("PLUSHIE_RUST_SOURCE_PATH" => tmpdir, "PLUSHIE_BINARY_PATH" => nil) do
-        B.stub(:custom_build_path, nil) do
-          B.stub(:downloaded_path, nil) do
+        with_binary_method(:custom_build_path, nil) do
+          with_binary_method(:downloaded_path, nil) do
             assert_nil B.resolve
           end
         end
@@ -148,5 +168,20 @@ class TestBinary < Minitest::Test
         ENV[key] = value
       end
     end
+  end
+
+  def with_binary_method(name, implementation)
+    singleton = B.singleton_class
+    had_original = singleton.method_defined?(name)
+    original = singleton.instance_method(name) if had_original
+    if implementation.respond_to?(:call)
+      singleton.define_method(name, implementation)
+    else
+      singleton.define_method(name) { |*_args, **_kwargs| implementation }
+    end
+    yield
+  ensure
+    singleton.send(:remove_method, name)
+    singleton.define_method(name, original) if had_original
   end
 end

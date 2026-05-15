@@ -245,9 +245,10 @@ module Plushie
       ok = system(*args)
       raise Error, "bin/plushie download failed" unless ok
 
+      tool = File.join("bin", tool_name)
       renderer = File.join("bin", binary_name)
       launcher = File.join("bin", launcher_name)
-      missing = [renderer, launcher].reject { |path| File.file?(path) }
+      missing = [tool, renderer, launcher].reject { |path| File.file?(path) }
       raise Error, "bin/plushie tools sync did not install: #{missing.join(", ")}" unless missing.empty?
 
       renderer

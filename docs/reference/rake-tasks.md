@@ -244,9 +244,14 @@ The output defaults to `dist/payload.tar.zst` and
 bin/plushie package portable --manifest dist/plushie-package.toml
 ```
 
-Use `--strict-tools` with the Ruby package CLI or the Rust package
-commands when native packaging tools must be present. The same gate can
-be checked before launcher creation:
+Set `PLUSHIE_PACKAGE_PORTABLE=true` to run that final command from
+the Rake task after the manifest is written. Set
+`PLUSHIE_PACKAGE_PORTABLE_OUT` to pass `--out PATH`, and set
+`PLUSHIE_PACKAGE_STRICT_TOOLS=true` to pass `--strict-tools`.
+
+Use `--strict-tools` with the Rake task, the Ruby package CLI, or the
+Rust package commands when native packaging tools must be present. The
+same gate can be checked before launcher creation:
 
 ```bash
 bin/plushie package check --manifest dist/plushie-package.toml --strict-tools
@@ -261,6 +266,9 @@ bin/plushie package check --manifest dist/plushie-package.toml --strict-tools
 | `PLUSHIE_PACKAGE_APP_VERSION` | `0.1.0` | App version written to the manifest |
 | `PLUSHIE_PACKAGE_PROJECT_DIR` | current directory | App directory containing `lib/`, `bin/connect`, and `Gemfile` |
 | `PLUSHIE_PACKAGE_OUTPUT` | `dist` | Directory for payload and manifest output |
+| `PLUSHIE_PACKAGE_PORTABLE` | `false` | Run `bin/plushie package portable` after writing the manifest |
+| `PLUSHIE_PACKAGE_PORTABLE_OUT` | unset | Output path forwarded as `--out` for portable launcher creation |
+| `PLUSHIE_PACKAGE_STRICT_TOOLS` | `false` | Forward `--strict-tools` to the portable launcher command |
 | `PLUSHIE_PACKAGE_TARGET` | current Ruby host | Package target override such as `linux-x86_64` |
 | `PLUSHIE_PACKAGE_RENDERER_PATH` | auto-resolve | Existing renderer binary to copy into the payload |
 | `PLUSHIE_PACKAGE_RENDERER_KIND` | `stock` | Renderer kind recorded in `[renderer]` |
@@ -278,13 +286,16 @@ positional task arguments. Environment variables remain available for
 the less common inputs and for CI jobs that already use them.
 
 Renderer resolution checks `PLUSHIE_PACKAGE_RENDERER_PATH`,
-`PLUSHIE_BINARY_PATH`, `PLUSHIE_RUST_SOURCE_PATH`, the SDK binary
-resolver, and finally `PATH` for `plushie-renderer` or `plushie`.
-When `PLUSHIE_RUST_SOURCE_PATH` is set, the package helper builds
-`plushie-renderer` from that checkout before copying it.
-Default icon generation uses the same `cargo-plushie` resolver:
-local Rust checkouts run the checkout copy through `cargo run`, and
-released SDKs use the installed matching `cargo-plushie`.
+`PLUSHIE_BINARY_PATH`, `PLUSHIE_RUST_SOURCE_PATH`, and the managed
+SDK download path. When `PLUSHIE_PACKAGE_RENDERER_KIND` is `custom`,
+set `PLUSHIE_PACKAGE_RENDERER_PATH` or `PLUSHIE_BINARY_PATH` to the
+custom renderer binary. When `PLUSHIE_RUST_SOURCE_PATH` is set for a
+stock renderer, the package helper builds `plushie-renderer` from that
+checkout before copying it.
+Default icon generation uses `cargo run -p cargo-plushie --bin plushie
+--release -- default-icons` from a local plushie-rust checkout when
+`PLUSHIE_RUST_SOURCE_PATH` is set. Otherwise it uses
+`bin/plushie default-icons`.
 
 ### Ruby runtime
 
