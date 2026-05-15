@@ -514,6 +514,52 @@ class TestPackage < Minitest::Test
     ], captured
   end
 
+  def test_run_cli_invokes_portable_command_with_strict_tools
+    result = {
+      archive_path: "dist/payload.tar.zst",
+      manifest_path: "dist/plushie-package.toml"
+    }
+    captured = nil
+
+    P.stub(:build, result) do
+      P.stub(:run!, ->(command) { captured = command }) do
+        capture_io do
+          P.run_cli([
+            "--app-id", "dev.plushie.test",
+            "--portable",
+            "--strict-tools"
+          ])
+        end
+      end
+    end
+
+    assert_equal [
+      "bin/plushie",
+      "package",
+      "portable",
+      "--manifest",
+      "dist/plushie-package.toml",
+      "--strict-tools"
+    ], captured
+  end
+
+  def test_run_cli_prints_portable_handoff_with_strict_tools
+    result = {
+      archive_path: "dist/payload.tar.zst",
+      manifest_path: "dist/plushie-package.toml"
+    }
+
+    P.stub(:build, result) do
+      P.stub(:run!, ->(_command) { flunk "portable command should not run" }) do
+        stdout, = capture_io do
+          P.run_cli(["--app-id", "dev.plushie.test", "--strict-tools"])
+        end
+
+        assert_includes stdout, "  bin/plushie package portable --manifest dist/plushie-package.toml --strict-tools"
+      end
+    end
+  end
+
   def test_run_cli_accepts_ruby_runtime_provider_options
     captured = nil
     result = {

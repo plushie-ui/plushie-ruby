@@ -277,7 +277,15 @@ bin/plushie package portable --manifest dist/plushie-package.toml
 
 When using `Plushie::Package.run_cli`, pass `--portable` to run that
 final step immediately. Use `--portable-out PATH` to pass an output
-path to the portable package command.
+path to the portable package command. Use `--strict-tools` when the
+launcher build should fail unless the Rust package tool can verify all
+native packaging tools required for the target platform.
+
+You can run the same gate before building the launcher:
+
+```bash
+bin/plushie package check --manifest dist/plushie-package.toml --strict-tools
+```
 
 The manifest records `host_sdk = "ruby"`, the Ruby SDK version,
 `PLUSHIE_RUST_VERSION`, the protocol version, the package target,

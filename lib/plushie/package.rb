@@ -438,6 +438,7 @@ module Plushie
         write_package_config: false,
         portable: false,
         portable_out: nil,
+        strict_tools: false,
         bundle_without: "development test"
       }
       show_help = false
@@ -459,6 +460,7 @@ module Plushie
         opts.on("--write-package-config", "Write a package config template and exit") { options[:write_package_config] = true }
         opts.on("--portable", "Build the portable launcher after writing the manifest") { options[:portable] = true }
         opts.on("--portable-out PATH", "Output path for the portable launcher") { |value| options[:portable_out] = value }
+        opts.on("--strict-tools", "Require native packaging tools during portable packaging") { options[:strict_tools] = true }
         opts.on("--sdk-source-path DIR", "Local plushie Ruby SDK source to vendor") { |value| options[:sdk_source_path] = value }
         opts.on("--bundle-without GROUPS", "Bundler groups to exclude") { |value| options[:bundle_without] = value }
         opts.on("--ruby-provider PROVIDER", "Ruby runtime provider: local, path, or mise") { |value| options[:ruby_provider] = value }
@@ -482,21 +484,28 @@ module Plushie
 
       raise Error, "--app-id is required" unless options[:app_id]
 
-      build_options = options.except(:portable, :portable_out)
+      build_options = options.except(:portable, :portable_out, :strict_tools)
       result = build(**build_options)
       puts "Wrote #{result.fetch(:archive_path)}"
       puts "Wrote #{result.fetch(:manifest_path)}"
+      portable_command = portable_package_command(
+        result.fetch(:manifest_path),
+        options[:portable_out],
+        options[:strict_tools]
+      )
       if options[:portable]
-        run!(portable_package_command(result.fetch(:manifest_path), options[:portable_out]))
+        run!(portable_command)
       else
         puts "Build launcher with:"
-        puts "  bin/plushie package portable --manifest #{result.fetch(:manifest_path)}"
+        puts "  #{portable_command.join(" ")}"
       end
     end
 
-    def portable_package_command(manifest_path, portable_out = nil)
+    def portable_package_command(manifest_path, portable_out = nil, strict_tools = false)
       command = [File.join("bin", Binary.tool_name), "package", "portable", "--manifest", manifest_path]
-      portable_out ? command + ["--out", portable_out] : command
+      command += ["--out", portable_out] if portable_out
+      command += ["--strict-tools"] if strict_tools
+      command
     end
 
     def env_value(name, default = nil)

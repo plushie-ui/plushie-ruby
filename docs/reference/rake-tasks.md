@@ -244,6 +244,14 @@ The output defaults to `dist/payload.tar.zst` and
 bin/plushie package portable --manifest dist/plushie-package.toml
 ```
 
+Use `--strict-tools` with the Ruby package CLI or the Rust package
+commands when native packaging tools must be present. The same gate can
+be checked before launcher creation:
+
+```bash
+bin/plushie package check --manifest dist/plushie-package.toml --strict-tools
+```
+
 ### Configuration inputs
 
 | Input | Default | Effect |
