@@ -167,9 +167,67 @@ module Plushie
       dest
     end
 
+    # Download the standalone plushie tool for the current platform.
+    #
+    # @param version [String] plushie-rust version
+    # @param force [Boolean] replace an existing tool
+    # @return [String] path to the downloaded tool
+    def download_tool!(version: PLUSHIE_RUST_VERSION, force: false)
+      require "net/http"
+      require "uri"
+      require "fileutils"
+      require "digest"
+
+      dir = "bin"
+      dest = File.join(dir, tool_name)
+      return dest if File.exist?(dest) && !force
+
+      FileUtils.mkdir_p(dir)
+      url = tool_release_url(version)
+      checksum_url = "#{url}.sha256"
+
+      warn "Downloading plushie tool #{version} for #{os_name}-#{arch_name}..."
+
+      binary_data = fetch_url(url)
+      checksum_data = fetch_url(checksum_url)
+      expected_sha = checksum_data.strip.split(/\s+/).first
+      actual_sha = Digest::SHA256.hexdigest(binary_data)
+
+      unless actual_sha == expected_sha
+        raise Error, "checksum mismatch for #{tool_name}: " \
+          "expected #{expected_sha}, got #{actual_sha}"
+      end
+
+      File.binwrite(dest, binary_data)
+      File.chmod(0o755, dest) unless Gem.win_platform?
+      warn "Saved to #{dest} (#{binary_data.bytesize} bytes, SHA-256 verified)"
+
+      dest
+    end
+
+    # Sync the project-local renderer through the standalone plushie tool.
+    #
+    # @param version [String] plushie-rust version
+    # @param force [Boolean] forward --force to the tool
+    # @return [String] path to the synced renderer
+    def sync_renderer_with_tool!(version: PLUSHIE_RUST_VERSION, force: false)
+      tool = download_tool!(version: version, force: force)
+      args = [tool, "download", "--required-version", version]
+      args << "--force" if force
+      ok = system(*args)
+      raise Error, "bin/plushie download failed" unless ok
+
+      File.join("bin", binary_name)
+    end
+
     # @return [String] GitHub release download URL
     def release_url(version)
       "https://github.com/plushie-ui/plushie-renderer/releases/download/v#{version}/#{release_name}"
+    end
+
+    # @return [String] GitHub release download URL for the plushie tool
+    def tool_release_url(version)
+      "https://github.com/plushie-ui/plushie-renderer/releases/download/v#{version}/#{tool_release_name}"
     end
 
     # @return [String] stable project-local binary filename
@@ -180,6 +238,18 @@ module Plushie
     # @return [String] platform-specific release artifact filename
     def release_name
       name = "plushie-renderer-#{os_name}-#{arch_name}"
+      name += ".exe" if Gem.win_platform?
+      name
+    end
+
+    # @return [String] stable project-local plushie tool filename
+    def tool_name
+      Gem.win_platform? ? "plushie.exe" : "plushie"
+    end
+
+    # @return [String] platform-specific plushie tool release artifact filename
+    def tool_release_name
+      name = "plushie-#{os_name}-#{arch_name}"
       name += ".exe" if Gem.win_platform?
       name
     end

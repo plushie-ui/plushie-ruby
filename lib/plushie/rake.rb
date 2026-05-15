@@ -39,7 +39,11 @@ namespace :plushie do
       if !force && existing
         puts "Binary already exists at #{existing}. Use force to re-download."
       else
-        dest = Plushie::Binary.download!(dest: bin_file)
+        dest = if bin_file
+          Plushie::Binary.download!(dest: bin_file)
+        else
+          Plushie::Binary.sync_renderer_with_tool!(force: force)
+        end
         puts "Downloaded plushie binary to #{dest}"
       end
     end

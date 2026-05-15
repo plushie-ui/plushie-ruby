@@ -27,10 +27,28 @@ class TestBinary < Minitest::Test
     assert_match(/\Aplushie-renderer-(linux|darwin|windows)-(x86_64|aarch64)/, name)
   end
 
+  def test_tool_name
+    name = B.tool_name
+    assert_includes ["plushie", "plushie.exe"], name
+  end
+
+  def test_tool_release_name
+    name = B.tool_release_name
+    assert_match(/\Aplushie-(linux|darwin|windows)-(x86_64|aarch64)/, name)
+    refute_match(/\Aplushie-renderer-/, name)
+  end
+
   def test_release_url
     url = B.release_url("0.4.1")
     assert_match(%r{\Ahttps://github\.com/plushie-ui/plushie-renderer/releases/}, url)
     assert_includes url, "0.4.1"
+  end
+
+  def test_tool_release_url
+    url = B.tool_release_url("0.4.1")
+    assert_match(%r{\Ahttps://github\.com/plushie-ui/plushie-renderer/releases/}, url)
+    assert_includes url, "0.4.1"
+    assert_includes url, "/plushie-"
   end
 
   def test_resolve_returns_nil_without_binary
