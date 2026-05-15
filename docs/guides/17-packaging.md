@@ -272,7 +272,7 @@ The task writes `dist/payload.tar.zst` and
 `dist/plushie-package.toml`. Build the outer launcher with:
 
 ```bash
-cargo plushie package portable --manifest dist/plushie-package.toml --release
+bin/plushie package portable --manifest dist/plushie-package.toml
 ```
 
 The manifest records `host_sdk = "ruby"`, the Ruby SDK version,
@@ -476,7 +476,7 @@ my_app
 
 # Option D: standalone launcher
 bundle exec rake plushie:package
-cargo plushie package portable --manifest dist/plushie-package.toml --release
+bin/plushie package portable --manifest dist/plushie-package.toml
 
 # Option E: native widget gem (consumer has a Rust toolchain)
 bundle add my_sparkline

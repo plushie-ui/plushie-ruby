@@ -241,7 +241,7 @@ The output defaults to `dist/payload.tar.zst` and
 `dist/plushie-package.toml`. Build the outer launcher with:
 
 ```bash
-cargo plushie package portable --manifest dist/plushie-package.toml --release
+bin/plushie package portable --manifest dist/plushie-package.toml
 ```
 
 ### Configuration inputs

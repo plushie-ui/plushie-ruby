@@ -136,7 +136,7 @@ namespace :plushie do
     puts "Wrote #{result.fetch(:archive_path)}"
     puts "Wrote #{result.fetch(:manifest_path)}"
     puts "Build launcher with:"
-    puts "  cargo plushie package portable --manifest #{result.fetch(:manifest_path)} --release"
+    puts "  bin/plushie package portable --manifest #{result.fetch(:manifest_path)}"
   end
 
   desc "Print the initial UI tree as JSON"
