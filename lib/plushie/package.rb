@@ -6,6 +6,7 @@ require "find"
 require "json"
 require "open3"
 require "optparse"
+require "pathname"
 require "rbconfig"
 
 require_relative "../plushie"
@@ -23,6 +24,12 @@ module Plushie
       "WAYLAND_DISPLAY",
       "DISPLAY"
     ].freeze
+    SOURCE_CONFIG = "plushie-package.config.toml"
+    SOURCE_CONFIG_VERSION = 1
+    RESERVED_FORWARD_ENV = ["PLUSHIE_BINARY_PATH", "PLUSHIE_PACKAGE_DIR"].freeze
+
+    PackageStartConfig = Data.define(:working_dir, :command, :forward_env)
+    PackageSourceConfig = Data.define(:start)
 
     module_function
 
@@ -38,6 +45,7 @@ module Plushie
       renderer_source: nil,
       icon_path: nil,
       entrypoint: "bin/connect",
+      package_config: nil,
       sdk_source_path: ENV["PLUSHIE_RUBY_DIR"],
       bundle_without: "development test"
     )
@@ -57,6 +65,7 @@ module Plushie
         kind: renderer_kind,
         source: renderer_source
       )
+      start_config = resolve_start_config(project_dir, package_config, entrypoint)
 
       FileUtils.rm_rf(output_dir)
       FileUtils.mkdir_p(File.join(app_dir, "bin"))
@@ -66,7 +75,7 @@ module Plushie
       FileUtils.mkdir_p(ruby_dir)
 
       copy_ruby_runtime!(ruby_dir)
-      copy_app!(project_dir, app_dir, entrypoint, sdk_source_path)
+      copy_app!(project_dir, payload_dir, app_dir, start_config, entrypoint, sdk_source_path)
       install_runtime_gems!(app_dir, bundle_without)
       install_renderer!(renderer.fetch(:source_path), File.join(payload_dir, renderer.fetch(:payload_path)))
       package_icon_path = install_package_icons!(payload_dir, project_dir, icon_path)
@@ -83,8 +92,9 @@ module Plushie
         renderer_source: renderer.fetch(:source),
         renderer_path: renderer.fetch(:payload_path),
         icon_path: package_icon_path,
-        start_command: start_command(entrypoint),
-        working_dir: "app",
+        start_command: start_config.command,
+        working_dir: start_config.working_dir,
+        forward_env: start_config.forward_env,
         payload_archive: archive_path
       )
 
@@ -217,6 +227,105 @@ module Plushie
       File.write(path, render_manifest(manifest))
     end
 
+    def default_source_config_path(project_dir)
+      File.join(project_dir, SOURCE_CONFIG)
+    end
+
+    def default_source_config(entrypoint = "bin/connect")
+      PackageSourceConfig.new(
+        start: PackageStartConfig.new(
+          working_dir: "app",
+          command: start_command(entrypoint),
+          forward_env: DEFAULT_FORWARD_ENV
+        )
+      )
+    end
+
+    def render_source_config(config = default_source_config)
+      validate_source_config!(config)
+      lines = [
+        "# Plushie standalone package config.",
+        "# Commit this file and edit it when the packaged app needs a",
+        "# different entry point, working directory, or forwarded environment.",
+        "",
+        "config_version = 1",
+        "",
+        "[start]",
+        "# Relative to the extracted app package.",
+        "working_dir = #{toml_string(config.start.working_dir)}",
+        "# Structured argv. The first item is the packaged host executable.",
+        "command = #{toml_array(config.start.command)}",
+        "# Environment variable names copied from the parent process.",
+        "forward_env = ["
+      ]
+      lines.concat(config.start.forward_env.map { |name| "  #{toml_string(name)}," })
+      lines.concat(["]", ""])
+      lines.join("\n")
+    end
+
+    def write_source_config(path, config = default_source_config)
+      FileUtils.mkdir_p(File.dirname(path))
+      File.write(path, render_source_config(config))
+    end
+
+    def load_source_config(path)
+      parse_source_config(File.read(path))
+    rescue SystemCallError => e
+      raise Error, "failed to read package config #{path}: #{e.message}"
+    end
+
+    def load_default_source_config(project_dir)
+      path = default_source_config_path(project_dir)
+      return nil unless File.file?(path)
+
+      load_source_config(path)
+    end
+
+    def parse_source_config(text)
+      document = parse_source_config_document(text)
+      version = document.fetch(:config_version) do
+        raise Error, "package config missing config_version"
+      end
+      unless version == SOURCE_CONFIG_VERSION
+        raise Error, "unsupported package config config_version #{version}"
+      end
+
+      start = document.fetch(:start) do
+        raise Error, "package config missing [start]"
+      end
+      config = PackageSourceConfig.new(
+        start: PackageStartConfig.new(
+          working_dir: start.fetch(:working_dir),
+          command: start.fetch(:command),
+          forward_env: start.fetch(:forward_env)
+        )
+      )
+      validate_source_config!(config)
+      config
+    rescue KeyError => e
+      raise Error, "package config missing #{e.key}"
+    end
+
+    def validate_source_config!(config)
+      validate_start_config!(config.start)
+      config
+    end
+
+    def validate_start_config!(start)
+      validate_payload_relative_path!("start.working_dir", start.working_dir, allow_dot: true)
+      unless start.command.is_a?(Array) && !start.command.empty? && start.command.all? { |arg| arg.is_a?(String) && !arg.empty? }
+        raise Error, "start.command must contain a non-empty argv"
+      end
+      validate_payload_relative_path!("start.command[0]", start.command.fetch(0), allow_dot: false)
+      unless start.forward_env.is_a?(Array) && start.forward_env.all? { |name| valid_forward_env_name?(name) }
+        raise Error, "start.forward_env must contain only non-empty variable names without comma or equals"
+      end
+      if start.forward_env.any? { |name| RESERVED_FORWARD_ENV.include?(name) }
+        raise Error, "start.forward_env must not include launcher-owned package variables"
+      end
+      start
+    end
+
     def archive_payload!(payload_dir, archive_path)
       validate_payload_archive_inputs!(payload_dir)
       FileUtils.mkdir_p(File.dirname(archive_path))
@@ -299,6 +408,8 @@ module Plushie
         renderer_kind: "stock",
         renderer_source: nil,
         entrypoint: "bin/connect",
+        package_config: nil,
+        write_package_config: false,
         bundle_without: "development test"
       }
       show_help = false
@@ -316,6 +427,8 @@ module Plushie
         opts.on("--renderer-source SOURCE", "Renderer provenance source") { |value| options[:renderer_source] = value }
         opts.on("--icon PATH", "App icon to copy into the payload") { |value| options[:icon_path] = value }
         opts.on("--entrypoint PATH", "Payload app entrypoint") { |value| options[:entrypoint] = value }
+        opts.on("--package-config PATH", "Developer-owned package config") { |value| options[:package_config] = value }
+        opts.on("--write-package-config", "Write a package config template and exit") { options[:write_package_config] = true }
         opts.on("--sdk-source-path DIR", "Local plushie Ruby SDK source to vendor") { |value| options[:sdk_source_path] = value }
         opts.on("--bundle-without GROUPS", "Bundler groups to exclude") { |value| options[:bundle_without] = value }
         opts.on("-h", "--help", "Show help") { show_help = true }
@@ -324,6 +437,13 @@ module Plushie
       parser.parse!(argv)
       if show_help
         puts parser
+        return
+      end
+
+      if options[:write_package_config]
+        path = File.expand_path(options[:package_config] || SOURCE_CONFIG, options[:project_dir])
+        write_source_config(path, default_source_config(options[:entrypoint]))
+        puts "Wrote #{path}"
         return
       end
 
@@ -357,9 +477,27 @@ module Plushie
         renderer_source: env_value("PLUSHIE_PACKAGE_RENDERER_SOURCE"),
         icon_path: env_value("PLUSHIE_PACKAGE_ICON_PATH"),
         entrypoint: env_value("PLUSHIE_PACKAGE_ENTRYPOINT", "bin/connect"),
+        package_config: env_value("PLUSHIE_PACKAGE_CONFIG"),
         sdk_source_path: env_value("PLUSHIE_RUBY_DIR"),
         bundle_without: env_value("PLUSHIE_PACKAGE_BUNDLE_WITHOUT", "development test")
       )
+    end
+
+    def resolve_start_config(project_dir, package_config, entrypoint)
+      config =
+        if package_config && !package_config.empty?
+          load_source_config(File.expand_path(package_config, project_dir))
+        else
+          load_default_source_config(project_dir)
+        end
+      return config.start if config
+
+      start = PackageStartConfig.new(
+        working_dir: "app",
+        command: start_command(entrypoint),
+        forward_env: DEFAULT_FORWARD_ENV
+      )
+      validate_start_config!(start)
     end
 
     def start_command(entrypoint)
@@ -375,10 +513,13 @@ module Plushie
       copy_dir_contents(RbConfig::CONFIG.fetch("prefix"), ruby_dir)
     end
 
-    def copy_app!(project_dir, app_dir, entrypoint, sdk_source_path)
+    def copy_app!(project_dir, payload_dir, app_dir, start_config, entrypoint, sdk_source_path)
       copy_required_path(File.join(project_dir, "lib"), File.join(app_dir, "lib"))
-      copy_required_path(File.join(project_dir, entrypoint), File.join(app_dir, entrypoint))
-      FileUtils.chmod(0o755, File.join(app_dir, entrypoint))
+      if start_config.command == start_command(entrypoint)
+        copy_entrypoint!(project_dir, app_dir, entrypoint)
+      else
+        copy_entrypoint!(project_dir, payload_dir, start_config.command.fetch(0))
+      end
 
       if sdk_source_path && !sdk_source_path.empty? && File.directory?(File.join(sdk_source_path, "lib", "plushie"))
         puts "Using local plushie SDK from #{sdk_source_path}"
@@ -390,6 +531,11 @@ module Plushie
       else
         copy_required_path(File.join(project_dir, "Gemfile"), File.join(app_dir, "Gemfile"))
       end
+    end
+
+    def copy_entrypoint!(project_dir, dest_root, entrypoint)
+      copy_required_path(File.join(project_dir, entrypoint), File.join(dest_root, entrypoint))
+      FileUtils.chmod(0o755, File.join(dest_root, entrypoint))
     end
 
     def install_runtime_gems!(app_dir, bundle_without)
@@ -573,6 +719,132 @@ module Plushie
 
     def relative_payload_path(payload_dir, path)
       path.delete_prefix("#{payload_dir}#{File::SEPARATOR}")
+    end
+
+    def parse_source_config_document(text)
+      document = {start: {}}
+      each_toml_assignment(text) do |section, key, value|
+        case [section, key]
+        when [nil, "config_version"]
+          document[:config_version] = parse_toml_integer("config_version", value)
+        when ["start", "working_dir"]
+          document.fetch(:start)[:working_dir] = parse_toml_string("start.working_dir", value)
+        when ["start", "command"]
+          document.fetch(:start)[:command] = parse_toml_string_array("start.command", value)
+        when ["start", "forward_env"]
+          document.fetch(:start)[:forward_env] = parse_toml_string_array("start.forward_env", value)
+        else
+          name = section ? "#{section}.#{key}" : key
+          raise Error, "unsupported package config key #{name}"
+        end
+      end
+      document
+    end
+
+    def each_toml_assignment(text)
+      section = nil
+      pending = nil
+      text.each_line.with_index(1) do |line, line_no|
+        stripped = strip_toml_comment(line).strip
+        next if stripped.empty?
+
+        if pending
+          pending[:value] << "\n" << stripped
+          if stripped.end_with?("]")
+            yield pending.fetch(:section), pending.fetch(:key), pending.fetch(:value)
+            pending = nil
+          end
+          next
+        end
+
+        if (match = stripped.match(/\A\[([A-Za-z0-9_]+)\]\z/))
+          section = match[1]
+          raise Error, "unsupported package config table #{section}" unless section == "start"
+          next
+        end
+
+        match = stripped.match(/\A([A-Za-z0-9_]+)\s*=\s*(.+)\z/)
+        raise Error, "invalid package config line #{line_no}" unless match
+
+        key = match[1]
+        value = match[2].strip
+        if value.start_with?("[") && !value.end_with?("]")
+          pending = {section: section, key: key, value: value}
+        else
+          yield section, key, value
+        end
+      end
+      raise Error, "unterminated package config array" if pending
+    end
+
+    def strip_toml_comment(line)
+      in_string = false
+      escaped = false
+      line.each_char.with_index do |char, index|
+        if in_string
+          escaped = char == "\\" && !escaped
+          if char == "\"" && !escaped
+            in_string = false
+          elsif char != "\\"
+            escaped = false
+          end
+        elsif char == "\""
+          in_string = true
+        elsif char == "#"
+          return line[0...index]
+        end
+      end
+      line
+    end
+
+    def parse_toml_integer(name, value)
+      raise Error, "#{name} must be an integer" unless value.match?(/\A\d+\z/)
+
+      value.to_i
+    end
+
+    def parse_toml_string(name, value)
+      parsed = JSON.parse(value)
+      raise Error, "#{name} must be a string" unless parsed.is_a?(String)
+
+      parsed
+    rescue JSON::ParserError
+      raise Error, "#{name} must be a string"
+    end
+
+    def parse_toml_string_array(name, value)
+      parsed = JSON.parse(value.gsub(/,\s*\]/, "]"))
+      unless parsed.is_a?(Array) && parsed.all? { |item| item.is_a?(String) }
+        raise Error, "#{name} must be an array of strings"
+      end
+
+      parsed
+    rescue JSON::ParserError
+      raise Error, "#{name} must be an array of strings"
+    end
+
+    def validate_payload_relative_path!(name, value, allow_dot:)
+      raise Error, "#{name} must not be empty" unless value.is_a?(String) && !value.strip.empty?
+      path = Pathname.new(value)
+      if path.absolute? || value.start_with?("\\") || value.match?(/\A[A-Za-z]:[\\\/]/)
+        raise Error, "#{name} must be payload-relative, got absolute path #{value}"
+      end
+
+      has_normal_component = false
+      value.split(/[\\\/]+/).each do |part|
+        next if part.empty?
+
+        if part == ".."
+          raise Error, "#{name} must not contain parent traversal: #{value}"
+        elsif part != "."
+          has_normal_component = true
+        end
+      end
+      raise Error, "#{name} must name a payload file path" unless has_normal_component || allow_dot
+    end
+
+    def valid_forward_env_name?(name)
+      name.is_a?(String) && !name.strip.empty? && !name.include?(",") && !name.include?("=")
     end
 
     def toml_string(value)

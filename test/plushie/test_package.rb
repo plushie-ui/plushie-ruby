@@ -48,8 +48,10 @@ class TestPackage < Minitest::Test
       assert_includes toml, "protocol_version = #{Plushie::Protocol::PROTOCOL_VERSION}"
       assert_includes toml, "[start]\nworking_dir = \"app\""
       assert_includes toml, 'command = ["ruby/bin/ruby", "bin/connect"]'
-      assert_includes toml,
-                      'forward_env = ["PATH", "HOME", "LANG", "LC_ALL", "XDG_RUNTIME_DIR", "WAYLAND_DISPLAY", "DISPLAY"]'
+      assert_includes(
+        toml,
+        'forward_env = ["PATH", "HOME", "LANG", "LC_ALL", "XDG_RUNTIME_DIR", "WAYLAND_DISPLAY", "DISPLAY"]'
+      )
       assert_includes toml, "[platform]\nicon = \"assets/plushie-checkbox-512x512.png\""
       assert_includes toml, "[renderer]\npath = \"bin/plushie-renderer\""
       assert_includes toml, 'kind = "custom"'
@@ -76,6 +78,122 @@ class TestPackage < Minitest::Test
 
       assert_equal "assets/app.png", manifest.fetch(:platform).fetch(:icon)
       assert_includes P.render_manifest(manifest), 'icon = "assets/app.png"'
+    end
+  end
+
+  def test_parse_source_config_accepts_start_config
+    config = P.parse_source_config(<<~TOML)
+      config_version = 1
+
+      [start]
+      working_dir = "app"
+      command = ["bin/notes", "--project", "Daily Notes"]
+      forward_env = [
+        "PATH",
+        "HOME",
+      ]
+    TOML
+
+    assert_equal "app", config.start.working_dir
+    assert_equal ["bin/notes", "--project", "Daily Notes"], config.start.command
+    assert_equal ["PATH", "HOME"], config.start.forward_env
+  end
+
+  def test_render_source_config_uses_real_start_values
+    text = P.render_source_config(P.default_source_config("bin/connect"))
+
+    assert_includes text, "config_version = 1"
+    assert_includes text, "[start]"
+    assert_includes text, 'working_dir = "app"'
+    assert_includes text, '"bin/connect"'
+    assert_includes text, '"WAYLAND_DISPLAY"'
+  end
+
+  def test_write_source_config_writes_template
+    Dir.mktmpdir do |tmpdir|
+      path = File.join(tmpdir, "plushie-package.config.toml")
+
+      P.write_source_config(path, P.default_source_config("bin/connect"))
+
+      assert_includes File.read(path), '"bin/connect"'
+    end
+  end
+
+  def test_parse_source_config_rejects_invalid_start_values
+    invalid_configs = [
+      <<~TOML,
+        config_version = 2
+
+        [start]
+        working_dir = "."
+        command = ["bin/notes"]
+        forward_env = []
+      TOML
+      <<~TOML,
+        config_version = 1
+
+        [start]
+        working_dir = "../app"
+        command = ["bin/notes"]
+        forward_env = []
+      TOML
+      <<~TOML,
+        config_version = 1
+
+        [start]
+        working_dir = "."
+        command = ["/usr/bin/notes"]
+        forward_env = []
+      TOML
+      <<~TOML,
+        config_version = 1
+
+        [start]
+        working_dir = "."
+        command = ["bin/notes"]
+        forward_env = ["PLUSHIE_BINARY_PATH"]
+      TOML
+      <<~TOML
+        config_version = 1
+
+        [start]
+        working_dir = "."
+        command = []
+        forward_env = []
+      TOML
+    ]
+
+    invalid_configs.each do |text|
+      assert_raises(Plushie::Error) { P.parse_source_config(text) }
+    end
+  end
+
+  def test_resolve_start_config_uses_default_source_config_when_present
+    Dir.mktmpdir do |tmpdir|
+      File.write(File.join(tmpdir, "plushie-package.config.toml"), <<~TOML)
+        config_version = 1
+
+        [start]
+        working_dir = "app"
+        command = ["bin/notes"]
+        forward_env = ["PATH"]
+      TOML
+
+      config = P.resolve_start_config(tmpdir, nil, "bin/connect")
+
+      assert_equal "app", config.working_dir
+      assert_equal ["bin/notes"], config.command
+      assert_equal ["PATH"], config.forward_env
+    end
+  end
+
+  def test_resolve_start_config_keeps_default_without_source_config
+    Dir.mktmpdir do |tmpdir|
+      config = P.resolve_start_config(tmpdir, nil, "bin/connect")
+
+      assert_equal "app", config.working_dir
+      assert_equal P.start_command("bin/connect"), config.command
+      assert_equal P::DEFAULT_FORWARD_ENV, config.forward_env
     end
   end
 
@@ -238,6 +356,35 @@ class TestPackage < Minitest::Test
     assert_equal "icons/app.png", captured.fetch(:icon_path)
   end
 
+  def test_run_cli_accepts_package_config_option
+    captured = nil
+    result = {
+      archive_path: "dist/payload.tar.zst",
+      manifest_path: "dist/plushie-package.toml"
+    }
+
+    P.stub(:build, ->(**options) {
+      captured = options
+      result
+    }) do
+      capture_io do
+        P.run_cli(["--app-id", "dev.plushie.test", "--package-config", "packaging.toml"])
+      end
+    end
+
+    assert_equal "packaging.toml", captured.fetch(:package_config)
+  end
+
+  def test_run_cli_writes_package_config_without_app_id
+    Dir.mktmpdir do |tmpdir|
+      capture_io do
+        P.run_cli(["--project-dir", tmpdir, "--write-package-config"])
+      end
+
+      assert_includes File.read(File.join(tmpdir, "plushie-package.config.toml")), '"bin/connect"'
+    end
+  end
+
   def test_build_from_env_accepts_icon_path
     captured = nil
     result = {
@@ -258,6 +405,50 @@ class TestPackage < Minitest::Test
     end
 
     assert_equal "icons/app.png", captured.fetch(:icon_path)
+  end
+
+  def test_build_from_env_accepts_package_config
+    captured = nil
+    result = {
+      archive_path: "dist/payload.tar.zst",
+      manifest_path: "dist/plushie-package.toml"
+    }
+
+    with_env(
+      "PLUSHIE_PACKAGE_APP_ID" => "dev.plushie.test",
+      "PLUSHIE_PACKAGE_CONFIG" => "packaging.toml"
+    ) do
+      P.stub(:build, ->(**options) {
+        captured = options
+        result
+      }) do
+        assert_equal result, P.build_from_env
+      end
+    end
+
+    assert_equal "packaging.toml", captured.fetch(:package_config)
+  end
+
+  def test_copy_app_uses_configured_command_entrypoint
+    Dir.mktmpdir do |tmpdir|
+      project = File.join(tmpdir, "project")
+      payload = File.join(tmpdir, "payload")
+      app = File.join(payload, "app")
+      FileUtils.mkdir_p(File.join(project, "lib"))
+      FileUtils.mkdir_p(File.join(project, "bin"))
+      File.write(File.join(project, "Gemfile"), "source \"https://rubygems.org\"\n")
+      File.write(File.join(project, "bin", "notes"), "#!/bin/sh\n")
+      start = P::PackageStartConfig.new(
+        working_dir: ".",
+        command: ["bin/notes"],
+        forward_env: []
+      )
+
+      P.copy_app!(project, payload, app, start, "bin/connect", nil)
+
+      assert File.exist?(File.join(payload, "bin", "notes"))
+      refute File.exist?(File.join(app, "bin", "connect"))
+    end
   end
 
   private

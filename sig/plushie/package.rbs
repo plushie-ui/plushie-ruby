@@ -34,6 +34,20 @@ module Plushie
       payload_size: Integer
     }
 
+    class PackageStartConfig < Data
+      attr_reader working_dir: String
+      attr_reader command: Array[String]
+      attr_reader forward_env: Array[String]
+
+      def initialize: (working_dir: String, command: Array[String], forward_env: Array[String]) -> void
+    end
+
+    class PackageSourceConfig < Data
+      attr_reader start: PackageStartConfig
+
+      def initialize: (start: PackageStartConfig) -> void
+    end
+
     def self.build: (
       app_id: String,
       ?app_version: String,
@@ -46,6 +60,7 @@ module Plushie
       ?renderer_source: String,
       ?icon_path: String?,
       ?entrypoint: String,
+      ?package_config: String?,
       ?sdk_source_path: String?,
       ?bundle_without: String
     ) -> build_result
@@ -72,10 +87,21 @@ module Plushie
 
     def self.render_manifest: (manifest manifest) -> String
     def self.write_manifest: (String path, manifest manifest) -> void
+    def self.default_source_config_path: (String project_dir) -> String
+    def self.default_source_config: (?String entrypoint) -> PackageSourceConfig
+    def self.render_source_config: (?PackageSourceConfig config) -> String
+    def self.write_source_config: (String path, ?PackageSourceConfig config) -> void
+    def self.load_source_config: (String path) -> PackageSourceConfig
+    def self.load_default_source_config: (String project_dir) -> PackageSourceConfig?
+    def self.parse_source_config: (String text) -> PackageSourceConfig
+    def self.validate_source_config!: (PackageSourceConfig config) -> PackageSourceConfig
+    def self.validate_start_config!: (PackageStartConfig start) -> PackageStartConfig
     def self.archive_payload!: (String payload_dir, String archive_path) -> void
     def self.validate_payload_archive_inputs!: (String payload_dir) -> void
     def self.resolve_renderer!: (?path: String?, ?kind: String, ?source: String) -> Hash[Symbol, String]
     def self.run_cli: (Array[String] argv) -> void
     def self.build_from_env: () -> build_result
+    def self.resolve_start_config: (String project_dir, String? package_config, String entrypoint) -> PackageStartConfig
+    def self.start_command: (String entrypoint) -> Array[String]
   end
 end
