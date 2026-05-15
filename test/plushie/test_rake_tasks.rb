@@ -260,6 +260,7 @@ class TestRakeTasks < Minitest::Test
     singleton = Plushie::Package.singleton_class
     had_original = singleton.method_defined?(name)
     original = singleton.instance_method(name) if had_original
+    singleton.send(:remove_method, name) if had_original
     if implementation.respond_to?(:call)
       singleton.define_method(name, implementation)
     else

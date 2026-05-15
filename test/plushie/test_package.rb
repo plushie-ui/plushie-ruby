@@ -324,14 +324,14 @@ class TestPackage < Minitest::Test
     end
   end
 
-  def test_resolve_renderer_records_source_builds_as_local_builds
+  def test_resolve_renderer_syncs_source_managed_tool_set_as_local_build
     Dir.mktmpdir do |tmpdir|
-      renderer = File.join(tmpdir, "target", "release", "plushie-renderer")
+      renderer = File.join(tmpdir, "bin", "plushie-renderer")
       write_executable(renderer)
 
-      with_package_tools(tmpdir) do
-        with_env("PLUSHIE_RUST_SOURCE_PATH" => tmpdir, "PLUSHIE_BINARY_PATH" => nil) do
-          P.stub(:renderer_from_source_path, renderer) do
+      with_env("PLUSHIE_RUST_SOURCE_PATH" => tmpdir, "PLUSHIE_BINARY_PATH" => nil) do
+        with_package_method(:source_path_configured?, true) do
+          with_binary_method(:sync_renderer_with_tool!, renderer) do
             result = P.resolve_renderer!
 
             assert_equal "local-build", result.fetch(:source)
@@ -349,7 +349,7 @@ class TestPackage < Minitest::Test
       write_executable(renderer)
 
       with_env("PLUSHIE_BINARY_PATH" => nil, "PLUSHIE_RUST_SOURCE_PATH" => nil) do
-        Plushie::Binary.stub(:sync_renderer_with_tool!, renderer) do
+        with_binary_method(:sync_renderer_with_tool!, renderer) do
           result = P.resolve_renderer!
 
           assert_equal "download", result.fetch(:source)
@@ -386,13 +386,13 @@ class TestPackage < Minitest::Test
       assets = File.join(tmpdir, "payload", "assets")
       commands = []
 
-      Plushie::CargoPlushie.stub(:resolve, ["cargo-plushie", []]) do
-        P.stub(:run!, ->(command) { commands << command }) do
+      with_env("PLUSHIE_RUST_SOURCE_PATH" => nil) do
+        with_package_method(:run!, ->(command) { commands << command }) do
           P.materialize_default_icons!(assets)
         end
       end
 
-      assert_equal [["cargo-plushie", "default-icons", "--out", assets]], commands
+      assert_equal [[File.join("bin", Plushie::Binary.tool_name), "default-icons", "--out", assets]], commands
       assert File.directory?(assets)
     end
   end
@@ -401,22 +401,19 @@ class TestPackage < Minitest::Test
     Dir.mktmpdir do |tmpdir|
       assets = File.join(tmpdir, "payload", "assets")
       manifest = File.join(tmpdir, "plushie-rust", "Cargo.toml")
+      FileUtils.mkdir_p(File.dirname(manifest))
+      File.write(manifest, "[workspace]\n")
       command = nil
 
-      resolver = [
-        "cargo",
-        ["run", "--manifest-path", manifest, "-p", "cargo-plushie", "--"]
-      ]
-
-      Plushie::CargoPlushie.stub(:resolve, resolver) do
-        P.stub(:run!, ->(value) { command = value }) do
+      with_env("PLUSHIE_RUST_SOURCE_PATH" => File.dirname(manifest)) do
+        with_package_method(:run!, ->(value) { command = value }) do
           P.materialize_default_icons!(assets)
         end
       end
 
       assert_equal [
-        "cargo", "run", "--manifest-path", manifest, "-p", "cargo-plushie",
-        "--", "default-icons", "--out", assets
+        "cargo", "run", "--manifest-path", manifest, "-p", "cargo-plushie", "--bin", "plushie",
+        "--release", "--quiet", "--", "default-icons", "--out", assets
       ], command
     end
   end
@@ -425,7 +422,7 @@ class TestPackage < Minitest::Test
     Dir.mktmpdir do |tmpdir|
       payload = File.join(tmpdir, "payload")
 
-      P.stub(:materialize_default_icons!, ->(assets) { FileUtils.mkdir_p(assets) }) do
+      with_package_method(:materialize_default_icons!, ->(assets) { FileUtils.mkdir_p(assets) }) do
         icon = P.install_package_icons!(payload, tmpdir, nil)
 
         assert_equal "assets/plushie-checkbox-512x512.png", icon
@@ -439,7 +436,7 @@ class TestPackage < Minitest::Test
       File.binwrite(icon_path, "icon")
       payload = File.join(tmpdir, "payload")
 
-      P.stub(:materialize_default_icons!, ->(assets) { FileUtils.mkdir_p(assets) }) do
+      with_package_method(:materialize_default_icons!, ->(assets) { FileUtils.mkdir_p(assets) }) do
         icon = P.install_package_icons!(payload, tmpdir, icon_path)
 
         assert_equal "assets/app-icon.png", icon
@@ -791,6 +788,23 @@ class TestPackage < Minitest::Test
     singleton = P.singleton_class
     had_original = singleton.method_defined?(name)
     original = singleton.instance_method(name) if had_original
+    singleton.send(:remove_method, name) if had_original
+    if implementation.respond_to?(:call)
+      singleton.define_method(name, implementation)
+    else
+      singleton.define_method(name) { |*_args, **_kwargs| implementation }
+    end
+    yield
+  ensure
+    singleton.send(:remove_method, name)
+    singleton.define_method(name, original) if had_original
+  end
+
+  def with_binary_method(name, implementation)
+    singleton = Plushie::Binary.singleton_class
+    had_original = singleton.method_defined?(name)
+    original = singleton.instance_method(name) if had_original
+    singleton.send(:remove_method, name) if had_original
     if implementation.respond_to?(:call)
       singleton.define_method(name, implementation)
     else

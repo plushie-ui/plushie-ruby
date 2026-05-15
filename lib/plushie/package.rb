@@ -391,9 +391,9 @@ module Plushie
         ensure_package_tools_available!
       elsif kind != "stock"
         raise Error, "Custom renderer packages require --renderer-path or PLUSHIE_BINARY_PATH"
-      elsif (source_path = renderer_from_source_path)
+      elsif source_path_configured?
+        source_path = Binary.sync_renderer_with_tool!
         resolved_source ||= "local-build"
-        ensure_package_tools_available!
       else
         source_path = Binary.sync_renderer_with_tool!
         resolved_source ||= "download"
@@ -423,6 +423,11 @@ module Plushie
 
       raise Error, "Portable packaging requires the managed Plushie tool set. " \
                    "Missing: #{missing.join(", ")}. Run bundle exec rake plushie:download."
+    end
+
+    def source_path_configured?
+      source_path = ENV["PLUSHIE_RUST_SOURCE_PATH"] || Plushie.configuration.source_path
+      source_path && !source_path.empty?
     end
 
     def run_cli(argv)
@@ -697,6 +702,7 @@ module Plushie
 
       name = File.basename(source)
       dest = File.join(assets_dir, name)
+      FileUtils.mkdir_p(assets_dir)
       FileUtils.cp(source, dest)
       "assets/#{name}"
     end

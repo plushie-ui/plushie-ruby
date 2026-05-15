@@ -260,7 +260,7 @@ The default shape expects:
 - `bin/connect` as the standalone host entrypoint
 - `Gemfile` for runtime dependencies
 - a renderer available through `PLUSHIE_BINARY_PATH`,
-  `PLUSHIE_RUST_SOURCE_PATH`, `rake plushie:download`, or `PATH`
+  `PLUSHIE_RUST_SOURCE_PATH`, or `rake plushie:download`
 
 Add `require "plushie/rake"` to the app's `Rakefile`, then run:
 

@@ -290,8 +290,9 @@ Renderer resolution checks `PLUSHIE_PACKAGE_RENDERER_PATH`,
 SDK download path. When `PLUSHIE_PACKAGE_RENDERER_KIND` is `custom`,
 set `PLUSHIE_PACKAGE_RENDERER_PATH` or `PLUSHIE_BINARY_PATH` to the
 custom renderer binary. When `PLUSHIE_RUST_SOURCE_PATH` is set for a
-stock renderer, the package helper builds `plushie-renderer` from that
-checkout before copying it.
+stock renderer, the package helper runs the managed native-tool sync
+from that checkout so `bin/plushie`, `bin/plushie-renderer`, and
+`bin/plushie-launcher` are prepared together.
 Default icon generation uses `cargo run -p cargo-plushie --bin plushie
 --release -- default-icons` from a local plushie-rust checkout when
 `PLUSHIE_RUST_SOURCE_PATH` is set. Otherwise it uses
