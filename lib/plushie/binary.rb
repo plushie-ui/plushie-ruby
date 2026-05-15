@@ -212,7 +212,7 @@ module Plushie
     # @return [String] path to the synced renderer
     def sync_renderer_with_tool!(version: PLUSHIE_RUST_VERSION, force: false)
       tool = download_tool!(version: version, force: force)
-      args = [tool, "download", "--required-version", version]
+      args = [tool, "tools", "sync", "--required-version", version]
       args << "--force" if force
       ok = system(*args)
       raise Error, "bin/plushie download failed" unless ok
