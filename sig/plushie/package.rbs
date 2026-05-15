@@ -17,8 +17,9 @@ module Plushie
       target: String,
       renderer: renderer_manifest,
       platform: platform_manifest,
-      host_command: Array[String],
+      start_command: Array[String],
       working_dir: String,
+      forward_env: Array[String],
       payload_archive: String,
       payload_hash: String,
       payload_size: Integer
@@ -58,14 +59,15 @@ module Plushie
       app_id: String,
       app_version: String,
       renderer_path: String,
-      host_command: Array[String],
+      start_command: Array[String],
       payload_archive: String,
       ?app_name: String?,
       ?target: String?,
       ?renderer_kind: String,
       ?renderer_source: String,
       ?icon_path: String,
-      ?working_dir: String
+      ?working_dir: String,
+      ?forward_env: Array[String]
     ) -> manifest
 
     def self.render_manifest: (manifest manifest) -> String

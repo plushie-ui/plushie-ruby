@@ -317,10 +317,10 @@ format.
 
 ## plushie:connect
 
-Runs a Plushie application with `transport: :stdio`. The Rust
-renderer spawns the Ruby process (not the other way around) and
-communicates over the Ruby process's stdin and stdout. Use this when
-the renderer is launched externally through renderer-parent exec.
+Runs a Plushie application from a standalone entry point. When
+`PLUSHIE_SOCKET` is present, it connects to that renderer. Otherwise it
+starts the renderer through normal binary resolution, including
+`PLUSHIE_BINARY_PATH`.
 
 ```bash
 rake 'plushie:connect[Counter]'

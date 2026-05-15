@@ -14,6 +14,15 @@ module Plushie
   # Standalone package payload and manifest helpers.
   module Package
     DEFAULT_ICON_PATH = "assets/plushie-checkbox-512x512.png"
+    DEFAULT_FORWARD_ENV = [
+      "PATH",
+      "HOME",
+      "LANG",
+      "LC_ALL",
+      "XDG_RUNTIME_DIR",
+      "WAYLAND_DISPLAY",
+      "DISPLAY"
+    ].freeze
 
     module_function
 
@@ -74,7 +83,7 @@ module Plushie
         renderer_source: renderer.fetch(:source),
         renderer_path: renderer.fetch(:payload_path),
         icon_path: package_icon_path,
-        host_command: host_command(entrypoint),
+        start_command: start_command(entrypoint),
         working_dir: "app",
         payload_archive: archive_path
       )
@@ -133,14 +142,15 @@ module Plushie
       app_id:,
       app_version:,
       renderer_path:,
-      host_command:,
+      start_command:,
       payload_archive:,
       app_name: nil,
       target: nil,
       renderer_kind: "stock",
       renderer_source: "local-resolve",
       icon_path: DEFAULT_ICON_PATH,
-      working_dir: "."
+      working_dir: ".",
+      forward_env: DEFAULT_FORWARD_ENV
     )
       archive_path = File.expand_path(payload_archive)
       {
@@ -156,8 +166,9 @@ module Plushie
         platform: {
           icon: icon_path
         },
-        host_command: host_command,
+        start_command: start_command,
         working_dir: working_dir,
+        forward_env: forward_env,
         payload_archive: File.basename(archive_path),
         payload_hash: sha256_file(archive_path),
         payload_size: file_size(archive_path)
@@ -178,15 +189,17 @@ module Plushie
         "host_sdk_version = #{toml_string(Plushie::VERSION)}",
         "plushie_rust_version = #{toml_string(Plushie::PLUSHIE_RUST_VERSION)}",
         "protocol_version = #{Plushie::Protocol::PROTOCOL_VERSION}",
-        "renderer_path = #{toml_string(manifest.fetch(:renderer).fetch(:path))}",
-        "host_command = #{toml_array(manifest.fetch(:host_command))}",
+        "",
+        "[start]",
         "working_dir = #{toml_string(manifest.fetch(:working_dir))}",
-        "exec_env = []",
+        "command = #{toml_array(manifest.fetch(:start_command))}",
+        "forward_env = #{toml_array(manifest.fetch(:forward_env))}",
         "",
         "[platform]",
         "icon = #{toml_string(manifest.fetch(:platform).fetch(:icon))}",
         "",
         "[renderer]",
+        "path = #{toml_string(manifest.fetch(:renderer).fetch(:path))}",
         "kind = #{toml_string(manifest.fetch(:renderer).fetch(:kind))}",
         "source = #{toml_string(manifest.fetch(:renderer).fetch(:source))}",
         "",
@@ -349,7 +362,7 @@ module Plushie
       )
     end
 
-    def host_command(entrypoint)
+    def start_command(entrypoint)
       ruby = RbConfig::CONFIG.fetch("ruby_install_name") + RbConfig::CONFIG.fetch("EXEEXT")
       [File.join("ruby", "bin", ruby), entrypoint]
     end

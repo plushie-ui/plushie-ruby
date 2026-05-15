@@ -91,7 +91,9 @@ plushie \
 ```
 
 The `plushie:connect` Rake task in `plushie/rake.rb` is a one-liner
-for this: it calls `Plushie.run(app_class, transport: :stdio)`.
+for this: it calls `Plushie.connect(app_class)`, which uses
+`PLUSHIE_SOCKET` when provided and otherwise starts the renderer
+through normal binary resolution.
 
 `[:iostream, adapter]` accepts an arbitrary object that mediates
 between the runtime and some other byte stream: a TCP socket, a

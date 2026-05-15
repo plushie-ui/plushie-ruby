@@ -266,12 +266,15 @@ module Plushie
     runtime
   end
 
-  # Connect an app to a renderer-owned socket and block until it exits.
+  # Run an app from a standalone entry point and block until it exits.
   #
-  # Used by renderer-parent standalone launches where the renderer sets
-  # PLUSHIE_SOCKET and PLUSHIE_TOKEN before execing the Ruby host.
+  # Uses PLUSHIE_SOCKET when present. Otherwise starts the renderer as a
+  # child process through normal binary resolution, including
+  # PLUSHIE_BINARY_PATH.
   def self.connect(app_class, socket: ENV["PLUSHIE_SOCKET"], token: ENV["PLUSHIE_TOKEN"], format: :msgpack)
-    raise Error, "PLUSHIE_SOCKET is not set" if socket.nil? || socket.empty?
+    if socket.nil? || socket.empty?
+      return run(app_class, token: token, format: format)
+    end
 
     adapter = Transport::SocketAdapter.connect(socket)
     run(app_class, transport: [:iostream, adapter], token: token, format: format)

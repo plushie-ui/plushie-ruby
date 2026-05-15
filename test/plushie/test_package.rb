@@ -31,7 +31,7 @@ class TestPackage < Minitest::Test
         renderer_kind: "custom",
         renderer_source: "local-build",
         renderer_path: "bin/plushie-renderer",
-        host_command: ["ruby/bin/ruby", "bin/connect"],
+        start_command: ["ruby/bin/ruby", "bin/connect"],
         working_dir: "app",
         payload_archive: archive
       )
@@ -46,10 +46,12 @@ class TestPackage < Minitest::Test
       assert_includes toml, "host_sdk_version = \"#{Plushie::VERSION}\""
       assert_includes toml, "plushie_rust_version = \"#{Plushie::PLUSHIE_RUST_VERSION}\""
       assert_includes toml, "protocol_version = #{Plushie::Protocol::PROTOCOL_VERSION}"
-      assert_includes toml, 'renderer_path = "bin/plushie-renderer"'
-      assert_includes toml, 'host_command = ["ruby/bin/ruby", "bin/connect"]'
-      assert_includes toml, 'working_dir = "app"'
+      assert_includes toml, "[start]\nworking_dir = \"app\""
+      assert_includes toml, 'command = ["ruby/bin/ruby", "bin/connect"]'
+      assert_includes toml,
+                      'forward_env = ["PATH", "HOME", "LANG", "LC_ALL", "XDG_RUNTIME_DIR", "WAYLAND_DISPLAY", "DISPLAY"]'
       assert_includes toml, "[platform]\nicon = \"assets/plushie-checkbox-512x512.png\""
+      assert_includes toml, "[renderer]\npath = \"bin/plushie-renderer\""
       assert_includes toml, 'kind = "custom"'
       assert_includes toml, 'source = "local-build"'
       assert_includes toml, 'archive = "payload.tar.zst"'
@@ -68,7 +70,7 @@ class TestPackage < Minitest::Test
         target: "linux-x86_64",
         renderer_path: "bin/plushie-renderer",
         icon_path: "assets/app.png",
-        host_command: ["bin/connect"],
+        start_command: ["bin/connect"],
         payload_archive: archive
       )
 
@@ -86,7 +88,7 @@ class TestPackage < Minitest::Test
         app_version: "0.1.0",
         target: "linux-x86_64",
         renderer_path: "bin/plushie-renderer",
-        host_command: ["bin/connect"],
+        start_command: ["bin/connect"],
         payload_archive: archive
       )
 

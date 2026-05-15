@@ -99,7 +99,7 @@ namespace :plushie do
     Plushie.run(app_class, **opts)
   end
 
-  desc "Connect to a renderer via stdio or PLUSHIE_SOCKET"
+  desc "Run a standalone app entrypoint via PLUSHIE_SOCKET or spawned renderer"
   task :connect, [:app_class] do |_t, args|
     unless args[:app_class]
       abort "Usage: rake plushie:connect[AppClass]"
@@ -110,7 +110,7 @@ namespace :plushie do
     if ENV["PLUSHIE_SOCKET"] && !ENV["PLUSHIE_SOCKET"].empty?
       Plushie.connect(app_class, format: format)
     else
-      Plushie.run(app_class, transport: :stdio, format: format)
+      Plushie.run(app_class, format: format)
     end
   end
 
