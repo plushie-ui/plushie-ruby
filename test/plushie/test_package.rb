@@ -429,6 +429,31 @@ class TestPackage < Minitest::Test
     assert_equal "packaging.toml", captured.fetch(:package_config)
   end
 
+  def test_build_from_env_accepts_overrides
+    captured = nil
+    result = {
+      archive_path: "dist/payload.tar.zst",
+      manifest_path: "dist/plushie-package.toml"
+    }
+
+    with_env("PLUSHIE_PACKAGE_APP_ID" => nil) do
+      P.stub(:build, ->(**options) {
+        captured = options
+        result
+      }) do
+        assert_equal result, P.build_from_env(
+          app_id: "dev.plushie.test",
+          app_name: "Test App",
+          app_version: "0.2.0"
+        )
+      end
+    end
+
+    assert_equal "dev.plushie.test", captured.fetch(:app_id)
+    assert_equal "Test App", captured.fetch(:app_name)
+    assert_equal "0.2.0", captured.fetch(:app_version)
+  end
+
   def test_copy_app_uses_configured_command_entrypoint
     Dir.mktmpdir do |tmpdir|
       project = File.join(tmpdir, "project")

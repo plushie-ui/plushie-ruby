@@ -99,7 +99,7 @@ namespace :plushie do
     Plushie.run(app_class, **opts)
   end
 
-  desc "Run a standalone app entrypoint via PLUSHIE_SOCKET or spawned renderer"
+  desc "Connect a standalone app entrypoint via PLUSHIE_SOCKET or spawned renderer"
   task :connect, [:app_class] do |_t, args|
     unless args[:app_class]
       abort "Usage: rake plushie:connect[AppClass]"
@@ -114,12 +114,17 @@ namespace :plushie do
     end
   end
 
-  desc "Build standalone package payload and manifest (env: PLUSHIE_PACKAGE_APP_ID required)"
-  task :package do
+  desc "Build standalone package payload and manifest"
+  task :package, [:app_id, :app_name, :app_version] do |_t, args|
     require "plushie/package"
 
+    overrides = {}
+    overrides[:app_id] = args[:app_id] if args[:app_id]
+    overrides[:app_name] = args[:app_name] if args[:app_name]
+    overrides[:app_version] = args[:app_version] if args[:app_version]
+
     begin
-      result = Plushie::Package.build_from_env
+      result = Plushie::Package.build_from_env(overrides)
     rescue Plushie::Error => e
       abort e.message
     end

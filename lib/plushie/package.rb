@@ -461,26 +461,31 @@ module Plushie
       (value.nil? || value.empty?) ? default : value
     end
 
-    def build_from_env
-      app_id = env_value("PLUSHIE_PACKAGE_APP_ID")
+    def build_from_env(overrides = {})
+      app_id = package_option(overrides, :app_id, "PLUSHIE_PACKAGE_APP_ID")
       raise Error, "PLUSHIE_PACKAGE_APP_ID is required" unless app_id
 
       build(
         app_id: app_id,
-        app_name: env_value("PLUSHIE_PACKAGE_APP_NAME"),
-        app_version: env_value("PLUSHIE_PACKAGE_APP_VERSION", "0.1.0"),
-        project_dir: env_value("PLUSHIE_PACKAGE_PROJECT_DIR", Dir.pwd),
-        output_dir: env_value("PLUSHIE_PACKAGE_OUTPUT", "dist"),
-        target: env_value("PLUSHIE_PACKAGE_TARGET"),
-        renderer_path: env_value("PLUSHIE_PACKAGE_RENDERER_PATH"),
-        renderer_kind: env_value("PLUSHIE_PACKAGE_RENDERER_KIND", "stock"),
-        renderer_source: env_value("PLUSHIE_PACKAGE_RENDERER_SOURCE"),
-        icon_path: env_value("PLUSHIE_PACKAGE_ICON_PATH"),
-        entrypoint: env_value("PLUSHIE_PACKAGE_ENTRYPOINT", "bin/connect"),
-        package_config: env_value("PLUSHIE_PACKAGE_CONFIG"),
-        sdk_source_path: env_value("PLUSHIE_RUBY_DIR"),
-        bundle_without: env_value("PLUSHIE_PACKAGE_BUNDLE_WITHOUT", "development test")
+        app_name: package_option(overrides, :app_name, "PLUSHIE_PACKAGE_APP_NAME"),
+        app_version: package_option(overrides, :app_version, "PLUSHIE_PACKAGE_APP_VERSION", "0.1.0"),
+        project_dir: package_option(overrides, :project_dir, "PLUSHIE_PACKAGE_PROJECT_DIR", Dir.pwd),
+        output_dir: package_option(overrides, :output_dir, "PLUSHIE_PACKAGE_OUTPUT", "dist"),
+        target: package_option(overrides, :target, "PLUSHIE_PACKAGE_TARGET"),
+        renderer_path: package_option(overrides, :renderer_path, "PLUSHIE_PACKAGE_RENDERER_PATH"),
+        renderer_kind: package_option(overrides, :renderer_kind, "PLUSHIE_PACKAGE_RENDERER_KIND", "stock"),
+        renderer_source: package_option(overrides, :renderer_source, "PLUSHIE_PACKAGE_RENDERER_SOURCE"),
+        icon_path: package_option(overrides, :icon_path, "PLUSHIE_PACKAGE_ICON_PATH"),
+        entrypoint: package_option(overrides, :entrypoint, "PLUSHIE_PACKAGE_ENTRYPOINT", "bin/connect"),
+        package_config: package_option(overrides, :package_config, "PLUSHIE_PACKAGE_CONFIG"),
+        sdk_source_path: package_option(overrides, :sdk_source_path, "PLUSHIE_RUBY_DIR"),
+        bundle_without: package_option(overrides, :bundle_without, "PLUSHIE_PACKAGE_BUNDLE_WITHOUT", "development test")
       )
+    end
+
+    def package_option(overrides, key, env_name, default = nil)
+      value = overrides[key]
+      (value.nil? || value.empty?) ? env_value(env_name, default) : value
     end
 
     def resolve_start_config(project_dir, package_config, entrypoint)
@@ -596,8 +601,11 @@ module Plushie
 
       require_command("cargo")
       puts "Building plushie-renderer from #{source_path}"
-      Dir.chdir(source_path) { run!(%w[cargo build --release -p plushie-renderer]) }
-      File.join(source_path, "target", "release", "plushie-renderer#{RbConfig::CONFIG.fetch("EXEEXT")}")
+      target_dir = File.expand_path(File.join("build", "plushie-package-target"), Dir.pwd)
+      Dir.chdir(source_path) do
+        run!(["cargo", "build", "--release", "-p", "plushie-renderer", "--target-dir", target_dir])
+      end
+      File.join(target_dir, "release", "plushie-renderer#{RbConfig::CONFIG.fetch("EXEEXT")}")
     end
 
     def validate_renderer!(path)

@@ -212,7 +212,7 @@ Prints "Nothing to clean" when both directories are already gone.
 
 ## plushie:package
 
-Builds a renderer-parent payload archive and `plushie-package.toml`
+Builds a standalone payload archive and `plushie-package.toml`
 for the shared Rust package launcher. Ruby-specific work stays in
 the SDK: copying the app, copying a conservative Ruby runtime,
 installing runtime gems, adding the renderer to the payload, hashing
@@ -221,10 +221,7 @@ The helper also asks `cargo-plushie` to materialize the default
 launcher icons under `payload/assets` before archiving.
 
 ```bash
-PLUSHIE_PACKAGE_APP_ID=dev.example.notes \
-PLUSHIE_PACKAGE_APP_NAME="Notes" \
-PLUSHIE_PACKAGE_APP_VERSION=0.1.0 \
-rake plushie:package
+rake 'plushie:package[dev.example.notes,Notes,0.1.0]'
 ```
 
 The output defaults to `dist/payload.tar.zst` and
@@ -251,6 +248,10 @@ cargo plushie package --manifest dist/plushie-package.toml --release
 | `PLUSHIE_PACKAGE_ENTRYPOINT` | `bin/connect` | App entrypoint used as the host command |
 | `PLUSHIE_PACKAGE_BUNDLE_WITHOUT` | `development test` | Bundler groups excluded from the packaged app |
 | `PLUSHIE_RUBY_DIR` | unset | Local SDK checkout to vendor into the packaged app |
+
+The Rake task accepts `app_id`, `app_name`, and `app_version` as
+positional task arguments. Environment variables remain available for
+the less common inputs and for CI jobs that already use them.
 
 Renderer resolution checks `PLUSHIE_PACKAGE_RENDERER_PATH`,
 `PLUSHIE_BINARY_PATH`, `PLUSHIE_RUST_SOURCE_PATH`, the SDK binary

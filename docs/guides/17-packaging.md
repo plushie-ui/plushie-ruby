@@ -267,10 +267,7 @@ The default shape expects:
 Add `require "plushie/rake"` to the app's `Rakefile`, then run:
 
 ```bash
-PLUSHIE_PACKAGE_APP_ID=dev.example.notes \
-PLUSHIE_PACKAGE_APP_NAME="Notes" \
-PLUSHIE_PACKAGE_APP_VERSION=0.1.0 \
-bundle exec rake plushie:package
+bundle exec rake 'plushie:package[dev.example.notes,Notes,0.1.0]'
 ```
 
 The task writes `dist/payload.tar.zst` and
@@ -292,6 +289,9 @@ language agnostic: it receives only the manifest and archived payload.
 
 For scripts that need a direct helper instead of Rake, use
 `Plushie::Package.build` from `require "plushie/package"`.
+Environment variables such as `PLUSHIE_PACKAGE_OUTPUT` and
+`PLUSHIE_PACKAGE_ICON_PATH` are still supported for less common
+package inputs and CI configuration.
 
 ## Option E: native widget distribution
 

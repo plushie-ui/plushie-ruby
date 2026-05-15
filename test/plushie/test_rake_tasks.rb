@@ -98,6 +98,13 @@ class TestRakeTasks < Minitest::Test
     assert_includes desc, "package"
   end
 
+  def test_package_task_accepts_common_package_args
+    task = Rake::Task["plushie:package"]
+    assert_includes task.arg_names, :app_id
+    assert_includes task.arg_names, :app_name
+    assert_includes task.arg_names, :app_version
+  end
+
   def test_download_task_accepts_args
     task = Rake::Task["plushie:download"]
     assert_includes task.arg_names, :arg1
