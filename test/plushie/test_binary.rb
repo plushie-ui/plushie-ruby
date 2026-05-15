@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "test_helper"
+require "digest"
 require "fileutils"
 require "tmpdir"
 
@@ -49,6 +50,36 @@ class TestBinary < Minitest::Test
     assert_match(%r{\Ahttps://github\.com/plushie-ui/plushie-rust/releases/}, url)
     assert_includes url, "0.4.1"
     assert_includes url, "/plushie-"
+  end
+
+  def test_release_url_uses_alternate_release_base_url
+    with_env("PLUSHIE_RELEASE_BASE_URL" => "file:///tmp/plushie-releases/") do
+      url = B.release_url("0.4.1")
+
+      assert_match(%r{\Afile:///tmp/plushie-releases/v0\.4\.1/}, url)
+    end
+  end
+
+  def test_download_tool_uses_file_release_base_url
+    Dir.mktmpdir do |tmpdir|
+      mirror = File.join(tmpdir, "mirror")
+      version = "0.4.1"
+      version_dir = File.join(mirror, "v#{version}")
+      FileUtils.mkdir_p(version_dir)
+      artifact = File.join(version_dir, B.tool_release_name)
+      body = "tool"
+      File.binwrite(artifact, body)
+      File.write("#{artifact}.sha256", "#{Digest::SHA256.hexdigest(body)}  #{B.tool_release_name}\n")
+
+      Dir.chdir(tmpdir) do
+        with_env("PLUSHIE_RELEASE_BASE_URL" => "file://#{mirror}") do
+          result = B.download_tool!(version: version, force: true)
+
+          assert_equal File.join("bin", B.tool_name), result
+          assert_equal body, File.binread(result)
+        end
+      end
+    end
   end
 
   def test_resolve_returns_nil_without_binary

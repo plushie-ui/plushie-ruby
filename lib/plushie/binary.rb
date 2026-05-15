@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
 require "fileutils"
+require "uri"
 
 module Plushie
   # Resolves the path to the plushie renderer binary.
@@ -17,6 +18,7 @@ module Plushie
     module_function
 
     RELEASE_BASE_URL = "https://github.com/plushie-ui/plushie-rust/releases/download"
+    RELEASE_BASE_URL_ENV = "PLUSHIE_RELEASE_BASE_URL"
 
     # Resolve and return the binary path, or raise with helpful instructions.
     #
@@ -248,12 +250,24 @@ module Plushie
 
     # @return [String] GitHub release download URL
     def release_url(version)
-      "#{RELEASE_BASE_URL}/v#{version}/#{release_name}"
+      "#{release_base_url}/v#{version}/#{release_name}"
     end
 
     # @return [String] GitHub release download URL for the plushie tool
     def tool_release_url(version)
-      "#{RELEASE_BASE_URL}/v#{version}/#{tool_release_name}"
+      "#{release_base_url}/v#{version}/#{tool_release_name}"
+    end
+
+    # @return [String] configured release download base URL
+    def release_base_url
+      base_url = (ENV[RELEASE_BASE_URL_ENV] || RELEASE_BASE_URL).strip.sub(%r{/+\z}, "")
+      raise Error, "#{RELEASE_BASE_URL_ENV} must not be empty" if base_url.empty?
+
+      uri = URI.parse(base_url)
+      return base_url if uri.scheme == "https" || uri.scheme == "file"
+      return base_url if uri.scheme == "http" && ["localhost", "127.0.0.1", "::1"].include?(uri.host)
+
+      raise Error, "#{RELEASE_BASE_URL_ENV} must use https://, file://, or loopback http://"
     end
 
     # @return [String] stable project-local binary filename
@@ -287,6 +301,10 @@ module Plushie
       raise Error, "too many redirects for #{url}" if redirect_limit.zero?
 
       uri = URI.parse(url)
+
+      if uri.scheme == "file"
+        return File.binread(uri.path)
+      end
 
       Net::HTTP.start(uri.host, uri.port, use_ssl: uri.scheme == "https") do |http|
         response = http.get(uri.request_uri)
@@ -328,7 +346,7 @@ module Plushie
       end
 
       archive_name = "plushie-renderer-wasm.tar.gz"
-      url = "#{RELEASE_BASE_URL}/v#{version}/#{archive_name}"
+      url = "#{release_base_url}/v#{version}/#{archive_name}"
       checksum_url = "#{url}.sha256"
 
       warn "Downloading #{archive_name}..."
