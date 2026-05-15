@@ -388,11 +388,14 @@ module Plushie
       if path && !path.empty?
         source_path = path
         resolved_source ||= "local-path"
+        ensure_package_tools_available!
       elsif ENV["PLUSHIE_BINARY_PATH"] && !ENV["PLUSHIE_BINARY_PATH"].empty?
         source_path = ENV["PLUSHIE_BINARY_PATH"]
         resolved_source ||= "local-path"
+        ensure_package_tools_available!
       elsif (source_path = renderer_from_source_path)
         resolved_source ||= "local-build"
+        ensure_package_tools_available!
       else
         source_path = Binary.sync_renderer_with_tool!
         resolved_source ||= "download"
@@ -410,6 +413,18 @@ module Plushie
         source_path: source_path,
         payload_path: renderer_payload_path
       }
+    end
+
+    def ensure_package_tools_available!
+      missing = [
+        File.join("bin", Binary.tool_name),
+        File.join("bin", Binary.launcher_name)
+      ].reject { |candidate| File.file?(candidate) }
+
+      return if missing.empty?
+
+      raise Error, "Portable packaging requires the managed Plushie tool set. " \
+                   "Missing: #{missing.join(", ")}. Run bundle exec rake plushie:download."
     end
 
     def run_cli(argv)

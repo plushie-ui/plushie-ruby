@@ -230,10 +230,12 @@ class TestPackage < Minitest::Test
       renderer = File.join(tmpdir, "plushie-renderer")
       write_executable(renderer)
 
-      result = P.resolve_renderer!(path: renderer)
+      with_package_tools(tmpdir) do
+        result = P.resolve_renderer!(path: renderer)
 
-      assert_equal "local-path", result.fetch(:source)
-      assert_equal renderer, result.fetch(:source_path)
+        assert_equal "local-path", result.fetch(:source)
+        assert_equal renderer, result.fetch(:source_path)
+      end
     end
   end
 
@@ -242,9 +244,23 @@ class TestPackage < Minitest::Test
       renderer = File.join(tmpdir, "plushie-renderer")
       write_executable(renderer)
 
-      result = P.resolve_renderer!(path: renderer, source: "test-fixture")
+      with_package_tools(tmpdir) do
+        result = P.resolve_renderer!(path: renderer, source: "test-fixture")
 
-      assert_equal "test-fixture", result.fetch(:source)
+        assert_equal "test-fixture", result.fetch(:source)
+      end
+    end
+  end
+
+  def test_resolve_renderer_requires_managed_package_tools_for_explicit_paths
+    Dir.mktmpdir do |tmpdir|
+      renderer = File.join(tmpdir, "plushie-renderer")
+      write_executable(renderer)
+
+      Dir.chdir(tmpdir) do
+        error = assert_raises(Plushie::Error) { P.resolve_renderer!(path: renderer) }
+        assert_match(/managed Plushie tool set/, error.message)
+      end
     end
   end
 
@@ -253,11 +269,13 @@ class TestPackage < Minitest::Test
       renderer = File.join(tmpdir, "plushie-renderer")
       write_executable(renderer)
 
-      with_env("PLUSHIE_BINARY_PATH" => renderer) do
-        result = P.resolve_renderer!
+      with_package_tools(tmpdir) do
+        with_env("PLUSHIE_BINARY_PATH" => renderer) do
+          result = P.resolve_renderer!
 
-        assert_equal "local-path", result.fetch(:source)
-        assert_equal renderer, result.fetch(:source_path)
+          assert_equal "local-path", result.fetch(:source)
+          assert_equal renderer, result.fetch(:source_path)
+        end
       end
     end
   end
@@ -267,12 +285,14 @@ class TestPackage < Minitest::Test
       renderer = File.join(tmpdir, "target", "release", "plushie-renderer")
       write_executable(renderer)
 
-      with_env("PLUSHIE_RUST_SOURCE_PATH" => tmpdir, "PLUSHIE_BINARY_PATH" => nil) do
-        P.stub(:renderer_from_source_path, renderer) do
-          result = P.resolve_renderer!
+      with_package_tools(tmpdir) do
+        with_env("PLUSHIE_RUST_SOURCE_PATH" => tmpdir, "PLUSHIE_BINARY_PATH" => nil) do
+          P.stub(:renderer_from_source_path, renderer) do
+            result = P.resolve_renderer!
 
-          assert_equal "local-build", result.fetch(:source)
-          assert_equal renderer, result.fetch(:source_path)
+            assert_equal "local-build", result.fetch(:source)
+            assert_equal renderer, result.fetch(:source_path)
+          end
         end
       end
     end
@@ -577,6 +597,12 @@ class TestPackage < Minitest::Test
     FileUtils.mkdir_p(File.dirname(path))
     File.write(path, "#!/bin/sh\nexit 0\n")
     FileUtils.chmod(0o755, path)
+  end
+
+  def with_package_tools(tmpdir)
+    write_executable(File.join(tmpdir, "bin", Plushie::Binary.tool_name))
+    write_executable(File.join(tmpdir, "bin", Plushie::Binary.launcher_name))
+    Dir.chdir(tmpdir) { yield }
   end
 
   def with_env(values)
