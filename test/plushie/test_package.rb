@@ -278,6 +278,28 @@ class TestPackage < Minitest::Test
     end
   end
 
+  def test_resolve_ruby_runtime_root_supports_path_provider
+    Dir.mktmpdir do |tmpdir|
+      assert_equal tmpdir, P.resolve_ruby_runtime_root(provider: "path", root: tmpdir)
+    end
+  end
+
+  def test_resolve_ruby_runtime_root_rejects_missing_path
+    assert_raises(Plushie::Error) do
+      P.resolve_ruby_runtime_root(provider: "path")
+    end
+  end
+
+  def test_resolve_ruby_runtime_root_supports_mise_provider
+    status = Struct.new(:success?).new(true)
+
+    P.stub(:require_command, nil) do
+      Open3.stub(:capture3, [" /opt/mise/ruby \n", "", status]) do
+        assert_equal "/opt/mise/ruby", P.resolve_ruby_runtime_root(provider: "mise", version: "3.3.6")
+      end
+    end
+  end
+
   def test_materialize_default_icons_invokes_cargo_plushie
     Dir.mktmpdir do |tmpdir|
       assets = File.join(tmpdir, "payload", "assets")
@@ -383,6 +405,30 @@ class TestPackage < Minitest::Test
     assert_equal "packaging.toml", captured.fetch(:package_config)
   end
 
+  def test_run_cli_accepts_ruby_runtime_provider_options
+    captured = nil
+    result = {
+      archive_path: "dist/payload.tar.zst",
+      manifest_path: "dist/plushie-package.toml"
+    }
+
+    P.stub(:build, ->(**options) {
+      captured = options
+      result
+    }) do
+      capture_io do
+        P.run_cli([
+          "--app-id", "dev.plushie.test",
+          "--ruby-provider", "mise",
+          "--ruby-version", "3.3.6"
+        ])
+      end
+    end
+
+    assert_equal "mise", captured.fetch(:ruby_provider)
+    assert_equal "3.3.6", captured.fetch(:ruby_version)
+  end
+
   def test_run_cli_writes_package_config_without_app_id
     Dir.mktmpdir do |tmpdir|
       capture_io do
@@ -435,6 +481,30 @@ class TestPackage < Minitest::Test
     end
 
     assert_equal "packaging.toml", captured.fetch(:package_config)
+  end
+
+  def test_build_from_env_accepts_ruby_runtime_provider
+    captured = nil
+    result = {
+      archive_path: "dist/payload.tar.zst",
+      manifest_path: "dist/plushie-package.toml"
+    }
+
+    with_env(
+      "PLUSHIE_PACKAGE_APP_ID" => "dev.plushie.test",
+      "PLUSHIE_RUBY_PROVIDER" => "path",
+      "PLUSHIE_RUBY_ROOT" => "/opt/ruby"
+    ) do
+      P.stub(:build, ->(**options) {
+        captured = options
+        result
+      }) do
+        assert_equal result, P.build_from_env
+      end
+    end
+
+    assert_equal "path", captured.fetch(:ruby_provider)
+    assert_equal "/opt/ruby", captured.fetch(:ruby_root)
   end
 
   def test_build_from_env_accepts_overrides

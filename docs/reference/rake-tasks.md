@@ -260,6 +260,9 @@ cargo plushie package portable --manifest dist/plushie-package.toml --release
 | `PLUSHIE_PACKAGE_ENTRYPOINT` | `bin/connect` | App entrypoint used as the host command |
 | `PLUSHIE_PACKAGE_BUNDLE_WITHOUT` | `development test` | Bundler groups excluded from the packaged app |
 | `PLUSHIE_RUBY_DIR` | unset | Local SDK checkout to vendor into the packaged app |
+| `PLUSHIE_RUBY_PROVIDER` | `local` | Ruby runtime provider: `local`, `path`, or `mise` |
+| `PLUSHIE_RUBY_ROOT` | unset | Ruby runtime root for the `path` provider |
+| `PLUSHIE_RUBY_VERSION` | unset | Ruby version passed to `mise where ruby@VERSION` for the `mise` provider |
 
 The Rake task accepts `app_id`, `app_name`, and `app_version` as
 positional task arguments. Environment variables remain available for
@@ -273,6 +276,20 @@ When `PLUSHIE_RUST_SOURCE_PATH` is set, the package helper builds
 Default icon generation uses the same `cargo-plushie` resolver:
 local Rust checkouts run the checkout copy through `cargo run`, and
 released SDKs use the installed matching `cargo-plushie`.
+
+### Ruby runtime
+
+By default, the package helper copies the active Ruby installation
+reported by `RbConfig::CONFIG["prefix"]`. Runtime roots are OS and
+architecture specific, so release builds should run on matching target
+runners until cross-target runtime downloads are proven.
+
+Runtime provider options:
+
+- `local` copies the Ruby runtime currently running the package helper.
+- `path` copies the extracted runtime root named by `PLUSHIE_RUBY_ROOT`.
+- `mise` runs `mise where ruby@VERSION` when `PLUSHIE_RUBY_VERSION` is
+  set, or `mise where ruby` otherwise, then copies that extracted root.
 
 ## plushie:run
 

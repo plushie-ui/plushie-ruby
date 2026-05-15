@@ -51,7 +51,10 @@ module Plushie
       entrypoint: "bin/connect",
       package_config: nil,
       sdk_source_path: ENV["PLUSHIE_RUBY_DIR"],
-      bundle_without: "development test"
+      bundle_without: "development test",
+      ruby_provider: "local",
+      ruby_root: nil,
+      ruby_version: nil
     )
       require_command("bundle")
       require_command("ruby")
@@ -78,7 +81,12 @@ module Plushie
       FileUtils.mkdir_p(File.join(payload_dir, "bin"))
       FileUtils.mkdir_p(ruby_dir)
 
-      copy_ruby_runtime!(ruby_dir)
+      copy_ruby_runtime!(
+        ruby_dir,
+        provider: ruby_provider,
+        root: ruby_root,
+        version: ruby_version
+      )
       copy_app!(project_dir, payload_dir, app_dir, start_config, entrypoint, sdk_source_path)
       install_runtime_gems!(app_dir, bundle_without)
       install_renderer!(renderer.fetch(:source_path), File.join(payload_dir, renderer.fetch(:payload_path)))
@@ -435,6 +443,9 @@ module Plushie
         opts.on("--write-package-config", "Write a package config template and exit") { options[:write_package_config] = true }
         opts.on("--sdk-source-path DIR", "Local plushie Ruby SDK source to vendor") { |value| options[:sdk_source_path] = value }
         opts.on("--bundle-without GROUPS", "Bundler groups to exclude") { |value| options[:bundle_without] = value }
+        opts.on("--ruby-provider PROVIDER", "Ruby runtime provider: local, path, or mise") { |value| options[:ruby_provider] = value }
+        opts.on("--ruby-root DIR", "Ruby runtime root for path provider") { |value| options[:ruby_root] = value }
+        opts.on("--ruby-version VERSION", "Ruby version for mise provider") { |value| options[:ruby_version] = value }
         opts.on("-h", "--help", "Show help") { show_help = true }
       end
 
@@ -483,7 +494,10 @@ module Plushie
         entrypoint: package_option(overrides, :entrypoint, "PLUSHIE_PACKAGE_ENTRYPOINT", "bin/connect"),
         package_config: package_option(overrides, :package_config, "PLUSHIE_PACKAGE_CONFIG"),
         sdk_source_path: package_option(overrides, :sdk_source_path, "PLUSHIE_RUBY_DIR"),
-        bundle_without: package_option(overrides, :bundle_without, "PLUSHIE_PACKAGE_BUNDLE_WITHOUT", "development test")
+        bundle_without: package_option(overrides, :bundle_without, "PLUSHIE_PACKAGE_BUNDLE_WITHOUT", "development test"),
+        ruby_provider: package_option(overrides, :ruby_provider, "PLUSHIE_RUBY_PROVIDER", "local"),
+        ruby_root: package_option(overrides, :ruby_root, "PLUSHIE_RUBY_ROOT"),
+        ruby_version: package_option(overrides, :ruby_version, "PLUSHIE_RUBY_VERSION")
       )
     end
 
@@ -518,8 +532,35 @@ module Plushie
       File.join("bin", "plushie-renderer#{RbConfig::CONFIG.fetch("EXEEXT")}")
     end
 
-    def copy_ruby_runtime!(ruby_dir)
-      copy_dir_contents(RbConfig::CONFIG.fetch("prefix"), ruby_dir)
+    def copy_ruby_runtime!(ruby_dir, provider: "local", root: nil, version: nil)
+      copy_dir_contents(resolve_ruby_runtime_root(provider: provider, root: root, version: version), ruby_dir)
+    end
+
+    def resolve_ruby_runtime_root(provider: "local", root: nil, version: nil)
+      case provider
+      when "local"
+        RbConfig::CONFIG.fetch("prefix")
+      when "path"
+        raise Error, "--ruby-root is required when --ruby-provider path is used" if root.nil? || root.empty?
+
+        root
+      when "mise"
+        resolve_mise_runtime("ruby", version)
+      else
+        raise Error, "unsupported Ruby runtime provider: #{provider}"
+      end
+    end
+
+    def resolve_mise_runtime(tool, version)
+      require_command("mise")
+      spec = (version && !version.empty?) ? "#{tool}@#{version}" : tool
+      stdout, stderr, status = Open3.capture3("mise", "where", spec)
+      raise Error, "mise where #{spec} failed: #{stderr.empty? ? stdout : stderr}" unless status.success?
+
+      root = stdout.strip
+      raise Error, "mise where #{spec} returned an empty path" if root.empty?
+
+      root
     end
 
     def copy_app!(project_dir, payload_dir, app_dir, start_config, entrypoint, sdk_source_path)
