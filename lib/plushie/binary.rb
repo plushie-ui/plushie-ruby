@@ -245,7 +245,12 @@ module Plushie
       ok = system(*args)
       raise Error, "bin/plushie download failed" unless ok
 
-      File.join("bin", binary_name)
+      renderer = File.join("bin", binary_name)
+      launcher = File.join("bin", launcher_name)
+      missing = [renderer, launcher].reject { |path| File.file?(path) }
+      raise Error, "bin/plushie tools sync did not install: #{missing.join(", ")}" unless missing.empty?
+
+      renderer
     end
 
     # @return [String] GitHub release download URL
@@ -285,6 +290,11 @@ module Plushie
     # @return [String] stable project-local plushie tool filename
     def tool_name
       Gem.win_platform? ? "plushie.exe" : "plushie"
+    end
+
+    # @return [String] stable project-local reusable launcher filename
+    def launcher_name
+      Gem.win_platform? ? "plushie-launcher.exe" : "plushie-launcher"
     end
 
     # @return [String] platform-specific plushie tool release artifact filename

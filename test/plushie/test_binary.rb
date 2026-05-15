@@ -33,6 +33,11 @@ class TestBinary < Minitest::Test
     assert_includes ["plushie", "plushie.exe"], name
   end
 
+  def test_launcher_name
+    name = B.launcher_name
+    assert_includes ["plushie-launcher", "plushie-launcher.exe"], name
+  end
+
   def test_tool_release_name
     name = B.tool_release_name
     assert_match(/\Aplushie-(linux|darwin|windows)-(x86_64|aarch64)/, name)

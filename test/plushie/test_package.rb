@@ -278,6 +278,23 @@ class TestPackage < Minitest::Test
     end
   end
 
+  def test_resolve_renderer_syncs_managed_tool_set_for_stock_packages
+    Dir.mktmpdir do |tmpdir|
+      renderer = File.join(tmpdir, "bin", "plushie-renderer")
+      FileUtils.mkdir_p(File.dirname(renderer))
+      write_executable(renderer)
+
+      with_env("PLUSHIE_BINARY_PATH" => nil, "PLUSHIE_RUST_SOURCE_PATH" => nil) do
+        Plushie::Binary.stub(:sync_renderer_with_tool!, renderer) do
+          result = P.resolve_renderer!
+
+          assert_equal "download", result.fetch(:source)
+          assert_equal renderer, result.fetch(:source_path)
+        end
+      end
+    end
+  end
+
   def test_resolve_ruby_runtime_root_supports_path_provider
     Dir.mktmpdir do |tmpdir|
       assert_equal tmpdir, P.resolve_ruby_runtime_root(provider: "path", root: tmpdir)

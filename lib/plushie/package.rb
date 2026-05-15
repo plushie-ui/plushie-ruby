@@ -393,10 +393,9 @@ module Plushie
         resolved_source ||= "local-path"
       elsif (source_path = renderer_from_source_path)
         resolved_source ||= "local-build"
-      elsif (source_path = Binary.path)
-        resolved_source ||= "local-resolve"
-      elsif (source_path = find_executable("plushie-renderer") || find_executable("plushie"))
-        resolved_source ||= "local-resolve"
+      else
+        source_path = Binary.sync_renderer_with_tool!
+        resolved_source ||= "download"
       end
 
       unless source_path
