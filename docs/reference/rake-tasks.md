@@ -86,6 +86,17 @@ the same GitHub release. On mismatch, the downloaded file is deleted
 and the task raises. There is no flag to skip verification, since the
 binary runs as a child process of your application.
 
+### Release mirrors
+
+By default downloads come from GitHub releases. Set
+`PLUSHIE_RELEASE_BASE_URL` to verify the same flow against another
+release mirror. The mirror must expose assets as
+`BASE/vVERSION/ARTIFACT` with checksum sidecars at
+`BASE/vVERSION/ARTIFACT.sha256`.
+
+Remote mirrors must use HTTPS. `file://` mirrors and loopback HTTP are
+for local release verification before assets are uploaded.
+
 ## plushie:build
 
 Builds the renderer binary from Rust source by delegating to the
