@@ -51,7 +51,7 @@ class TestPackage < Minitest::Test
         toml,
         'forward_env = ["PATH", "HOME", "LANG", "LC_ALL", "XDG_RUNTIME_DIR", "WAYLAND_DISPLAY", "DISPLAY"]'
       )
-      assert_includes toml, "[platform]\nicon = \"assets/plushie-checkbox-512x512.png\""
+      refute_includes toml, "[platform]"
       assert_includes toml, "[renderer]\npath = \"bin/plushie-renderer\""
       assert_includes toml, 'kind = "custom"'
       assert_includes toml, 'archive = "payload.tar.zst"'
@@ -75,7 +75,27 @@ class TestPackage < Minitest::Test
       )
 
       assert_equal "assets/app.png", manifest.fetch(:platform).fetch(:icon)
-      assert_includes P.render_manifest(manifest), 'icon = "assets/app.png"'
+      assert_includes P.render_manifest(manifest), "[platform]\nicon = \"assets/app.png\""
+    end
+  end
+
+  def test_render_manifest_omits_platform_section_when_no_icon
+    Dir.mktmpdir do |tmpdir|
+      archive = File.join(tmpdir, "payload.tar.zst")
+      File.binwrite(archive, "payload")
+
+      manifest = P.manifest_for_payload(
+        app_id: "dev.plushie.test",
+        app_version: "0.1.0",
+        target: "linux-x86_64",
+        renderer_path: "bin/plushie-renderer",
+        start_command: ["bin/connect"],
+        payload_archive: archive
+      )
+
+      toml = P.render_manifest(manifest)
+      refute_includes toml, "[platform]"
+      refute_includes toml, "icon"
     end
   end
 
@@ -387,7 +407,7 @@ class TestPackage < Minitest::Test
       with_package_method(:materialize_default_icons!, ->(assets) { FileUtils.mkdir_p(assets) }) do
         icon = P.install_package_icons!(payload, tmpdir, nil)
 
-        assert_equal "assets/plushie-checkbox-512x512.png", icon
+        assert_equal "assets/default-app-icon-512.png", icon
       end
     end
   end

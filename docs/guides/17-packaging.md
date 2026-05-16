@@ -288,11 +288,12 @@ bin/plushie package check --manifest dist/plushie-package.toml --strict-tools
 The manifest records `host_sdk = "ruby"`, the Ruby SDK version,
 `PLUSHIE_RUST_VERSION`, the protocol version, the package target,
 payload hash and size, renderer provenance (`kind` and `source`),
-and `[platform].icon`. By default the Ruby helper invokes
-`bin/plushie default-icons --out dist/payload/assets` before
-archiving and records `assets/plushie-checkbox-512x512.png`. Set
+and `[platform].icon` when an icon is configured. By default the Ruby
+helper invokes `bin/plushie default-icons --out dist/payload/assets`
+before archiving and records `assets/default-app-icon-512.png`. Set
 `PLUSHIE_PACKAGE_ICON_PATH` to copy an app icon into `assets/` and
-record that payload-relative path instead.
+record that payload-relative path instead. The `[platform]` section is
+omitted entirely when no icon is configured.
 
 For scripts that need a direct helper instead of Rake, use
 `Plushie::Package.build` from `require "plushie/package"`.

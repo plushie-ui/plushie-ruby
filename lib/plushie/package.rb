@@ -15,7 +15,7 @@ require_relative "../plushie"
 module Plushie
   # Standalone package payload and manifest helpers.
   module Package
-    DEFAULT_ICON_PATH = "assets/plushie-checkbox-512x512.png"
+    DEFAULT_ICON_PATH = "assets/default-app-icon-512.png"
     DEFAULT_FORWARD_ENV = [
       "PATH",
       "HOME",
@@ -165,12 +165,12 @@ module Plushie
       app_name: nil,
       target: nil,
       renderer_kind: "stock",
-      icon_path: DEFAULT_ICON_PATH,
+      icon_path: nil,
       working_dir: ".",
       forward_env: DEFAULT_FORWARD_ENV
     )
       archive_path = File.expand_path(payload_archive)
-      {
+      manifest = {
         app_id: app_id,
         app_name: app_name,
         app_version: app_version,
@@ -179,9 +179,6 @@ module Plushie
           kind: renderer_kind,
           path: renderer_path
         },
-        platform: {
-          icon: icon_path
-        },
         start_command: start_command,
         working_dir: working_dir,
         forward_env: forward_env,
@@ -189,6 +186,8 @@ module Plushie
         payload_hash: sha256_file(archive_path),
         payload_size: file_size(archive_path)
       }
+      manifest[:platform] = {icon: icon_path} if icon_path && !icon_path.empty?
+      manifest
     end
 
     def render_manifest(manifest)
@@ -209,10 +208,16 @@ module Plushie
         "[start]",
         "working_dir = #{toml_string(manifest.fetch(:working_dir))}",
         "command = #{toml_array(manifest.fetch(:start_command))}",
-        "forward_env = #{toml_array(manifest.fetch(:forward_env))}",
-        "",
-        "[platform]",
-        "icon = #{toml_string(manifest.fetch(:platform).fetch(:icon))}",
+        "forward_env = #{toml_array(manifest.fetch(:forward_env))}"
+      ])
+      if (platform = manifest[:platform])
+        lines.concat([
+          "",
+          "[platform]",
+          "icon = #{toml_string(platform.fetch(:icon))}"
+        ])
+      end
+      lines.concat([
         "",
         "[renderer]",
         "path = #{toml_string(manifest.fetch(:renderer).fetch(:path))}",

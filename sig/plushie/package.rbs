@@ -15,7 +15,7 @@ module Plushie
       app_version: String,
       target: String,
       renderer: renderer_manifest,
-      platform: platform_manifest,
+      platform: platform_manifest?,
       start_command: Array[String],
       working_dir: String,
       forward_env: Array[String],
@@ -80,7 +80,7 @@ module Plushie
       ?app_name: String?,
       ?target: String?,
       ?renderer_kind: String,
-      ?icon_path: String,
+      ?icon_path: String?,
       ?working_dir: String,
       ?forward_env: Array[String]
     ) -> manifest
