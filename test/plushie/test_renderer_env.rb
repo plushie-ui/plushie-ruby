@@ -4,16 +4,6 @@ require "test_helper"
 
 class TestRendererEnv < Minitest::Test
   RE = Plushie::RendererEnv
-  WAYLAND_SESSION_VARS = %w[
-    XDG_CURRENT_DESKTOP
-    XDG_SESSION_TYPE
-    GDK_BACKEND
-    GSK_RENDERER
-    CLUTTER_BACKEND
-    SDL_VIDEO_wayland
-    QT_QPA_PLATFORM
-    SWAYSOCK
-  ].freeze
 
   def test_allowed_exact_vars
     assert RE.allowed?("DISPLAY")
@@ -25,10 +15,12 @@ class TestRendererEnv < Minitest::Test
     assert RE.allowed?("WGPU_BACKEND")
   end
 
-  def test_allowed_wayland_session_vars
-    WAYLAND_SESSION_VARS.each do |name|
-      assert RE.allowed?(name), "#{name} should be allowed"
-    end
+  def test_allowed_windows_vars
+    assert RE.allowed?("SystemRoot")
+    assert RE.allowed?("WINDIR")
+    assert RE.allowed?("PATHEXT")
+    assert RE.allowed?("TEMP")
+    assert RE.allowed?("TMP")
   end
 
   def test_allowed_prefix_vars
@@ -140,30 +132,6 @@ class TestRendererEnv < Minitest::Test
     ]
     other_plushie_vars.each do |name|
       refute RE.allowed?(name), "#{name} must not be forwarded to the renderer"
-    end
-  end
-
-  def test_build_forwards_wayland_session_vars
-    originals = WAYLAND_SESSION_VARS.to_h { |name| [name, ENV[name]] }
-
-    begin
-      WAYLAND_SESSION_VARS.each do |name|
-        ENV[name] = "value-for-#{name}"
-      end
-
-      env = RE.build
-
-      WAYLAND_SESSION_VARS.each do |name|
-        assert_equal "value-for-#{name}", env[name]
-      end
-    ensure
-      originals.each do |name, value|
-        if value
-          ENV[name] = value
-        else
-          ENV.delete(name)
-        end
-      end
     end
   end
 

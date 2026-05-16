@@ -13,6 +13,9 @@ module Plushie
   # variables the renderer actually needs: display server, GPU/Vulkan,
   # fonts, locale, accessibility, and Rust diagnostics.
   #
+  # Mirrors the canonical list in plushie-rust's runner/env.rs. Changes
+  # to either list must be reflected in all host SDKs.
+  #
   # @example
   #   env = RendererEnv.build(log_level: :debug)
   #   Open3.popen2(env, "plushie", "--mock")
@@ -20,7 +23,8 @@ module Plushie
   module RendererEnv
     # Exact environment variable names to pass through.
     #
-    # The renderer subprocess in spawn mode reads at most
+    # Matches the EXACT + PLUSHIE_EXACT constants in plushie-rust's
+    # runner/env.rs. The renderer subprocess in spawn mode reads at most
     # PLUSHIE_NO_CATCH_UNWIND from inherited env. Other PLUSHIE_* names are
     # host-side, launcher-set, or secrets (e.g. PLUSHIE_TOKEN) that must not
     # leak across the process boundary.
@@ -29,15 +33,7 @@ module Plushie
       WAYLAND_DISPLAY
       WAYLAND_SOCKET
       WINIT_UNIX_BACKEND
-      XDG_CURRENT_DESKTOP
       XDG_RUNTIME_DIR
-      XDG_SESSION_TYPE
-      GDK_BACKEND
-      GSK_RENDERER
-      CLUTTER_BACKEND
-      SDL_VIDEO_wayland
-      QT_QPA_PLATFORM
-      SWAYSOCK
       XDG_DATA_DIRS
       XDG_DATA_HOME
       PATH
@@ -54,11 +50,17 @@ module Plushie
       RUST_BACKTRACE
       HOME
       USER
+      SystemRoot
+      WINDIR
+      PATHEXT
+      TEMP
+      TMP
       PLUSHIE_NO_CATCH_UNWIND
     ].freeze
 
     # Environment variable prefixes to pass through.
     # Any var starting with one of these prefixes is allowed.
+    # Matches the PREFIXES constant in plushie-rust's runner/env.rs.
     ALLOWED_PREFIXES = %w[
       LC_
       MESA_
