@@ -197,15 +197,20 @@ auto-bootstrap.
 
 ## Before committing
 
-Run `bundle exec rake`. It mirrors CI: tests, linter, type check.
+Run `just preflight`. It mirrors CI: tests, linter, type check, with
+headless renderer tests against a fresh build.
 
-For full preflight (including headless renderer tests against a fresh
-build), run `bundle exec rake plushie:preflight`. When
-`PLUSHIE_RUST_SOURCE_PATH` is set to a plushie-rust checkout, preflight
-runs `cargo build --release -p plushie-renderer` against that workspace
-first and exports `PLUSHIE_BINARY_PATH` so the headless tests use the
-freshly built binary. Without it, the existing binary resolution chain
-runs unchanged.
+`just preflight` installs deps and runs `bundle exec rake plushie:preflight`.
+The renderer source is controlled by `PLUSHIE_RUST_SOURCE_PATH`:
+
+- Unset (default): auto-detected from `../plushie-rust` if it exists;
+  otherwise the existing binary resolution chain is used unchanged.
+- Set to a path: plushie-renderer is rebuilt from that checkout via
+  `cargo build --release -p plushie-renderer` and `PLUSHIE_BINARY_PATH`
+  is exported so all subsequent steps use the fresh binary. Guarantees
+  tests run against current source rather than a stale artifact.
+- Set to `""`: suppresses auto-detection; uses the existing binary
+  resolution chain (PLUSHIE_BINARY_PATH, downloaded binary, etc.).
 
 ## Commit hygiene
 
@@ -245,11 +250,14 @@ only appear as part of CLI flag names (e.g. `--watch`, `--release`).
 ## Quick reference
 
 ```
-bundle exec rake              # tests + linter + type check
-bundle exec rake test         # tests only
-bundle exec rake standard     # linter only
-bundle exec rake steep        # type check only
-bundle exec rake yard         # generate API docs to doc/
+just preflight                                           # run all CI checks locally
+PLUSHIE_RUST_SOURCE_PATH=../plushie-rust just preflight  # explicit renderer source (rebuilds from checkout)
+PLUSHIE_RUST_SOURCE_PATH="" just preflight               # force non-local (use downloaded binary)
+just test                     # tests only
+just lint                     # linter only
+just typecheck                # type check only
+just docs                     # generate API docs to doc/
+just clean                    # remove gitignored build artifacts
 bundle exec ruby examples/counter.rb  # run an example (needs binary)
 ```
 
