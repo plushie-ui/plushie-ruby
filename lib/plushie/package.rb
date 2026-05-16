@@ -33,7 +33,6 @@ module Plushie
       target: nil,
       renderer_path: nil,
       renderer_kind: "stock",
-      icon_path: nil,
       entrypoint: "bin/start_host",
       package_config: nil,
       sdk_source_path: ENV["PLUSHIE_RUBY_DIR"],
@@ -257,7 +256,6 @@ module Plushie
         opts.on("--target TARGET", "Package target") { |value| options[:target] = value }
         opts.on("--renderer-path PATH", "Renderer binary to copy") { |value| options[:renderer_path] = value }
         opts.on("--renderer-kind KIND", "Renderer kind") { |value| options[:renderer_kind] = value }
-        opts.on("--icon PATH", "App icon to copy into the payload") { |value| options[:icon_path] = value }
         opts.on("--entrypoint PATH", "Payload app entrypoint") { |value| options[:entrypoint] = value }
         opts.on("--package-config PATH", "Developer-owned package config") { |value| options[:package_config] = value }
         opts.on("--write-package-config", "Write a package config template and exit") { options[:write_package_config] = true }
@@ -317,7 +315,6 @@ module Plushie
         target: package_option(overrides, :target, "PLUSHIE_PACKAGE_TARGET"),
         renderer_path: package_option(overrides, :renderer_path, "PLUSHIE_PACKAGE_RENDERER_PATH"),
         renderer_kind: package_option(overrides, :renderer_kind, "PLUSHIE_PACKAGE_RENDERER_KIND", "stock"),
-        icon_path: package_option(overrides, :icon_path, "PLUSHIE_PACKAGE_ICON_PATH"),
         entrypoint: package_option(overrides, :entrypoint, "PLUSHIE_PACKAGE_ENTRYPOINT", "bin/start_host"),
         package_config: package_option(overrides, :package_config, "PLUSHIE_PACKAGE_CONFIG"),
         sdk_source_path: package_option(overrides, :sdk_source_path, "PLUSHIE_RUBY_DIR"),

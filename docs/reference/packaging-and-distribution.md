@@ -101,7 +101,6 @@ can drive them without rewriting the task call:
 | `PLUSHIE_PACKAGE_TARGET` | current Ruby host | Package target override such as `linux-x86_64` |
 | `PLUSHIE_PACKAGE_RENDERER_PATH` | auto-resolve | Existing renderer binary to copy into the payload |
 | `PLUSHIE_PACKAGE_RENDERER_KIND` | `stock` | Renderer kind recorded in `[renderer]` |
-| `PLUSHIE_PACKAGE_ICON_PATH` | default Plushie icon | Forwarded to the assembler, which copies the icon and records it in the manifest |
 | `PLUSHIE_PACKAGE_CONFIG` | unset | Path to `plushie-package.config.toml`. Forwarded to the assembler, which reads platform metadata from it |
 | `PLUSHIE_PACKAGE_ENTRYPOINT` | `bin/start_host` | App entrypoint script |
 | `PLUSHIE_PACKAGE_BUNDLE_WITHOUT` | `development test` | Bundler groups excluded from the packaged app |
@@ -359,7 +358,10 @@ packager copies the checkout to `payload/vendor/plushie-ruby/` and
 writes a one-line Gemfile that resolves `plushie` from that path:
 
 ```ruby
+# frozen_string_literal: true
+
 source "https://rubygems.org"
+
 gem "plushie", path: "vendor/plushie-ruby"
 ```
 
@@ -424,8 +426,9 @@ manifest adds:
   format.
 - `[start].working_dir` and `[start].forward_env` defaults from the
   package config.
-- A `[platform]` block if one is set in the package config.
-- An `[icon]` entry pointing at the materialized icon image.
+- A `[platform]` block if one is set in the package config. The
+  materialized icon path is recorded as `[platform].icon`; there is
+  no separate `[icon]` table.
 
 The split exists so that cargo-plushie owns the cross-SDK schema
 once. Every Plushie SDK writes a partial manifest in this shape and
@@ -473,8 +476,11 @@ command = ["bin/start_host"]
 ```
 
 `[start].command` is a structured argv; the first element is the
-host entry script. The SDK substitutes `bin/start_host.cmd` for
-`bin/start_host` automatically on `windows-*` targets.
+host entry script. When building for a `windows-*` target, the SDK
+swaps `bin/start_host` for `bin/start_host.cmd` while writing the
+partial manifest, so the assembler never sees the POSIX form. The
+substitution happens during stage 1 (SDK build), not during the
+assemble step.
 
 `[start].forward_env` (added by the assembler when not set in the
 config) is the list of environment variable **names** copied from
@@ -532,15 +538,17 @@ the extraction.
 ### OS-native installers
 
 ```bash
-bin/plushie package bundle --manifest dist/plushie-package.toml --formats appimage
-bin/plushie package bundle --manifest dist/plushie-package.toml --formats dmg,app
-bin/plushie package bundle --manifest dist/plushie-package.toml --formats nsis
+bin/plushie package bundle --manifest dist/plushie-package.toml --format appimage
+bin/plushie package bundle --manifest dist/plushie-package.toml --format dmg --format app
+bin/plushie package bundle --manifest dist/plushie-package.toml --format nsis
 ```
 
-Delegates to [cargo-packager](https://github.com/crabnebula-dev/cargo-packager)
-for AppImage (Linux), `.app` and `.dmg` (macOS), and `.nsis` and
-`.wix` (Windows). Format availability depends on the runner: Apple
-formats need a macOS runner, Windows formats need a Windows runner.
+`--format` is singular and repeatable: pass it once per cargo-packager
+format. Delegates to [cargo-packager](https://github.com/crabnebula-dev/cargo-packager)
+for `appimage` (Linux), `app` and `dmg` (macOS), and `nsis` and `wix`
+(Windows). These are cargo-packager format identifiers, not file
+extensions. Format availability depends on the runner: Apple formats
+need a macOS runner, Windows formats need a Windows runner.
 
 Both commands default to a strict-tools check: they verify that the
 launcher, renderer, and `plushie` itself match the SDK-pinned
@@ -658,7 +666,7 @@ Lines to tweak for your project:
   `body` (or `body_path`) if you write release notes by hand.
 
 To also build OS-native installers, add a second matrix entry that
-calls `bin/plushie package bundle --formats <list>` instead of
+calls `bin/plushie package bundle --format <name>` (repeat per format) instead of
 `package portable`, and adjust the upload glob accordingly. Apple
 formats need a macOS runner with valid signing identities; Windows
 formats need a Windows runner with the appropriate SDKs.
@@ -699,12 +707,15 @@ hosts. The renderer starts first, binds a Unix socket, and spawns
 the Ruby command with `PLUSHIE_SOCKET` pointing at it:
 
 ```bash
-plushie --listen \
+plushie-renderer --listen \
   --exec-bin bundle \
   --exec-arg exec \
   --exec-arg rake \
   --exec-arg 'plushie:connect[Notes]'
 ```
+
+`--listen`, `--exec-bin`, and `--exec-arg` are flags on the
+`plushie-renderer` binary, not the `plushie` orchestration tool.
 
 `rake plushie:connect` reads the socket and connects.
 `Plushie.connect` is the runtime entry point for both flows; it

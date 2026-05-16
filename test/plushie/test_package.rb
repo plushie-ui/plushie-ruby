@@ -401,22 +401,6 @@ class TestPackage < Minitest::Test
     end
   end
 
-  def test_run_cli_accepts_icon_option
-    captured = nil
-    result = {manifest_path: "dist/plushie-package.toml"}
-
-    P.stub(:build, ->(**options) {
-      captured = options
-      result
-    }) do
-      capture_io do
-        P.run_cli(["--app-id", "dev.plushie.test", "--icon", "icons/app.png"])
-      end
-    end
-
-    assert_equal "icons/app.png", captured.fetch(:icon_path)
-  end
-
   def test_run_cli_accepts_package_config_option
     captured = nil
     result = {manifest_path: "dist/plushie-package.toml"}
@@ -474,25 +458,6 @@ class TestPackage < Minitest::Test
 
       assert_includes stdout, "dist/plushie-package.toml"
     end
-  end
-
-  def test_build_from_env_accepts_icon_path
-    captured = nil
-    result = {manifest_path: "dist/plushie-package.toml"}
-
-    with_env(
-      "PLUSHIE_PACKAGE_APP_ID" => "dev.plushie.test",
-      "PLUSHIE_PACKAGE_ICON_PATH" => "icons/app.png"
-    ) do
-      P.stub(:build, ->(**options) {
-        captured = options
-        result
-      }) do
-        assert_equal result, P.build_from_env
-      end
-    end
-
-    assert_equal "icons/app.png", captured.fetch(:icon_path)
   end
 
   def test_build_from_env_accepts_package_config

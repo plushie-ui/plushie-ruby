@@ -233,6 +233,10 @@ installing runtime gems, placing the renderer, and writing a partial
 archiving, checksums, platform metadata, and the final manifest,
 then prints the handoff instructions for building the outer launcher.
 
+See [Packaging and Distribution](packaging-and-distribution.md) for
+the full pipeline, payload layout, package config schema, signing
+hooks, and CI workflow.
+
 ```bash
 rake 'plushie:package[dev.example.notes,Notes,0.1.0]'
 ```
@@ -249,7 +253,6 @@ rake 'plushie:package[dev.example.notes,Notes,0.1.0]'
 | `PLUSHIE_PACKAGE_TARGET` | current Ruby host | Package target override such as `linux-x86_64` |
 | `PLUSHIE_PACKAGE_RENDERER_PATH` | auto-resolve | Existing renderer binary to copy into the payload |
 | `PLUSHIE_PACKAGE_RENDERER_KIND` | `stock` | Renderer kind recorded in `[renderer]` |
-| `PLUSHIE_PACKAGE_ICON_PATH` | default Plushie icon | Forwarded to the assembler, which copies the icon and records it in the manifest |
 | `PLUSHIE_PACKAGE_CONFIG` | unset | Path to `plushie-package.config.toml`. Forwarded to the assembler, which reads platform metadata from it |
 | `PLUSHIE_PACKAGE_ENTRYPOINT` | `bin/start_host` | App entrypoint script (POSIX). The SDK generates `bin/start_host` (shebang) on POSIX targets and `bin/start_host.cmd` (batch) on `windows-*` targets; the script itself is copied to `bin/start_host.rb` in the payload |
 | `PLUSHIE_PACKAGE_BUNDLE_WITHOUT` | `development test` | Bundler groups excluded from the packaged app |

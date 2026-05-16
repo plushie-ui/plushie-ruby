@@ -21,7 +21,6 @@ module Plushie
       ?target: String?,
       ?renderer_path: String?,
       ?renderer_kind: String,
-      ?icon_path: String?,
       ?entrypoint: String,
       ?package_config: String?,
       ?sdk_source_path: String?,
