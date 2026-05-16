@@ -29,11 +29,11 @@ class TestPackage < Minitest::Test
   end
 
   def test_start_command_uses_posix_wrapper_for_linux
-    assert_equal ["bin/connect"], P.start_command("bin/connect", "linux-x86_64")
+    assert_equal ["bin/start_host"], P.start_command("bin/start_host", "linux-x86_64")
   end
 
   def test_start_command_uses_cmd_wrapper_for_windows
-    assert_equal ["bin/connect.cmd"], P.start_command("bin/connect", "windows-x86_64")
+    assert_equal ["bin/start_host.cmd"], P.start_command("bin/start_host", "windows-x86_64")
   end
 
   def test_write_partial_manifest_emits_required_fields
@@ -48,7 +48,7 @@ class TestPackage < Minitest::Test
         target: "linux-x86_64",
         renderer_kind: "stock",
         renderer_path: "bin/plushie-renderer",
-        start_command: ["bin/connect"]
+        start_command: ["bin/start_host"]
       )
 
       toml = File.read(path)
@@ -62,7 +62,7 @@ class TestPackage < Minitest::Test
       assert_includes toml, "plushie_rust_version = \"#{Plushie::PLUSHIE_RUST_VERSION}\""
       assert_includes toml, "protocol_version = #{Plushie::Protocol::PROTOCOL_VERSION}"
       assert_includes toml, "[start]"
-      assert_includes toml, 'command = ["bin/connect"]'
+      assert_includes toml, 'command = ["bin/start_host"]'
       assert_includes toml, "[renderer]"
       assert_includes toml, 'path = "bin/plushie-renderer"'
       assert_includes toml, 'kind = "stock"'
@@ -80,7 +80,7 @@ class TestPackage < Minitest::Test
         target: "linux-x86_64",
         renderer_kind: "stock",
         renderer_path: "bin/plushie-renderer",
-        start_command: ["bin/connect"]
+        start_command: ["bin/start_host"]
       )
 
       toml = File.read(path)
@@ -99,11 +99,11 @@ class TestPackage < Minitest::Test
         target: "windows-x86_64",
         renderer_kind: "stock",
         renderer_path: "bin/plushie-renderer.exe",
-        start_command: ["bin/connect.cmd"]
+        start_command: ["bin/start_host.cmd"]
       )
 
       toml = File.read(path)
-      assert_includes toml, 'command = ["bin/connect.cmd"]'
+      assert_includes toml, 'command = ["bin/start_host.cmd"]'
     end
   end
 
@@ -118,7 +118,7 @@ class TestPackage < Minitest::Test
         target: "linux-x86_64",
         renderer_kind: "stock",
         renderer_path: "bin/plushie-renderer",
-        start_command: ["bin/connect"]
+        start_command: ["bin/start_host"]
       )
 
       assert File.exist?(path)
@@ -129,7 +129,7 @@ class TestPackage < Minitest::Test
     toml = P.render_source_config
     assert_includes toml, "config_version = 1"
     assert_includes toml, "[start]"
-    assert_includes toml, 'command = ["bin/connect"]'
+    assert_includes toml, 'command = ["bin/start_host"]'
   end
 
   def test_render_source_config_includes_commented_assets_block
@@ -153,7 +153,7 @@ class TestPackage < Minitest::Test
         target: "linux-x86_64",
         renderer_kind: "stock",
         renderer_path: "bin/plushie-renderer",
-        start_command: ["bin/connect"]
+        start_command: ["bin/start_host"]
       )
 
       toml = File.read(path)
@@ -460,7 +460,7 @@ class TestPackage < Minitest::Test
         P.run_cli(["--project-dir", tmpdir, "--write-package-config"])
       end
 
-      assert_includes File.read(File.join(tmpdir, "plushie-package.config.toml")), '"bin/connect"'
+      assert_includes File.read(File.join(tmpdir, "plushie-package.config.toml")), '"bin/start_host"'
     end
   end
 
@@ -580,14 +580,14 @@ class TestPackage < Minitest::Test
       FileUtils.mkdir_p(File.join(project, "lib"))
       FileUtils.mkdir_p(File.join(project, "bin"))
       File.write(File.join(project, "Gemfile"), "source \"https://rubygems.org\"\n")
-      File.write(File.join(project, "bin", "connect"), "# entrypoint\n")
+      File.write(File.join(project, "bin", "start_host"), "# entrypoint\n")
 
-      P.copy_app!(project, payload, "bin/connect", nil, "linux-x86_64")
+      P.copy_app!(project, payload, "bin/start_host", nil, "linux-x86_64")
 
-      assert File.exist?(File.join(payload, "bin", "connect.rb"))
-      assert File.exist?(File.join(payload, "bin", "connect"))
-      assert_includes File.read(File.join(payload, "bin", "connect")), "ruby/bin/ruby"
-      refute File.exist?(File.join(payload, "bin", "connect.cmd"))
+      assert File.exist?(File.join(payload, "bin", "start_host.rb"))
+      assert File.exist?(File.join(payload, "bin", "start_host"))
+      assert_includes File.read(File.join(payload, "bin", "start_host")), "ruby/bin/ruby"
+      refute File.exist?(File.join(payload, "bin", "start_host.cmd"))
     end
   end
 
@@ -598,16 +598,16 @@ class TestPackage < Minitest::Test
       FileUtils.mkdir_p(File.join(project, "lib"))
       FileUtils.mkdir_p(File.join(project, "bin"))
       File.write(File.join(project, "Gemfile"), "source \"https://rubygems.org\"\n")
-      File.write(File.join(project, "bin", "connect"), "# entrypoint\n")
+      File.write(File.join(project, "bin", "start_host"), "# entrypoint\n")
 
-      P.copy_app!(project, payload, "bin/connect", nil, "windows-x86_64")
+      P.copy_app!(project, payload, "bin/start_host", nil, "windows-x86_64")
 
-      assert File.exist?(File.join(payload, "bin", "connect.rb"))
-      assert File.exist?(File.join(payload, "bin", "connect.cmd"))
-      cmd = File.read(File.join(payload, "bin", "connect.cmd"))
+      assert File.exist?(File.join(payload, "bin", "start_host.rb"))
+      assert File.exist?(File.join(payload, "bin", "start_host.cmd"))
+      cmd = File.read(File.join(payload, "bin", "start_host.cmd"))
       assert_includes cmd, "ruby.exe"
-      assert_includes cmd, "connect.rb"
-      refute File.exist?(File.join(payload, "bin", "connect"))
+      assert_includes cmd, "start_host.rb"
+      refute File.exist?(File.join(payload, "bin", "start_host"))
     end
   end
 
@@ -618,7 +618,7 @@ class TestPackage < Minitest::Test
     FileUtils.mkdir_p(File.join(project, "lib"))
     FileUtils.mkdir_p(File.join(project, "bin"))
     File.write(File.join(project, "Gemfile"), "source \"https://rubygems.org\"\n")
-    File.write(File.join(project, "bin", "connect"), "# entrypoint\n")
+    File.write(File.join(project, "bin", "start_host"), "# entrypoint\n")
     project
   end
 

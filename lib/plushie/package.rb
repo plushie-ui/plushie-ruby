@@ -34,7 +34,7 @@ module Plushie
       renderer_path: nil,
       renderer_kind: "stock",
       icon_path: nil,
-      entrypoint: "bin/connect",
+      entrypoint: "bin/start_host",
       package_config: nil,
       sdk_source_path: ENV["PLUSHIE_RUBY_DIR"],
       bundle_without: "development test",
@@ -154,7 +154,7 @@ module Plushie
       File.join(project_dir, SOURCE_CONFIG)
     end
 
-    def default_source_config(entrypoint = "bin/connect")
+    def default_source_config(entrypoint = "bin/start_host")
       PackageStartConfig.new(command: [entrypoint])
     end
 
@@ -168,7 +168,7 @@ module Plushie
         "",
         "[start]",
         "# Structured argv. The first item is the POSIX entry point.",
-        "# On windows-* targets the SDK automatically uses bin/connect.cmd.",
+        "# On windows-* targets the SDK automatically uses bin/start_host.cmd.",
         "command = #{toml_array(config.command)}",
         "",
         "# [assets]",
@@ -240,7 +240,7 @@ module Plushie
         project_dir: Dir.pwd,
         output_dir: "dist",
         renderer_kind: "stock",
-        entrypoint: "bin/connect",
+        entrypoint: "bin/start_host",
         package_config: nil,
         write_package_config: false,
         bundle_without: "development test"
@@ -318,7 +318,7 @@ module Plushie
         renderer_path: package_option(overrides, :renderer_path, "PLUSHIE_PACKAGE_RENDERER_PATH"),
         renderer_kind: package_option(overrides, :renderer_kind, "PLUSHIE_PACKAGE_RENDERER_KIND", "stock"),
         icon_path: package_option(overrides, :icon_path, "PLUSHIE_PACKAGE_ICON_PATH"),
-        entrypoint: package_option(overrides, :entrypoint, "PLUSHIE_PACKAGE_ENTRYPOINT", "bin/connect"),
+        entrypoint: package_option(overrides, :entrypoint, "PLUSHIE_PACKAGE_ENTRYPOINT", "bin/start_host"),
         package_config: package_option(overrides, :package_config, "PLUSHIE_PACKAGE_CONFIG"),
         sdk_source_path: package_option(overrides, :sdk_source_path, "PLUSHIE_RUBY_DIR"),
         bundle_without: package_option(overrides, :bundle_without, "PLUSHIE_PACKAGE_BUNDLE_WITHOUT", "development test"),
@@ -338,10 +338,10 @@ module Plushie
       # entrypoint (renamed to <entrypoint>.rb). The wrapper invokes the
       # bundled Ruby runtime so the launcher only needs to call one file.
       #
-      # POSIX: bin/connect   (shebang script)
-      # Windows: bin/connect.cmd  (batch script)
+      # POSIX: bin/start_host   (shebang script)
+      # Windows: bin/start_host.cmd  (batch script)
       if windows_target?(target)
-        [connect_cmd_name(entrypoint)]
+        [start_host_cmd_name(entrypoint)]
       else
         [entrypoint]
       end
@@ -351,11 +351,11 @@ module Plushie
       target.to_s.start_with?("windows-")
     end
 
-    def connect_rb_name(entrypoint)
+    def start_host_rb_name(entrypoint)
       "#{entrypoint}.rb"
     end
 
-    def connect_cmd_name(entrypoint)
+    def start_host_cmd_name(entrypoint)
       "#{entrypoint}.cmd"
     end
 
@@ -413,20 +413,20 @@ module Plushie
     def copy_entrypoint!(project_dir, dest_root, entrypoint, target = package_target)
       # The user's entrypoint script is copied as <entrypoint>.rb so that the
       # OS-specific launcher wrapper can invoke it regardless of target.
-      rb_name = connect_rb_name(entrypoint)
+      rb_name = start_host_rb_name(entrypoint)
       copy_required_path(File.join(project_dir, entrypoint), File.join(dest_root, rb_name))
 
       if windows_target?(target)
-        write_connect_cmd!(dest_root, entrypoint)
+        write_start_host_cmd!(dest_root, entrypoint)
       else
-        write_connect_sh!(dest_root, entrypoint)
+        write_start_host_sh!(dest_root, entrypoint)
       end
     end
 
-    def write_connect_sh!(dest_root, entrypoint)
+    def write_start_host_sh!(dest_root, entrypoint)
       # POSIX shebang wrapper. Resolves the payload root relative to $0 so
       # the launcher can invoke it from any working directory.
-      rb_name = connect_rb_name(entrypoint)
+      rb_name = start_host_rb_name(entrypoint)
       content = <<~SH
         #!/bin/sh
         set -e
@@ -438,17 +438,17 @@ module Plushie
       FileUtils.chmod(0o755, dest)
     end
 
-    def write_connect_cmd!(dest_root, entrypoint)
+    def write_start_host_cmd!(dest_root, entrypoint)
       # Windows batch wrapper. Resolves the payload root via %~dp0 so the
       # launcher can invoke it from any working directory.
-      rb_name = connect_rb_name(entrypoint)
+      rb_name = start_host_rb_name(entrypoint)
       content = <<~CMD
         @echo off
         setlocal
         set "DIR=%~dp0.."
         "%DIR%\\ruby\\bin\\ruby.exe" "%DIR%\\#{rb_name.tr("/", "\\")}" %*
       CMD
-      dest = File.join(dest_root, connect_cmd_name(entrypoint))
+      dest = File.join(dest_root, start_host_cmd_name(entrypoint))
       File.write(dest, content)
     end
 

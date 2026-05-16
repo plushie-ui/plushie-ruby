@@ -54,7 +54,7 @@ module Plushie
     def self.build_from_env: () -> build_result
     def self.start_command: (String entrypoint, ?String target) -> Array[String]
     def self.windows_target?: (String target) -> bool
-    def self.connect_rb_name: (String entrypoint) -> String
-    def self.connect_cmd_name: (String entrypoint) -> String
+    def self.start_host_rb_name: (String entrypoint) -> String
+    def self.start_host_cmd_name: (String entrypoint) -> String
   end
 end

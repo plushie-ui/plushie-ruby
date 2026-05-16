@@ -257,16 +257,16 @@ platform metadata, and the final manifest.
 The default shape expects:
 
 - `lib/` for application code
-- `bin/connect` as the standalone host entrypoint
+- `bin/start_host` as the standalone host entrypoint
 - `Gemfile` for runtime dependencies
 - a renderer available through `PLUSHIE_BINARY_PATH`,
   `PLUSHIE_RUST_SOURCE_PATH`, or `rake plushie:download`
 
-The SDK generates OS-specific launcher wrappers from your `bin/connect`
-script. On POSIX targets it writes `bin/connect` as a shebang script that
+The SDK generates OS-specific launcher wrappers from your `bin/start_host`
+script. On POSIX targets it writes `bin/start_host` as a shebang script that
 invokes the bundled `ruby/bin/ruby`. On `windows-*` targets it writes
-`bin/connect.cmd` (a Windows batch file) instead. Your `bin/connect` script
-is copied to `bin/connect.rb` in the payload in both cases; the manifest
+`bin/start_host.cmd` (a Windows batch file) instead. Your `bin/start_host` script
+is copied to `bin/start_host.rb` in the payload in both cases; the manifest
 records whichever wrapper the launcher should call.
 
 Add `require "plushie/rake"` to the app's `Rakefile`, then run:

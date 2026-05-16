@@ -244,14 +244,14 @@ rake 'plushie:package[dev.example.notes,Notes,0.1.0]'
 | `PLUSHIE_PACKAGE_APP_ID` | required | Package app identifier |
 | `PLUSHIE_PACKAGE_APP_NAME` | unset | Optional display name written to the manifest |
 | `PLUSHIE_PACKAGE_APP_VERSION` | `0.1.0` | App version written to the manifest |
-| `PLUSHIE_PACKAGE_PROJECT_DIR` | current directory | App directory containing `lib/`, `bin/connect`, and `Gemfile` |
+| `PLUSHIE_PACKAGE_PROJECT_DIR` | current directory | App directory containing `lib/`, `bin/start_host`, and `Gemfile` |
 | `PLUSHIE_PACKAGE_OUTPUT` | `dist` | Directory for payload and manifest output |
 | `PLUSHIE_PACKAGE_TARGET` | current Ruby host | Package target override such as `linux-x86_64` |
 | `PLUSHIE_PACKAGE_RENDERER_PATH` | auto-resolve | Existing renderer binary to copy into the payload |
 | `PLUSHIE_PACKAGE_RENDERER_KIND` | `stock` | Renderer kind recorded in `[renderer]` |
 | `PLUSHIE_PACKAGE_ICON_PATH` | default Plushie icon | Forwarded to the assembler, which copies the icon and records it in the manifest |
 | `PLUSHIE_PACKAGE_CONFIG` | unset | Path to `plushie-package.config.toml`. Forwarded to the assembler, which reads platform metadata from it |
-| `PLUSHIE_PACKAGE_ENTRYPOINT` | `bin/connect` | App entrypoint script (POSIX). The SDK generates `bin/connect` (shebang) on POSIX targets and `bin/connect.cmd` (batch) on `windows-*` targets; the script itself is copied to `bin/connect.rb` in the payload |
+| `PLUSHIE_PACKAGE_ENTRYPOINT` | `bin/start_host` | App entrypoint script (POSIX). The SDK generates `bin/start_host` (shebang) on POSIX targets and `bin/start_host.cmd` (batch) on `windows-*` targets; the script itself is copied to `bin/start_host.rb` in the payload |
 | `PLUSHIE_PACKAGE_BUNDLE_WITHOUT` | `development test` | Bundler groups excluded from the packaged app |
 | `PLUSHIE_RUBY_DIR` | unset | Local SDK checkout to vendor into the packaged app |
 | `PLUSHIE_RUBY_PROVIDER` | `local` | Ruby runtime provider: `local`, `path`, or `mise` |
