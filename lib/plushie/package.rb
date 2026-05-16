@@ -707,13 +707,18 @@ module Plushie
       "assets/#{name}"
     end
 
+    MAX_DEREF_ITERATIONS = 32
+
     def dereference_payload_symlinks!(payload_dir)
-      loop do
+      MAX_DEREF_ITERATIONS.times do
         links = symlink_paths(payload_dir)
-        break if links.empty?
+        return if links.empty?
 
         links.each { |link| dereference_symlink!(link) }
       end
+
+      raise Error, "dereference_payload_symlinks!: still found symlinks after " \
+        "#{MAX_DEREF_ITERATIONS} iterations; possible symlink cycle in payload"
     end
 
     def renderer_from_source_path
