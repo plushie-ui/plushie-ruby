@@ -262,6 +262,13 @@ The default shape expects:
 - a renderer available through `PLUSHIE_BINARY_PATH`,
   `PLUSHIE_RUST_SOURCE_PATH`, or `rake plushie:download`
 
+The SDK generates OS-specific launcher wrappers from your `bin/connect`
+script. On POSIX targets it writes `bin/connect` as a shebang script that
+invokes the bundled `ruby/bin/ruby`. On `windows-*` targets it writes
+`bin/connect.cmd` (a Windows batch file) instead. Your `bin/connect` script
+is copied to `bin/connect.rb` in the payload in both cases; the manifest
+records whichever wrapper the launcher should call.
+
 Add `require "plushie/rake"` to the app's `Rakefile`, then run:
 
 ```bash

@@ -102,7 +102,10 @@ module Plushie
     def self.run_cli: (Array[String] argv) -> void
     def self.portable_package_command: (String manifest_path) -> Array[String]
     def self.build_from_env: () -> build_result
-    def self.resolve_start_config: (String project_dir, String? package_config, String entrypoint) -> PackageStartConfig
-    def self.start_command: (String entrypoint) -> Array[String]
+    def self.resolve_start_config: (String project_dir, String? package_config, String entrypoint, ?String target) -> PackageStartConfig
+    def self.start_command: (String entrypoint, ?String target) -> Array[String]
+    def self.windows_target?: (String target) -> bool
+    def self.connect_rb_name: (String entrypoint) -> String
+    def self.connect_cmd_name: (String entrypoint) -> String
   end
 end

@@ -257,7 +257,7 @@ bin/plushie package portable --manifest dist/plushie-package.toml
 | `PLUSHIE_PACKAGE_RENDERER_PATH` | auto-resolve | Existing renderer binary to copy into the payload |
 | `PLUSHIE_PACKAGE_RENDERER_KIND` | `stock` | Renderer kind recorded in `[renderer]` |
 | `PLUSHIE_PACKAGE_ICON_PATH` | default Plushie icon | App icon copied into the payload and recorded in `[platform].icon` |
-| `PLUSHIE_PACKAGE_ENTRYPOINT` | `bin/connect` | App entrypoint used as the host command |
+| `PLUSHIE_PACKAGE_ENTRYPOINT` | `bin/connect` | App entrypoint script (POSIX). The SDK generates `bin/connect` (shebang) on POSIX targets and `bin/connect.cmd` (batch) on `windows-*` targets; the script itself is copied to `bin/connect.rb` in the payload |
 | `PLUSHIE_PACKAGE_BUNDLE_WITHOUT` | `development test` | Bundler groups excluded from the packaged app |
 | `PLUSHIE_RUBY_DIR` | unset | Local SDK checkout to vendor into the packaged app |
 | `PLUSHIE_RUBY_PROVIDER` | `local` | Ruby runtime provider: `local`, `path`, or `mise` |

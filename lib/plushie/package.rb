@@ -70,7 +70,8 @@ module Plushie
         path: renderer_path,
         kind: renderer_kind
       )
-      start_config = resolve_start_config(project_dir, package_config, entrypoint)
+      resolved_target = target || package_target
+      start_config = resolve_start_config(project_dir, package_config, entrypoint, resolved_target)
 
       FileUtils.rm_rf(output_dir)
       FileUtils.mkdir_p(File.join(payload_dir, "bin"))
@@ -84,7 +85,7 @@ module Plushie
         root: ruby_root,
         version: ruby_version
       )
-      copy_app!(project_dir, payload_dir, start_config, entrypoint, sdk_source_path)
+      copy_app!(project_dir, payload_dir, start_config, entrypoint, sdk_source_path, resolved_target)
       install_runtime_gems!(payload_dir, bundle_without)
       install_renderer!(renderer.fetch(:source_path), File.join(payload_dir, renderer.fetch(:payload_path)))
       package_icon_path = install_package_icons!(payload_dir, project_dir, icon_path)
@@ -96,7 +97,7 @@ module Plushie
         app_id: app_id,
         app_name: app_name,
         app_version: app_version,
-        target: target,
+        target: resolved_target,
         renderer_kind: renderer.fetch(:kind),
         renderer_path: renderer.fetch(:payload_path),
         icon_path: package_icon_path,
@@ -245,7 +246,7 @@ module Plushie
       PackageSourceConfig.new(
         start: PackageStartConfig.new(
           working_dir: ".",
-          command: start_command(entrypoint),
+          command: [entrypoint],
           forward_env: DEFAULT_FORWARD_ENV
         )
       )
@@ -263,7 +264,8 @@ module Plushie
         "[start]",
         "# Relative to the extracted app package.",
         "working_dir = #{toml_string(config.start.working_dir)}",
-        "# Structured argv. The first item is the packaged host executable.",
+        "# Structured argv. The first item is the POSIX entry point.",
+        "# On windows-* targets the SDK automatically uses bin/connect.cmd.",
         "command = #{toml_array(config.start.command)}",
         "# Environment variable names copied from the parent process.",
         "forward_env = ["
@@ -520,26 +522,60 @@ module Plushie
       (value.nil? || value.empty?) ? env_value(env_name, default) : value
     end
 
-    def resolve_start_config(project_dir, package_config, entrypoint)
+    def resolve_start_config(project_dir, package_config, entrypoint, target = package_target)
       config =
         if package_config && !package_config.empty?
           load_source_config(File.expand_path(package_config, project_dir))
         else
           load_default_source_config(project_dir)
         end
-      return config.start if config
+
+      if config
+        # When a user config specifies the POSIX entry point but the target is
+        # Windows, rewrite command[0] to the .cmd wrapper the SDK generates.
+        start = config.start
+        if windows_target?(target) && start.command.fetch(0) == entrypoint
+          start = PackageStartConfig.new(
+            working_dir: start.working_dir,
+            command: [connect_cmd_name(entrypoint), *start.command.drop(1)],
+            forward_env: start.forward_env
+          )
+        end
+        return start
+      end
 
       start = PackageStartConfig.new(
         working_dir: ".",
-        command: start_command(entrypoint),
+        command: start_command(entrypoint, target),
         forward_env: DEFAULT_FORWARD_ENV
       )
       validate_start_config!(start)
     end
 
-    def start_command(entrypoint)
-      ruby = RbConfig::CONFIG.fetch("ruby_install_name") + RbConfig::CONFIG.fetch("EXEEXT")
-      [File.join("ruby", "bin", ruby), entrypoint]
+    def start_command(entrypoint, target = package_target)
+      # The payload ships a thin OS-specific wrapper alongside the user's
+      # entrypoint (renamed to <entrypoint>.rb). The wrapper invokes the
+      # bundled Ruby runtime so the launcher only needs to call one file.
+      #
+      # POSIX: bin/connect   (shebang script)
+      # Windows: bin/connect.cmd  (batch script)
+      if windows_target?(target)
+        [connect_cmd_name(entrypoint)]
+      else
+        [entrypoint]
+      end
+    end
+
+    def windows_target?(target)
+      target.to_s.start_with?("windows-")
+    end
+
+    def connect_rb_name(entrypoint)
+      "#{entrypoint}.rb"
+    end
+
+    def connect_cmd_name(entrypoint)
+      "#{entrypoint}.cmd"
     end
 
     def renderer_payload_path
@@ -577,9 +613,9 @@ module Plushie
       root
     end
 
-    def copy_app!(project_dir, payload_dir, start_config, entrypoint, sdk_source_path)
+    def copy_app!(project_dir, payload_dir, start_config, entrypoint, sdk_source_path, target = package_target)
       copy_required_path(File.join(project_dir, "lib"), File.join(payload_dir, "lib"))
-      copy_entrypoint!(project_dir, payload_dir, start_config.command.fetch(0))
+      copy_entrypoint!(project_dir, payload_dir, entrypoint, target)
 
       if sdk_source_path && !sdk_source_path.empty? && File.directory?(File.join(sdk_source_path, "lib", "plushie"))
         puts "Using local plushie SDK from #{sdk_source_path}"
@@ -593,9 +629,46 @@ module Plushie
       end
     end
 
-    def copy_entrypoint!(project_dir, dest_root, entrypoint)
-      copy_required_path(File.join(project_dir, entrypoint), File.join(dest_root, entrypoint))
-      FileUtils.chmod(0o755, File.join(dest_root, entrypoint))
+    def copy_entrypoint!(project_dir, dest_root, entrypoint, target = package_target)
+      # The user's entrypoint script is copied as <entrypoint>.rb so that the
+      # OS-specific launcher wrapper can invoke it regardless of target.
+      rb_name = connect_rb_name(entrypoint)
+      copy_required_path(File.join(project_dir, entrypoint), File.join(dest_root, rb_name))
+
+      if windows_target?(target)
+        write_connect_cmd!(dest_root, entrypoint)
+      else
+        write_connect_sh!(dest_root, entrypoint)
+      end
+    end
+
+    def write_connect_sh!(dest_root, entrypoint)
+      # POSIX shebang wrapper. Resolves the payload root relative to $0 so
+      # the launcher can invoke it from any working directory.
+      rb_name = connect_rb_name(entrypoint)
+      content = <<~SH
+        #!/bin/sh
+        set -e
+        DIR="$(cd "$(dirname "$0")/.." && pwd)"
+        exec "$DIR/ruby/bin/ruby" "$DIR/#{rb_name}" "$@"
+      SH
+      dest = File.join(dest_root, entrypoint)
+      File.write(dest, content)
+      FileUtils.chmod(0o755, dest)
+    end
+
+    def write_connect_cmd!(dest_root, entrypoint)
+      # Windows batch wrapper. Resolves the payload root via %~dp0 so the
+      # launcher can invoke it from any working directory.
+      rb_name = connect_rb_name(entrypoint)
+      content = <<~CMD
+        @echo off
+        setlocal
+        set "DIR=%~dp0.."
+        "%DIR%\\ruby\\bin\\ruby.exe" "%DIR%\\#{rb_name.tr("/", "\\")}" %*
+      CMD
+      dest = File.join(dest_root, connect_cmd_name(entrypoint))
+      File.write(dest, content)
     end
 
     def install_runtime_gems!(app_dir, bundle_without)

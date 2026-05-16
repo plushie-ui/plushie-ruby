@@ -18,6 +18,49 @@ class TestPackage < Minitest::Test
     assert_raises(Plushie::Error) { P.normalize_package_target("linux", "riscv64") }
   end
 
+  def test_start_command_uses_posix_wrapper_for_linux
+    assert_equal ["bin/connect"], P.start_command("bin/connect", "linux-x86_64")
+  end
+
+  def test_start_command_uses_cmd_wrapper_for_windows
+    assert_equal ["bin/connect.cmd"], P.start_command("bin/connect", "windows-x86_64")
+  end
+
+  def test_resolve_start_config_rewrites_command_for_windows_target
+    Dir.mktmpdir do |tmpdir|
+      File.write(File.join(tmpdir, "plushie-package.config.toml"), <<~TOML)
+        config_version = 1
+
+        [start]
+        working_dir = "."
+        command = ["bin/connect"]
+        forward_env = ["PATH"]
+      TOML
+
+      config = P.resolve_start_config(tmpdir, nil, "bin/connect", "windows-x86_64")
+
+      assert_equal ["bin/connect.cmd"], config.command
+    end
+  end
+
+  def test_manifest_start_command_is_cmd_for_windows_target
+    Dir.mktmpdir do |tmpdir|
+      archive = File.join(tmpdir, "payload.tar.zst")
+      File.binwrite(archive, "payload")
+
+      manifest = P.manifest_for_payload(
+        app_id: "dev.plushie.test",
+        app_version: "0.1.0",
+        target: "windows-x86_64",
+        renderer_path: "bin/plushie-renderer.exe",
+        start_command: ["bin/connect.cmd"],
+        payload_archive: archive
+      )
+
+      assert_includes P.render_manifest(manifest), 'command = ["bin/connect.cmd"]'
+    end
+  end
+
   def test_manifest_for_payload_records_hash_size_and_sdk_metadata
     Dir.mktmpdir do |tmpdir|
       archive = File.join(tmpdir, "payload.tar.zst")
@@ -30,7 +73,7 @@ class TestPackage < Minitest::Test
         target: "linux-x86_64",
         renderer_kind: "custom",
         renderer_path: "bin/plushie-renderer",
-        start_command: ["ruby/bin/ruby", "bin/connect"],
+        start_command: ["bin/connect"],
         working_dir: ".",
         payload_archive: archive
       )
@@ -46,7 +89,7 @@ class TestPackage < Minitest::Test
       assert_includes toml, "plushie_rust_version = \"#{Plushie::PLUSHIE_RUST_VERSION}\""
       assert_includes toml, "protocol_version = #{Plushie::Protocol::PROTOCOL_VERSION}"
       assert_includes toml, "[start]\nworking_dir = \".\""
-      assert_includes toml, 'command = ["ruby/bin/ruby", "bin/connect"]'
+      assert_includes toml, 'command = ["bin/connect"]'
       assert_includes(
         toml,
         'forward_env = ["PATH", "HOME", "LANG", "LC_ALL", "XDG_RUNTIME_DIR", "WAYLAND_DISPLAY", "DISPLAY"]'
@@ -215,10 +258,10 @@ class TestPackage < Minitest::Test
 
   def test_resolve_start_config_keeps_default_without_source_config
     Dir.mktmpdir do |tmpdir|
-      config = P.resolve_start_config(tmpdir, nil, "bin/connect")
+      config = P.resolve_start_config(tmpdir, nil, "bin/connect", "linux-x86_64")
 
       assert_equal ".", config.working_dir
-      assert_equal P.start_command("bin/connect"), config.command
+      assert_equal ["bin/connect"], config.command
       assert_equal P::DEFAULT_FORWARD_ENV, config.forward_env
     end
   end
@@ -624,23 +667,50 @@ class TestPackage < Minitest::Test
     assert_equal "0.2.0", captured.fetch(:app_version)
   end
 
-  def test_copy_app_uses_configured_command_entrypoint
+  def test_copy_app_copies_entrypoint_as_rb_and_generates_posix_wrapper
     Dir.mktmpdir do |tmpdir|
       project = File.join(tmpdir, "project")
       payload = File.join(tmpdir, "payload")
       FileUtils.mkdir_p(File.join(project, "lib"))
       FileUtils.mkdir_p(File.join(project, "bin"))
       File.write(File.join(project, "Gemfile"), "source \"https://rubygems.org\"\n")
-      File.write(File.join(project, "bin", "notes"), "#!/bin/sh\n")
+      File.write(File.join(project, "bin", "connect"), "# entrypoint\n")
       start = P::PackageStartConfig.new(
         working_dir: ".",
-        command: ["bin/notes"],
+        command: ["bin/connect"],
         forward_env: []
       )
 
-      P.copy_app!(project, payload, start, "bin/connect", nil)
+      P.copy_app!(project, payload, start, "bin/connect", nil, "linux-x86_64")
 
-      assert File.exist?(File.join(payload, "bin", "notes"))
+      assert File.exist?(File.join(payload, "bin", "connect.rb"))
+      assert File.exist?(File.join(payload, "bin", "connect"))
+      assert_includes File.read(File.join(payload, "bin", "connect")), "ruby/bin/ruby"
+      refute File.exist?(File.join(payload, "bin", "connect.cmd"))
+    end
+  end
+
+  def test_copy_app_generates_cmd_wrapper_for_windows_target
+    Dir.mktmpdir do |tmpdir|
+      project = File.join(tmpdir, "project")
+      payload = File.join(tmpdir, "payload")
+      FileUtils.mkdir_p(File.join(project, "lib"))
+      FileUtils.mkdir_p(File.join(project, "bin"))
+      File.write(File.join(project, "Gemfile"), "source \"https://rubygems.org\"\n")
+      File.write(File.join(project, "bin", "connect"), "# entrypoint\n")
+      start = P::PackageStartConfig.new(
+        working_dir: ".",
+        command: ["bin/connect.cmd"],
+        forward_env: []
+      )
+
+      P.copy_app!(project, payload, start, "bin/connect", nil, "windows-x86_64")
+
+      assert File.exist?(File.join(payload, "bin", "connect.rb"))
+      assert File.exist?(File.join(payload, "bin", "connect.cmd"))
+      cmd = File.read(File.join(payload, "bin", "connect.cmd"))
+      assert_includes cmd, "ruby.exe"
+      assert_includes cmd, "connect.rb"
       refute File.exist?(File.join(payload, "bin", "connect"))
     end
   end
