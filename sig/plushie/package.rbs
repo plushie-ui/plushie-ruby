@@ -6,7 +6,22 @@ module Plushie
     }
 
     type platform_manifest = {
-      icon: String
+      icon: String?,
+      publisher: String?,
+      copyright: String?,
+      category: String?,
+      description: String?,
+      bundle_id: String?,
+      macos: platform_macos_manifest?,
+      windows: platform_windows_manifest?
+    }
+
+    type platform_macos_manifest = {
+      bundle_version: String?
+    }
+
+    type platform_windows_manifest = {
+      install_scope: String?
     }
 
     type manifest = {
@@ -41,10 +56,43 @@ module Plushie
       def initialize: (working_dir: String, command: Array[String], forward_env: Array[String]) -> void
     end
 
+    class PackagePlatformMacosConfig < Data
+      attr_reader bundle_version: String?
+
+      def initialize: (bundle_version: String?) -> void
+    end
+
+    class PackagePlatformWindowsConfig < Data
+      attr_reader install_scope: String?
+
+      def initialize: (install_scope: String?) -> void
+    end
+
+    class PackagePlatformConfig < Data
+      attr_reader publisher: String?
+      attr_reader copyright: String?
+      attr_reader category: String?
+      attr_reader description: String?
+      attr_reader bundle_id: String?
+      attr_reader macos: PackagePlatformMacosConfig?
+      attr_reader windows: PackagePlatformWindowsConfig?
+
+      def initialize: (
+        publisher: String?,
+        copyright: String?,
+        category: String?,
+        description: String?,
+        bundle_id: String?,
+        macos: PackagePlatformMacosConfig?,
+        windows: PackagePlatformWindowsConfig?
+      ) -> void
+    end
+
     class PackageSourceConfig < Data
       attr_reader start: PackageStartConfig
+      attr_reader platform: PackagePlatformConfig?
 
-      def initialize: (start: PackageStartConfig) -> void
+      def initialize: (start: PackageStartConfig, platform: PackagePlatformConfig?) -> void
     end
 
     def self.build: (
@@ -82,7 +130,8 @@ module Plushie
       ?renderer_kind: String,
       ?icon_path: String?,
       ?working_dir: String,
-      ?forward_env: Array[String]
+      ?forward_env: Array[String],
+      ?source_platform: PackagePlatformConfig?
     ) -> manifest
 
     def self.render_manifest: (manifest manifest) -> String
@@ -96,13 +145,18 @@ module Plushie
     def self.parse_source_config: (String text) -> PackageSourceConfig
     def self.validate_source_config!: (PackageSourceConfig config) -> PackageSourceConfig
     def self.validate_start_config!: (PackageStartConfig start) -> PackageStartConfig
+    def self.validate_platform_config!: (PackagePlatformConfig platform) -> PackagePlatformConfig
     def self.archive_payload!: (String payload_dir, String archive_path) -> void
     def self.validate_payload_archive_inputs!: (String payload_dir) -> void
     def self.resolve_renderer!: (?path: String?, ?kind: String) -> Hash[Symbol, String]
     def self.run_cli: (Array[String] argv) -> void
     def self.portable_package_command: (String manifest_path) -> Array[String]
     def self.build_from_env: () -> build_result
+    def self.load_effective_source_config: (String project_dir, String? package_config) -> PackageSourceConfig?
     def self.resolve_start_config: (String project_dir, String? package_config, String entrypoint, ?String target) -> PackageStartConfig
+    def self.resolve_start_config_from: (PackageSourceConfig? source_config, String entrypoint, ?String target) -> PackageStartConfig
+    def self.build_manifest_platform: (String? icon_path, PackagePlatformConfig? source_platform) -> platform_manifest?
+    def self.build_platform_config: (Hash[Symbol, untyped]? platform_raw, Hash[Symbol, untyped]? macos_raw, Hash[Symbol, untyped]? windows_raw) -> PackagePlatformConfig?
     def self.start_command: (String entrypoint, ?String target) -> Array[String]
     def self.windows_target?: (String target) -> bool
     def self.connect_rb_name: (String entrypoint) -> String

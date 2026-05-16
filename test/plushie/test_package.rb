@@ -168,6 +168,11 @@ class TestPackage < Minitest::Test
     assert_includes text, 'working_dir = "."'
     assert_includes text, '"bin/connect"'
     assert_includes text, '"WAYLAND_DISPLAY"'
+    assert_includes text, "# [platform]"
+    assert_includes text, "# publisher ="
+    assert_includes text, "# [platform.macos]"
+    assert_includes text, "# [platform.windows]"
+    assert_includes text, "# install_scope ="
   end
 
   def test_write_source_config_writes_template
@@ -665,6 +670,251 @@ class TestPackage < Minitest::Test
     assert_equal "dev.plushie.test", captured.fetch(:app_id)
     assert_equal "Test App", captured.fetch(:app_name)
     assert_equal "0.2.0", captured.fetch(:app_version)
+  end
+
+  def test_parse_source_config_accepts_platform_section
+    config = P.parse_source_config(<<~TOML)
+      config_version = 1
+
+      [start]
+      working_dir = "."
+      command = ["bin/connect"]
+      forward_env = ["PATH"]
+
+      [platform]
+      publisher = "Example Corp"
+      copyright = "Copyright 2025 Example Corp"
+      category = "Productivity"
+      description = "A helpful app."
+      bundle_id = "com.example.myapp"
+    TOML
+
+    assert_equal "Example Corp", config.platform.publisher
+    assert_equal "Copyright 2025 Example Corp", config.platform.copyright
+    assert_equal "Productivity", config.platform.category
+    assert_equal "A helpful app.", config.platform.description
+    assert_equal "com.example.myapp", config.platform.bundle_id
+    assert_nil config.platform.macos
+    assert_nil config.platform.windows
+  end
+
+  def test_parse_source_config_accepts_platform_macos_section
+    config = P.parse_source_config(<<~TOML)
+      config_version = 1
+
+      [start]
+      working_dir = "."
+      command = ["bin/connect"]
+      forward_env = ["PATH"]
+
+      [platform.macos]
+      bundle_version = "42"
+    TOML
+
+    assert_equal "42", config.platform.macos.bundle_version
+    assert_nil config.platform.windows
+  end
+
+  def test_parse_source_config_accepts_platform_windows_section
+    config = P.parse_source_config(<<~TOML)
+      config_version = 1
+
+      [start]
+      working_dir = "."
+      command = ["bin/connect"]
+      forward_env = ["PATH"]
+
+      [platform.windows]
+      install_scope = "perMachine"
+    TOML
+
+    assert_equal "perMachine", config.platform.windows.install_scope
+    assert_nil config.platform.macos
+  end
+
+  def test_parse_source_config_accepts_all_platform_sections_together
+    config = P.parse_source_config(<<~TOML)
+      config_version = 1
+
+      [start]
+      working_dir = "."
+      command = ["bin/connect"]
+      forward_env = ["PATH"]
+
+      [platform]
+      publisher = "Acme"
+      bundle_id = "com.acme.app"
+
+      [platform.macos]
+      bundle_version = "7"
+
+      [platform.windows]
+      install_scope = "perUser"
+    TOML
+
+    assert_equal "Acme", config.platform.publisher
+    assert_equal "com.acme.app", config.platform.bundle_id
+    assert_equal "7", config.platform.macos.bundle_version
+    assert_equal "perUser", config.platform.windows.install_scope
+  end
+
+  def test_parse_source_config_platform_is_nil_when_absent
+    config = P.parse_source_config(<<~TOML)
+      config_version = 1
+
+      [start]
+      working_dir = "."
+      command = ["bin/connect"]
+      forward_env = ["PATH"]
+    TOML
+
+    assert_nil config.platform
+  end
+
+  def test_parse_source_config_rejects_invalid_install_scope
+    assert_raises(Plushie::Error) do
+      P.parse_source_config(<<~TOML)
+        config_version = 1
+
+        [start]
+        working_dir = "."
+        command = ["bin/connect"]
+        forward_env = ["PATH"]
+
+        [platform.windows]
+        install_scope = "both"
+      TOML
+    end
+  end
+
+  def test_parse_source_config_rejects_empty_platform_string_fields
+    [
+      ["publisher", ""],
+      ["category", ""],
+      ["bundle_id", ""]
+    ].each do |field, value|
+      assert_raises(Plushie::Error) do
+        P.parse_source_config(<<~TOML)
+          config_version = 1
+
+          [start]
+          working_dir = "."
+          command = ["bin/connect"]
+          forward_env = []
+
+          [platform]
+          #{field} = "#{value}"
+        TOML
+      end
+    end
+  end
+
+  def test_parse_source_config_rejects_unknown_platform_key
+    assert_raises(Plushie::Error) do
+      P.parse_source_config(<<~TOML)
+        config_version = 1
+
+        [start]
+        working_dir = "."
+        command = ["bin/connect"]
+        forward_env = []
+
+        [platform]
+        unknown_key = "value"
+      TOML
+    end
+  end
+
+  def test_manifest_for_payload_passes_through_platform_fields
+    Dir.mktmpdir do |tmpdir|
+      archive = File.join(tmpdir, "payload.tar.zst")
+      File.binwrite(archive, "payload")
+
+      platform = P::PackagePlatformConfig.new(
+        publisher: "Acme Corp",
+        copyright: "Copyright 2025",
+        category: nil,
+        description: nil,
+        bundle_id: "com.acme.app",
+        macos: P::PackagePlatformMacosConfig.new(bundle_version: "3"),
+        windows: P::PackagePlatformWindowsConfig.new(install_scope: "perUser")
+      )
+
+      manifest = P.manifest_for_payload(
+        app_id: "dev.plushie.test",
+        app_version: "0.1.0",
+        target: "linux-x86_64",
+        renderer_path: "bin/plushie-renderer",
+        start_command: ["bin/connect"],
+        payload_archive: archive,
+        source_platform: platform
+      )
+
+      toml = P.render_manifest(manifest)
+      assert_includes toml, "[platform]"
+      assert_includes toml, 'publisher = "Acme Corp"'
+      assert_includes toml, 'copyright = "Copyright 2025"'
+      assert_includes toml, 'bundle_id = "com.acme.app"'
+      assert_includes toml, "[platform.macos]"
+      assert_includes toml, 'bundle_version = "3"'
+      assert_includes toml, "[platform.windows]"
+      assert_includes toml, 'install_scope = "perUser"'
+      refute_includes toml, "category"
+      refute_includes toml, "description"
+    end
+  end
+
+  def test_manifest_for_payload_merges_icon_with_platform_fields
+    Dir.mktmpdir do |tmpdir|
+      archive = File.join(tmpdir, "payload.tar.zst")
+      File.binwrite(archive, "payload")
+
+      platform = P::PackagePlatformConfig.new(
+        publisher: "Acme",
+        copyright: nil,
+        category: nil,
+        description: nil,
+        bundle_id: nil,
+        macos: nil,
+        windows: nil
+      )
+
+      manifest = P.manifest_for_payload(
+        app_id: "dev.plushie.test",
+        app_version: "0.1.0",
+        target: "linux-x86_64",
+        renderer_path: "bin/plushie-renderer",
+        start_command: ["bin/connect"],
+        icon_path: "assets/app.png",
+        payload_archive: archive,
+        source_platform: platform
+      )
+
+      toml = P.render_manifest(manifest)
+      assert_includes toml, 'icon = "assets/app.png"'
+      assert_includes toml, 'publisher = "Acme"'
+    end
+  end
+
+  def test_render_manifest_omits_platform_section_when_no_platform_config
+    Dir.mktmpdir do |tmpdir|
+      archive = File.join(tmpdir, "payload.tar.zst")
+      File.binwrite(archive, "payload")
+
+      manifest = P.manifest_for_payload(
+        app_id: "dev.plushie.test",
+        app_version: "0.1.0",
+        target: "linux-x86_64",
+        renderer_path: "bin/plushie-renderer",
+        start_command: ["bin/connect"],
+        payload_archive: archive
+      )
+
+      toml = P.render_manifest(manifest)
+      refute_includes toml, "[platform]"
+      refute_includes toml, "[platform.macos]"
+      refute_includes toml, "[platform.windows]"
+    end
   end
 
   def test_copy_app_copies_entrypoint_as_rb_and_generates_posix_wrapper

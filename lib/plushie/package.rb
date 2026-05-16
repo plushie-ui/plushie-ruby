@@ -34,7 +34,13 @@ module Plushie
     ].freeze
 
     PackageStartConfig = Data.define(:working_dir, :command, :forward_env)
-    PackageSourceConfig = Data.define(:start)
+    PackagePlatformMacosConfig = Data.define(:bundle_version)
+    PackagePlatformWindowsConfig = Data.define(:install_scope)
+    PackagePlatformConfig = Data.define(
+      :publisher, :copyright, :category, :description, :bundle_id,
+      :macos, :windows
+    )
+    PackageSourceConfig = Data.define(:start, :platform)
 
     module_function
 
@@ -71,7 +77,9 @@ module Plushie
         kind: renderer_kind
       )
       resolved_target = target || package_target
-      start_config = resolve_start_config(project_dir, package_config, entrypoint, resolved_target)
+      source_config = load_effective_source_config(project_dir, package_config)
+      start_config = resolve_start_config_from(source_config, entrypoint, resolved_target)
+      source_platform = source_config&.platform
 
       FileUtils.rm_rf(output_dir)
       FileUtils.mkdir_p(File.join(payload_dir, "bin"))
@@ -104,7 +112,8 @@ module Plushie
         start_command: start_config.command,
         working_dir: start_config.working_dir,
         forward_env: start_config.forward_env,
-        payload_archive: archive_path
+        payload_archive: archive_path,
+        source_platform: source_platform
       )
 
       manifest_path = File.join(output_dir, "plushie-package.toml")
@@ -168,7 +177,8 @@ module Plushie
       renderer_kind: "stock",
       icon_path: nil,
       working_dir: ".",
-      forward_env: DEFAULT_FORWARD_ENV
+      forward_env: DEFAULT_FORWARD_ENV,
+      source_platform: nil
     )
       archive_path = File.expand_path(payload_archive)
       manifest = {
@@ -187,7 +197,8 @@ module Plushie
         payload_hash: sha256_file(archive_path),
         payload_size: file_size(archive_path)
       }
-      manifest[:platform] = {icon: icon_path} if icon_path && !icon_path.empty?
+      platform = build_manifest_platform(icon_path, source_platform)
+      manifest[:platform] = platform if platform
       manifest
     end
 
@@ -212,11 +223,26 @@ module Plushie
         "forward_env = #{toml_array(manifest.fetch(:forward_env))}"
       ])
       if (platform = manifest[:platform])
-        lines.concat([
-          "",
-          "[platform]",
-          "icon = #{toml_string(platform.fetch(:icon))}"
-        ])
+        platform_lines = []
+        platform_lines << "icon = #{toml_string(platform[:icon])}" if platform[:icon] && !platform[:icon].empty?
+        platform_lines << "publisher = #{toml_string(platform[:publisher])}" if platform[:publisher]
+        platform_lines << "copyright = #{toml_string(platform[:copyright])}" if platform[:copyright]
+        platform_lines << "category = #{toml_string(platform[:category])}" if platform[:category]
+        platform_lines << "description = #{toml_string(platform[:description])}" if platform[:description]
+        platform_lines << "bundle_id = #{toml_string(platform[:bundle_id])}" if platform[:bundle_id]
+        unless platform_lines.empty? && !platform[:macos] && !platform[:windows]
+          lines.concat(["", "[platform]", *platform_lines])
+        end
+        if (macos = platform[:macos])
+          macos_lines = []
+          macos_lines << "bundle_version = #{toml_string(macos[:bundle_version])}" if macos[:bundle_version]
+          lines.concat(["", "[platform.macos]", *macos_lines]) unless macos_lines.empty?
+        end
+        if (windows = platform[:windows])
+          windows_lines = []
+          windows_lines << "install_scope = #{toml_string(windows[:install_scope])}" if windows[:install_scope]
+          lines.concat(["", "[platform.windows]", *windows_lines]) unless windows_lines.empty?
+        end
       end
       lines.concat([
         "",
@@ -248,7 +274,8 @@ module Plushie
           working_dir: ".",
           command: [entrypoint],
           forward_env: DEFAULT_FORWARD_ENV
-        )
+        ),
+        platform: nil
       )
     end
 
@@ -271,7 +298,24 @@ module Plushie
         "forward_env = ["
       ]
       lines.concat(config.start.forward_env.map { |name| "  #{toml_string(name)}," })
-      lines.concat(["]", ""])
+      lines.concat([
+        "]",
+        "",
+        "# Optional platform metadata. Remove the comment prefix to activate.",
+        "# [platform]",
+        "# publisher = \"Example Corp\"",
+        "# copyright = \"Copyright 2025 Example Corp\"",
+        "# category = \"Productivity\"",
+        "# description = \"A short description of the application.\"",
+        "# bundle_id = \"com.example.myapp\"",
+        "#",
+        "# [platform.macos]",
+        "# bundle_version = \"1\"  # CFBundleVersion, usually an integer string",
+        "#",
+        "# [platform.windows]",
+        "# install_scope = \"perUser\"  # \"perUser\" or \"perMachine\"",
+        ""
+      ])
       lines.join("\n")
     end
 
@@ -305,12 +349,14 @@ module Plushie
       start = document.fetch(:start) do
         raise Error, "package config missing [start]"
       end
+      platform = build_platform_config(document[:platform], document[:platform_macos], document[:platform_windows])
       config = PackageSourceConfig.new(
         start: PackageStartConfig.new(
           working_dir: start.fetch(:working_dir),
           command: start.fetch(:command),
           forward_env: start.fetch(:forward_env)
-        )
+        ),
+        platform: platform
       )
       validate_source_config!(config)
       config
@@ -320,6 +366,7 @@ module Plushie
 
     def validate_source_config!(config)
       validate_start_config!(config.start)
+      validate_platform_config!(config.platform) if config.platform
       config
     end
 
@@ -336,6 +383,31 @@ module Plushie
         raise Error, "start.forward_env must not include launcher-owned package variables"
       end
       start
+    end
+
+    def validate_platform_config!(platform)
+      [
+        [:publisher, "platform.publisher"],
+        [:copyright, "platform.copyright"],
+        [:category, "platform.category"],
+        [:description, "platform.description"],
+        [:bundle_id, "platform.bundle_id"]
+      ].each do |field, name|
+        value = platform.public_send(field)
+        raise Error, "#{name} must not be empty" if value && value.strip.empty?
+      end
+      if platform.macos
+        value = platform.macos.bundle_version
+        raise Error, "platform.macos.bundle_version must not be empty" if value && value.strip.empty?
+      end
+      if platform.windows
+        scope = platform.windows.install_scope
+        raise Error, "platform.windows.install_scope must not be empty" if scope && scope.strip.empty?
+        unless scope.nil? || scope == "perUser" || scope == "perMachine"
+          raise Error, "platform.windows.install_scope must be \"perUser\" or \"perMachine\""
+        end
+      end
+      platform
     end
 
     def archive_payload!(payload_dir, archive_path)
@@ -523,17 +595,21 @@ module Plushie
     end
 
     def resolve_start_config(project_dir, package_config, entrypoint, target = package_target)
-      config =
-        if package_config && !package_config.empty?
-          load_source_config(File.expand_path(package_config, project_dir))
-        else
-          load_default_source_config(project_dir)
-        end
+      source_config = load_effective_source_config(project_dir, package_config)
+      resolve_start_config_from(source_config, entrypoint, target)
+    end
 
-      if config
-        # When a user config specifies the POSIX entry point but the target is
-        # Windows, rewrite command[0] to the .cmd wrapper the SDK generates.
-        start = config.start
+    def load_effective_source_config(project_dir, package_config)
+      if package_config && !package_config.empty?
+        load_source_config(File.expand_path(package_config, project_dir))
+      else
+        load_default_source_config(project_dir)
+      end
+    end
+
+    def resolve_start_config_from(source_config, entrypoint, target = package_target)
+      if source_config
+        start = source_config.start
         if windows_target?(target) && start.command.fetch(0) == entrypoint
           start = PackageStartConfig.new(
             working_dir: start.working_dir,
@@ -550,6 +626,48 @@ module Plushie
         forward_env: DEFAULT_FORWARD_ENV
       )
       validate_start_config!(start)
+    end
+
+    def build_manifest_platform(icon_path, source_platform)
+      has_icon = icon_path && !icon_path.empty?
+      has_platform = !source_platform.nil?
+      return nil unless has_icon || has_platform
+
+      platform = {}
+      platform[:icon] = icon_path if has_icon
+      if has_platform
+        platform[:publisher] = source_platform.publisher if source_platform.publisher
+        platform[:copyright] = source_platform.copyright if source_platform.copyright
+        platform[:category] = source_platform.category if source_platform.category
+        platform[:description] = source_platform.description if source_platform.description
+        platform[:bundle_id] = source_platform.bundle_id if source_platform.bundle_id
+        if source_platform.macos
+          platform[:macos] = {}
+          platform[:macos][:bundle_version] = source_platform.macos.bundle_version if source_platform.macos.bundle_version
+        end
+        if source_platform.windows
+          platform[:windows] = {}
+          platform[:windows][:install_scope] = source_platform.windows.install_scope if source_platform.windows.install_scope
+        end
+      end
+      platform.empty? ? nil : platform
+    end
+
+    def build_platform_config(platform_raw, macos_raw, windows_raw)
+      return nil if platform_raw.nil? && macos_raw.nil? && windows_raw.nil?
+
+      macos = macos_raw ? PackagePlatformMacosConfig.new(bundle_version: macos_raw[:bundle_version]) : nil
+      windows = windows_raw ? PackagePlatformWindowsConfig.new(install_scope: windows_raw[:install_scope]) : nil
+
+      PackagePlatformConfig.new(
+        publisher: platform_raw&.fetch(:publisher, nil),
+        copyright: platform_raw&.fetch(:copyright, nil),
+        category: platform_raw&.fetch(:category, nil),
+        description: platform_raw&.fetch(:description, nil),
+        bundle_id: platform_raw&.fetch(:bundle_id, nil),
+        macos: macos,
+        windows: windows
+      )
     end
 
     def start_command(entrypoint, target = package_target)
@@ -863,21 +981,57 @@ module Plushie
       path.delete_prefix("#{payload_dir}#{File::SEPARATOR}")
     end
 
+    PLATFORM_STRING_KEYS = %w[publisher copyright category description bundle_id].freeze
+    ALLOWED_SECTIONS = %w[start platform platform.macos platform.windows].freeze
+
     def parse_source_config_document(text)
       document = {start: {}}
       each_toml_assignment(text) do |section, key, value|
-        case [section, key]
-        when [nil, "config_version"]
-          document[:config_version] = parse_toml_integer("config_version", value)
-        when ["start", "working_dir"]
-          document.fetch(:start)[:working_dir] = parse_toml_string("start.working_dir", value)
-        when ["start", "command"]
-          document.fetch(:start)[:command] = parse_toml_string_array("start.command", value)
-        when ["start", "forward_env"]
-          document.fetch(:start)[:forward_env] = parse_toml_string_array("start.forward_env", value)
+        full_key = section ? "#{section}.#{key}" : key
+        case section
+        when nil
+          case key
+          when "config_version"
+            document[:config_version] = parse_toml_integer("config_version", value)
+          else
+            raise Error, "unsupported package config key #{key}"
+          end
+        when "start"
+          case key
+          when "working_dir"
+            document.fetch(:start)[:working_dir] = parse_toml_string("start.working_dir", value)
+          when "command"
+            document.fetch(:start)[:command] = parse_toml_string_array("start.command", value)
+          when "forward_env"
+            document.fetch(:start)[:forward_env] = parse_toml_string_array("start.forward_env", value)
+          else
+            raise Error, "unsupported package config key #{full_key}"
+          end
+        when "platform"
+          document[:platform] ||= {}
+          if PLATFORM_STRING_KEYS.include?(key)
+            document[:platform][key.to_sym] = parse_toml_string(full_key, value)
+          else
+            raise Error, "unsupported package config key #{full_key}"
+          end
+        when "platform.macos"
+          document[:platform_macos] ||= {}
+          case key
+          when "bundle_version"
+            document[:platform_macos][:bundle_version] = parse_toml_string(full_key, value)
+          else
+            raise Error, "unsupported package config key #{full_key}"
+          end
+        when "platform.windows"
+          document[:platform_windows] ||= {}
+          case key
+          when "install_scope"
+            document[:platform_windows][:install_scope] = parse_toml_string(full_key, value)
+          else
+            raise Error, "unsupported package config key #{full_key}"
+          end
         else
-          name = section ? "#{section}.#{key}" : key
-          raise Error, "unsupported package config key #{name}"
+          raise Error, "unsupported package config table #{section}"
         end
       end
       document
@@ -899,9 +1053,9 @@ module Plushie
           next
         end
 
-        if (match = stripped.match(/\A\[([A-Za-z0-9_]+)\]\z/))
+        if (match = stripped.match(/\A\[([A-Za-z0-9_.]+)\]\z/))
           section = match[1]
-          raise Error, "unsupported package config table #{section}" unless section == "start"
+          raise Error, "unsupported package config table #{section}" unless ALLOWED_SECTIONS.include?(section)
           next
         end
 

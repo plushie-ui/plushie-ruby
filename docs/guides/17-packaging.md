@@ -295,12 +295,35 @@ bin/plushie package check --manifest dist/plushie-package.toml --strict-tools
 The manifest records `host_sdk = "ruby"`, the Ruby SDK version,
 `PLUSHIE_RUST_VERSION`, the protocol version, the package target,
 payload hash and size, renderer provenance (`kind` and `source`),
-and `[platform].icon` when an icon is configured. By default the Ruby
+and `[platform]` metadata when configured. By default the Ruby
 helper invokes `bin/plushie default-icons --out dist/payload/assets`
 before archiving and records `assets/default-app-icon-512.png`. Set
 `PLUSHIE_PACKAGE_ICON_PATH` to copy an app icon into `assets/` and
 record that payload-relative path instead. The `[platform]` section is
-omitted entirely when no icon is configured.
+omitted entirely when no platform fields are set.
+
+Optional platform metadata is declared in `plushie-package.config.toml`.
+Run `--write-package-config` to generate a template with commented-out
+examples. Supported fields:
+
+```toml
+[platform]
+publisher = "Example Corp"
+copyright = "Copyright 2025 Example Corp"
+category = "Productivity"
+description = "A short description of the application."
+bundle_id = "com.example.myapp"
+
+[platform.macos]
+bundle_version = "1"   # CFBundleVersion (usually an incrementing integer string)
+
+[platform.windows]
+install_scope = "perUser"  # "perUser" or "perMachine"
+```
+
+All fields are optional. `[platform]`, `[platform.macos]`, and
+`[platform.windows]` are each omitted from the emitted manifest when
+they carry no populated fields.
 
 For scripts that need a direct helper instead of Rake, use
 `Plushie::Package.build` from `require "plushie/package"`.
