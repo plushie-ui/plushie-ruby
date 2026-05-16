@@ -272,24 +272,7 @@ The task writes `dist/payload.tar.zst` and
 `dist/plushie-package.toml`. Build the outer launcher with:
 
 ```bash
-bin/plushie package check --manifest dist/plushie-package.toml --strict-tools
-bin/plushie package portable --manifest dist/plushie-package.toml --strict-tools
-```
-
-When using `Plushie::Package.run_cli`, pass `--portable` to run that
-final step immediately. Use `--portable-out PATH` to pass an output
-path to the portable package command. Use `--strict-tools` when the
-launcher build should fail unless the Rust package tool can verify all
-native packaging tools required for the target platform.
-
-The Rake task exposes the same final step through environment
-variables:
-
-```bash
-PLUSHIE_PACKAGE_PORTABLE=true \
-PLUSHIE_PACKAGE_PORTABLE_OUT=dist/notes \
-PLUSHIE_PACKAGE_STRICT_TOOLS=true \
-bundle exec rake 'plushie:package[dev.example.notes,Notes,0.1.0]'
+bin/plushie package portable --manifest dist/plushie-package.toml
 ```
 
 For custom renderers, set `PLUSHIE_PACKAGE_RENDERER_KIND=custom` and
@@ -501,7 +484,7 @@ gem install my_app --platform=x86_64-linux
 my_app
 
 # Option D: standalone launcher
-bundle exec rake plushie:package
+bundle exec rake 'plushie:package[dev.example.notes,Notes,0.1.0]'
 bin/plushie package portable --manifest dist/plushie-package.toml
 
 # Option E: native widget gem (consumer has a Rust toolchain)

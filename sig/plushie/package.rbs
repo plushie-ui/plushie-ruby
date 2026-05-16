@@ -100,7 +100,7 @@ module Plushie
     def self.validate_payload_archive_inputs!: (String payload_dir) -> void
     def self.resolve_renderer!: (?path: String?, ?kind: String) -> Hash[Symbol, String]
     def self.run_cli: (Array[String] argv) -> void
-    def self.portable_package_command: (String manifest_path, ?String? portable_out, ?bool strict_tools) -> Array[String]
+    def self.portable_package_command: (String manifest_path) -> Array[String]
     def self.build_from_env: () -> build_result
     def self.resolve_start_config: (String project_dir, String? package_config, String entrypoint) -> PackageStartConfig
     def self.start_command: (String entrypoint) -> Array[String]

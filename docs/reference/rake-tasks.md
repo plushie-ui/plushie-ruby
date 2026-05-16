@@ -244,19 +244,6 @@ The output defaults to `dist/payload.tar.zst` and
 bin/plushie package portable --manifest dist/plushie-package.toml
 ```
 
-Set `PLUSHIE_PACKAGE_PORTABLE=true` to run that final command from
-the Rake task after the manifest is written. Set
-`PLUSHIE_PACKAGE_PORTABLE_OUT` to pass `--out PATH`, and set
-`PLUSHIE_PACKAGE_STRICT_TOOLS=true` to pass `--strict-tools`.
-
-Use `--strict-tools` with the Rake task, the Ruby package CLI, or the
-Rust package commands when native packaging tools must be present. The
-same gate can be checked before launcher creation:
-
-```bash
-bin/plushie package check --manifest dist/plushie-package.toml --strict-tools
-```
-
 ### Configuration inputs
 
 | Input | Default | Effect |
@@ -266,9 +253,6 @@ bin/plushie package check --manifest dist/plushie-package.toml --strict-tools
 | `PLUSHIE_PACKAGE_APP_VERSION` | `0.1.0` | App version written to the manifest |
 | `PLUSHIE_PACKAGE_PROJECT_DIR` | current directory | App directory containing `lib/`, `bin/connect`, and `Gemfile` |
 | `PLUSHIE_PACKAGE_OUTPUT` | `dist` | Directory for payload and manifest output |
-| `PLUSHIE_PACKAGE_PORTABLE` | `false` | Run `bin/plushie package portable` after writing the manifest |
-| `PLUSHIE_PACKAGE_PORTABLE_OUT` | unset | Output path forwarded as `--out` for portable launcher creation |
-| `PLUSHIE_PACKAGE_STRICT_TOOLS` | `false` | Forward `--strict-tools` to the portable launcher command |
 | `PLUSHIE_PACKAGE_TARGET` | current Ruby host | Package target override such as `linux-x86_64` |
 | `PLUSHIE_PACKAGE_RENDERER_PATH` | auto-resolve | Existing renderer binary to copy into the payload |
 | `PLUSHIE_PACKAGE_RENDERER_KIND` | `stock` | Renderer kind recorded in `[renderer]` |

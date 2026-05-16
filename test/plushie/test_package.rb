@@ -445,125 +445,19 @@ class TestPackage < Minitest::Test
     assert_equal "packaging.toml", captured.fetch(:package_config)
   end
 
-  def test_run_cli_prints_portable_handoff_by_default
+  def test_run_cli_prints_portable_handoff
     result = {
       archive_path: "dist/payload.tar.zst",
       manifest_path: "dist/plushie-package.toml"
     }
 
     P.stub(:build, result) do
-      P.stub(:run!, ->(_command) { flunk "portable command should not run" }) do
-        stdout, = capture_io do
-          P.run_cli(["--app-id", "dev.plushie.test"])
-        end
-
-        assert_includes stdout, "Build launcher with:"
-        assert_includes stdout, "  bin/plushie package portable --manifest dist/plushie-package.toml"
+      stdout, = capture_io do
+        P.run_cli(["--app-id", "dev.plushie.test"])
       end
-    end
-  end
 
-  def test_run_cli_invokes_portable_command_with_manifest
-    result = {
-      archive_path: "dist/payload.tar.zst",
-      manifest_path: "dist/plushie-package.toml"
-    }
-    captured = nil
-
-    with_package_method(:build, result) do
-      with_package_method(:run!, ->(command) { captured = command }) do
-        capture_io do
-          P.run_cli(["--app-id", "dev.plushie.test", "--portable"])
-        end
-      end
-    end
-
-    assert_equal [
-      "bin/plushie",
-      "package",
-      "portable",
-      "--manifest",
-      "dist/plushie-package.toml"
-    ], captured
-  end
-
-  def test_run_cli_invokes_portable_command_with_out_path
-    result = {
-      archive_path: "dist/payload.tar.zst",
-      manifest_path: "dist/plushie-package.toml"
-    }
-    captured = nil
-
-    with_package_method(:build, result) do
-      with_package_method(:run!, ->(command) { captured = command }) do
-        capture_io do
-          P.run_cli([
-            "--app-id", "dev.plushie.test",
-            "--portable",
-            "--portable-out", "dist/app"
-          ])
-        end
-      end
-    end
-
-    assert_equal [
-      "bin/plushie",
-      "package",
-      "portable",
-      "--manifest",
-      "dist/plushie-package.toml",
-      "--out",
-      "dist/app"
-    ], captured
-  end
-
-  def test_run_cli_invokes_portable_command_with_strict_tools
-    result = {
-      archive_path: "dist/payload.tar.zst",
-      manifest_path: "dist/plushie-package.toml"
-    }
-    captured = nil
-
-    with_package_method(:build, result) do
-      with_package_method(:verify_strict_package_tools!, nil) do
-        with_package_method(:run!, ->(command) { captured = command }) do
-          capture_io do
-            P.run_cli([
-              "--app-id", "dev.plushie.test",
-              "--portable",
-              "--strict-tools"
-            ])
-          end
-        end
-      end
-    end
-
-    assert_equal [
-      "bin/plushie",
-      "package",
-      "portable",
-      "--manifest",
-      "dist/plushie-package.toml",
-      "--strict-tools"
-    ], captured
-  end
-
-  def test_run_cli_prints_portable_handoff_with_strict_tools
-    result = {
-      archive_path: "dist/payload.tar.zst",
-      manifest_path: "dist/plushie-package.toml"
-    }
-
-    with_package_method(:build, result) do
-      with_package_method(:verify_strict_package_tools!, nil) do
-        with_package_method(:run!, ->(_command) { flunk "portable command should not run" }) do
-          stdout, = capture_io do
-            P.run_cli(["--app-id", "dev.plushie.test", "--strict-tools"])
-          end
-
-          assert_includes stdout, "  bin/plushie package portable --manifest dist/plushie-package.toml --strict-tools"
-        end
-      end
+      assert_includes stdout, "Build launcher with:"
+      assert_includes stdout, "  bin/plushie package portable --manifest dist/plushie-package.toml"
     end
   end
 
@@ -670,18 +564,18 @@ class TestPackage < Minitest::Test
   end
 
   def test_env_flag_accepts_boolean_spellings
-    with_env("PLUSHIE_PACKAGE_PORTABLE" => "yes") do
-      assert_equal true, P.env_flag("PLUSHIE_PACKAGE_PORTABLE")
+    with_env("PLUSHIE_PACKAGE_STRICT_TOOLS" => "yes") do
+      assert_equal true, P.env_flag("PLUSHIE_PACKAGE_STRICT_TOOLS")
     end
 
-    with_env("PLUSHIE_PACKAGE_PORTABLE" => "off") do
-      assert_equal false, P.env_flag("PLUSHIE_PACKAGE_PORTABLE", true)
+    with_env("PLUSHIE_PACKAGE_STRICT_TOOLS" => "off") do
+      assert_equal false, P.env_flag("PLUSHIE_PACKAGE_STRICT_TOOLS", true)
     end
   end
 
   def test_env_flag_rejects_ambiguous_values
-    with_env("PLUSHIE_PACKAGE_PORTABLE" => "maybe") do
-      assert_raises(Plushie::Error) { P.env_flag("PLUSHIE_PACKAGE_PORTABLE") }
+    with_env("PLUSHIE_PACKAGE_STRICT_TOOLS" => "maybe") do
+      assert_raises(Plushie::Error) { P.env_flag("PLUSHIE_PACKAGE_STRICT_TOOLS") }
     end
   end
 

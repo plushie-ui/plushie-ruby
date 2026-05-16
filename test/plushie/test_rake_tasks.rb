@@ -168,82 +168,26 @@ class TestRakeTasks < Minitest::Test
     end
   end
 
-  def test_package_task_prints_env_configured_portable_command
+  def test_package_task_prints_portable_handoff
     result = {
       archive_path: "dist/payload.tar.zst",
       manifest_path: "dist/plushie-package.toml"
     }
 
-    with_package_env(
-      "PLUSHIE_PACKAGE_PORTABLE_OUT" => "dist/notes",
-      "PLUSHIE_PACKAGE_STRICT_TOOLS" => "true"
-    ) do
-      with_package_method(:build_from_env, result) do
-        with_package_method(:verify_strict_package_tools!, nil) do
-          stdout, = capture_io do
-            Rake::Task["plushie:package"].invoke("dev.plushie.notes")
-          end
-
-          assert_includes stdout, "Build launcher with:"
-          assert_includes(
-            stdout,
-            "  bin/plushie package portable --manifest dist/plushie-package.toml --out dist/notes --strict-tools"
-          )
-        end
+    with_package_method(:build_from_env, result) do
+      stdout, = capture_io do
+        Rake::Task["plushie:package"].invoke("dev.plushie.notes")
       end
+
+      assert_includes stdout, "Build launcher with:"
+      assert_includes stdout, "  bin/plushie package portable --manifest dist/plushie-package.toml"
     end
-  end
-
-  def test_package_task_runs_env_configured_portable_command
-    result = {
-      archive_path: "dist/payload.tar.zst",
-      manifest_path: "dist/plushie-package.toml"
-    }
-    captured = nil
-
-    with_package_env(
-      "PLUSHIE_PACKAGE_PORTABLE" => "true",
-      "PLUSHIE_PACKAGE_PORTABLE_OUT" => "dist/notes",
-      "PLUSHIE_PACKAGE_STRICT_TOOLS" => "true"
-    ) do
-      with_package_method(:build_from_env, result) do
-        with_package_method(:verify_strict_package_tools!, nil) do
-          with_package_method(:run!, ->(command) { captured = command }) do
-            capture_io do
-              Rake::Task["plushie:package"].invoke("dev.plushie.notes")
-            end
-          end
-        end
-      end
-    end
-
-    assert_equal [
-      "bin/plushie",
-      "package",
-      "portable",
-      "--manifest",
-      "dist/plushie-package.toml",
-      "--out",
-      "dist/notes",
-      "--strict-tools"
-    ], captured
   end
 
   private
 
   def package_env_names
-    [
-      "PLUSHIE_PACKAGE_PORTABLE",
-      "PLUSHIE_PACKAGE_PORTABLE_OUT",
-      "PLUSHIE_PACKAGE_STRICT_TOOLS"
-    ]
-  end
-
-  def with_package_env(values)
-    values.each { |key, value| ENV[key] = value }
-    yield
-  ensure
-    restore_package_env
+    []
   end
 
   def restore_package_env
