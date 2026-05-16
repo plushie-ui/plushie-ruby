@@ -43,7 +43,7 @@ module Plushie
       conn = new(format: format, queue: queue, on_message: on_message)
       conn.send(:spawn_process, binary, mode, max_sessions, log_level)
       conn.send(:perform_handshake, settings)
-      conn.send(:write_package_ready_file) if mode.nil?
+      conn.send(:write_package_ready_file)
       conn.send(:start_reader)
       conn
     end
@@ -393,7 +393,6 @@ module Plushie
 
       tmp = File.join(dir, ".#{File.basename(path)}.#{$$}.tmp")
       File.write(tmp, "ready\n")
-      FileUtils.rm_f(path)
       File.rename(tmp, path)
     ensure
       File.delete(tmp) if tmp && File.exist?(tmp)

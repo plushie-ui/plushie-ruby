@@ -229,7 +229,7 @@ class TestConnection < Minitest::Test
     end
   end
 
-  def test_spawn_skips_package_ready_file_for_explicit_renderer_modes
+  def test_spawn_writes_package_ready_file_for_all_backends
     Dir.mktmpdir do |tmpdir|
       binary = File.join(tmpdir, "renderer")
       ready_file = File.join(tmpdir, "ready")
@@ -240,7 +240,7 @@ class TestConnection < Minitest::Test
         conn.close
       end
 
-      refute File.exist?(ready_file)
+      assert_equal "ready\n", File.read(ready_file)
     end
   end
 
