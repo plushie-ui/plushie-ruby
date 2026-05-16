@@ -29,7 +29,6 @@ class TestPackage < Minitest::Test
         app_version: "0.1.0",
         target: "linux-x86_64",
         renderer_kind: "custom",
-        renderer_source: "local-build",
         renderer_path: "bin/plushie-renderer",
         start_command: ["ruby/bin/ruby", "bin/connect"],
         working_dir: "app",
@@ -55,7 +54,6 @@ class TestPackage < Minitest::Test
       assert_includes toml, "[platform]\nicon = \"assets/plushie-checkbox-512x512.png\""
       assert_includes toml, "[renderer]\npath = \"bin/plushie-renderer\""
       assert_includes toml, 'kind = "custom"'
-      assert_includes toml, 'source = "local-build"'
       assert_includes toml, 'archive = "payload.tar.zst"'
       assert_includes toml, "hash = \"sha256:#{manifest.fetch(:payload_hash)}\""
     end
@@ -233,21 +231,7 @@ class TestPackage < Minitest::Test
       with_package_tools(tmpdir) do
         result = P.resolve_renderer!(path: renderer)
 
-        assert_equal "local-path", result.fetch(:source)
         assert_equal renderer, result.fetch(:source_path)
-      end
-    end
-  end
-
-  def test_resolve_renderer_preserves_explicit_source
-    Dir.mktmpdir do |tmpdir|
-      renderer = File.join(tmpdir, "plushie-renderer")
-      write_executable(renderer)
-
-      with_package_tools(tmpdir) do
-        result = P.resolve_renderer!(path: renderer, source: "test-fixture")
-
-        assert_equal "test-fixture", result.fetch(:source)
       end
     end
   end
@@ -261,7 +245,6 @@ class TestPackage < Minitest::Test
         result = P.resolve_renderer!(path: renderer, kind: "custom")
 
         assert_equal "custom", result.fetch(:kind)
-        assert_equal "local-path", result.fetch(:source)
         assert_equal renderer, result.fetch(:source_path)
       end
     end
@@ -277,7 +260,6 @@ class TestPackage < Minitest::Test
           result = P.resolve_renderer!(kind: "custom")
 
           assert_equal "custom", result.fetch(:kind)
-          assert_equal "local-path", result.fetch(:source)
           assert_equal renderer, result.fetch(:source_path)
         end
       end
@@ -317,26 +299,7 @@ class TestPackage < Minitest::Test
         with_env("PLUSHIE_BINARY_PATH" => renderer) do
           result = P.resolve_renderer!
 
-          assert_equal "local-path", result.fetch(:source)
           assert_equal renderer, result.fetch(:source_path)
-        end
-      end
-    end
-  end
-
-  def test_resolve_renderer_syncs_source_managed_tool_set_as_local_build
-    Dir.mktmpdir do |tmpdir|
-      renderer = File.join(tmpdir, "bin", "plushie-renderer")
-      write_executable(renderer)
-
-      with_env("PLUSHIE_RUST_SOURCE_PATH" => tmpdir, "PLUSHIE_BINARY_PATH" => nil) do
-        with_package_method(:source_path_configured?, true) do
-          with_binary_method(:sync_renderer_with_tool!, renderer) do
-            result = P.resolve_renderer!
-
-            assert_equal "local-build", result.fetch(:source)
-            assert_equal renderer, result.fetch(:source_path)
-          end
         end
       end
     end
@@ -352,7 +315,6 @@ class TestPackage < Minitest::Test
         with_binary_method(:sync_renderer_with_tool!, renderer) do
           result = P.resolve_renderer!
 
-          assert_equal "download", result.fetch(:source)
           assert_equal renderer, result.fetch(:source_path)
         end
       end

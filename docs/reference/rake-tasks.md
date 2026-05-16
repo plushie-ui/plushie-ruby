@@ -272,7 +272,6 @@ bin/plushie package check --manifest dist/plushie-package.toml --strict-tools
 | `PLUSHIE_PACKAGE_TARGET` | current Ruby host | Package target override such as `linux-x86_64` |
 | `PLUSHIE_PACKAGE_RENDERER_PATH` | auto-resolve | Existing renderer binary to copy into the payload |
 | `PLUSHIE_PACKAGE_RENDERER_KIND` | `stock` | Renderer kind recorded in `[renderer]` |
-| `PLUSHIE_PACKAGE_RENDERER_SOURCE` | `local-resolve` | Renderer source recorded in `[renderer]` |
 | `PLUSHIE_PACKAGE_ICON_PATH` | default Plushie icon | App icon copied into the payload and recorded in `[platform].icon` |
 | `PLUSHIE_PACKAGE_ENTRYPOINT` | `bin/connect` | App entrypoint used as the host command |
 | `PLUSHIE_PACKAGE_BUNDLE_WITHOUT` | `development test` | Bundler groups excluded from the packaged app |

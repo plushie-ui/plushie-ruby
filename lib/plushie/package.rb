@@ -47,7 +47,6 @@ module Plushie
       target: nil,
       renderer_path: nil,
       renderer_kind: "stock",
-      renderer_source: nil,
       icon_path: nil,
       entrypoint: "bin/connect",
       package_config: nil,
@@ -70,8 +69,7 @@ module Plushie
 
       renderer = resolve_renderer!(
         path: renderer_path,
-        kind: renderer_kind,
-        source: renderer_source
+        kind: renderer_kind
       )
       start_config = resolve_start_config(project_dir, package_config, entrypoint)
 
@@ -102,7 +100,6 @@ module Plushie
         app_version: app_version,
         target: target,
         renderer_kind: renderer.fetch(:kind),
-        renderer_source: renderer.fetch(:source),
         renderer_path: renderer.fetch(:payload_path),
         icon_path: package_icon_path,
         start_command: start_config.command,
@@ -170,7 +167,6 @@ module Plushie
       app_name: nil,
       target: nil,
       renderer_kind: "stock",
-      renderer_source: "local-resolve",
       icon_path: DEFAULT_ICON_PATH,
       working_dir: ".",
       forward_env: DEFAULT_FORWARD_ENV
@@ -183,7 +179,6 @@ module Plushie
         target: target || package_target,
         renderer: {
           kind: renderer_kind,
-          source: renderer_source,
           path: renderer_path
         },
         platform: {
@@ -224,7 +219,6 @@ module Plushie
         "[renderer]",
         "path = #{toml_string(manifest.fetch(:renderer).fetch(:path))}",
         "kind = #{toml_string(manifest.fetch(:renderer).fetch(:kind))}",
-        "source = #{toml_string(manifest.fetch(:renderer).fetch(:source))}",
         "",
         "[payload]",
         "archive = #{toml_string(manifest.fetch(:payload_archive))}",
@@ -378,26 +372,19 @@ module Plushie
       end
     end
 
-    def resolve_renderer!(path: nil, kind: "stock", source: nil)
+    def resolve_renderer!(path: nil, kind: "stock")
       source_path = nil
-      resolved_source = source
 
       if path && !path.empty?
         source_path = path
-        resolved_source ||= "local-path"
         ensure_package_tools_available!
       elsif ENV["PLUSHIE_BINARY_PATH"] && !ENV["PLUSHIE_BINARY_PATH"].empty?
         source_path = ENV["PLUSHIE_BINARY_PATH"]
-        resolved_source ||= "local-path"
         ensure_package_tools_available!
       elsif kind != "stock"
         raise Error, "Custom renderer packages require --renderer-path or PLUSHIE_BINARY_PATH"
-      elsif source_path_configured?
-        source_path = Binary.sync_renderer_with_tool!
-        resolved_source ||= "local-build"
       else
         source_path = Binary.sync_renderer_with_tool!
-        resolved_source ||= "download"
       end
 
       unless source_path
@@ -408,7 +395,6 @@ module Plushie
 
       {
         kind: kind,
-        source: resolved_source || "local-resolve",
         source_path: source_path,
         payload_path: renderer_payload_path
       }
@@ -426,17 +412,11 @@ module Plushie
                    "Missing: #{missing.join(", ")}. Run bundle exec rake plushie:download."
     end
 
-    def source_path_configured?
-      source_path = ENV["PLUSHIE_RUST_SOURCE_PATH"] || Plushie.configuration.source_path
-      source_path && !source_path.empty?
-    end
-
     def run_cli(argv)
       options = {
         project_dir: Dir.pwd,
         output_dir: "dist",
         renderer_kind: "stock",
-        renderer_source: nil,
         entrypoint: "bin/connect",
         package_config: nil,
         write_package_config: false,
@@ -457,7 +437,6 @@ module Plushie
         opts.on("--target TARGET", "Package target") { |value| options[:target] = value }
         opts.on("--renderer-path PATH", "Renderer binary to copy") { |value| options[:renderer_path] = value }
         opts.on("--renderer-kind KIND", "Renderer kind") { |value| options[:renderer_kind] = value }
-        opts.on("--renderer-source SOURCE", "Renderer provenance source") { |value| options[:renderer_source] = value }
         opts.on("--icon PATH", "App icon to copy into the payload") { |value| options[:icon_path] = value }
         opts.on("--entrypoint PATH", "Payload app entrypoint") { |value| options[:entrypoint] = value }
         opts.on("--package-config PATH", "Developer-owned package config") { |value| options[:package_config] = value }
@@ -552,7 +531,6 @@ module Plushie
         target: package_option(overrides, :target, "PLUSHIE_PACKAGE_TARGET"),
         renderer_path: package_option(overrides, :renderer_path, "PLUSHIE_PACKAGE_RENDERER_PATH"),
         renderer_kind: package_option(overrides, :renderer_kind, "PLUSHIE_PACKAGE_RENDERER_KIND", "stock"),
-        renderer_source: package_option(overrides, :renderer_source, "PLUSHIE_PACKAGE_RENDERER_SOURCE"),
         icon_path: package_option(overrides, :icon_path, "PLUSHIE_PACKAGE_ICON_PATH"),
         entrypoint: package_option(overrides, :entrypoint, "PLUSHIE_PACKAGE_ENTRYPOINT", "bin/connect"),
         package_config: package_option(overrides, :package_config, "PLUSHIE_PACKAGE_CONFIG"),

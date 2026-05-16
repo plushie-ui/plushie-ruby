@@ -2,7 +2,6 @@ module Plushie
   module Package
     type renderer_manifest = {
       kind: String,
-      source: String,
       path: String
     }
 
@@ -57,7 +56,6 @@ module Plushie
       ?target: String?,
       ?renderer_path: String?,
       ?renderer_kind: String,
-      ?renderer_source: String,
       ?icon_path: String?,
       ?entrypoint: String,
       ?package_config: String?,
@@ -82,7 +80,6 @@ module Plushie
       ?app_name: String?,
       ?target: String?,
       ?renderer_kind: String,
-      ?renderer_source: String,
       ?icon_path: String,
       ?working_dir: String,
       ?forward_env: Array[String]
@@ -101,7 +98,7 @@ module Plushie
     def self.validate_start_config!: (PackageStartConfig start) -> PackageStartConfig
     def self.archive_payload!: (String payload_dir, String archive_path) -> void
     def self.validate_payload_archive_inputs!: (String payload_dir) -> void
-    def self.resolve_renderer!: (?path: String?, ?kind: String, ?source: String) -> Hash[Symbol, String]
+    def self.resolve_renderer!: (?path: String?, ?kind: String) -> Hash[Symbol, String]
     def self.run_cli: (Array[String] argv) -> void
     def self.portable_package_command: (String manifest_path, ?String? portable_out, ?bool strict_tools) -> Array[String]
     def self.build_from_env: () -> build_result
