@@ -41,9 +41,8 @@ class TestRendererEnv < Minitest::Test
     assert RE.allowed?("GALLIUM_DRIVER")
   end
 
-  def test_allowed_plushie_prefix
+  def test_allowed_plushie_no_catch_unwind
     assert RE.allowed?("PLUSHIE_NO_CATCH_UNWIND")
-    assert RE.allowed?("PLUSHIE_DEBUG_FOO")
   end
 
   def test_disallowed_vars
@@ -114,18 +113,33 @@ class TestRendererEnv < Minitest::Test
     end
   end
 
-  def test_build_forwards_plushie_prefix_vars
-    original = ENV["PLUSHIE_SMOKE_TEST"]
-    ENV["PLUSHIE_SMOKE_TEST"] = "ok"
+  def test_build_forwards_plushie_no_catch_unwind
+    original = ENV["PLUSHIE_NO_CATCH_UNWIND"]
+    ENV["PLUSHIE_NO_CATCH_UNWIND"] = "1"
     begin
       env = RE.build
-      assert_equal "ok", env["PLUSHIE_SMOKE_TEST"]
+      assert_equal "1", env["PLUSHIE_NO_CATCH_UNWIND"]
     ensure
       if original
-        ENV["PLUSHIE_SMOKE_TEST"] = original
+        ENV["PLUSHIE_NO_CATCH_UNWIND"] = original
       else
-        ENV.delete("PLUSHIE_SMOKE_TEST")
+        ENV.delete("PLUSHIE_NO_CATCH_UNWIND")
       end
+    end
+  end
+
+  # Regression: other PLUSHIE_* names (host-side, launcher-set, or secrets)
+  # must not leak to the renderer subprocess.
+  def test_plushie_closed_list_blocks_other_names
+    other_plushie_vars = %w[
+      PLUSHIE_TOKEN
+      PLUSHIE_SECRET
+      PLUSHIE_DEBUG_FOO
+      PLUSHIE_SMOKE_TEST
+      PLUSHIE_API_KEY
+    ]
+    other_plushie_vars.each do |name|
+      refute RE.allowed?(name), "#{name} must not be forwarded to the renderer"
     end
   end
 

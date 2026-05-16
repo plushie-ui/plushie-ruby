@@ -19,6 +19,11 @@ module Plushie
   #
   module RendererEnv
     # Exact environment variable names to pass through.
+    #
+    # The renderer subprocess in spawn mode reads at most
+    # PLUSHIE_NO_CATCH_UNWIND from inherited env. Other PLUSHIE_* names are
+    # host-side, launcher-set, or secrets (e.g. PLUSHIE_TOKEN) that must not
+    # leak across the process boundary.
     ALLOWED_VARS = %w[
       DISPLAY
       WAYLAND_DISPLAY
@@ -49,13 +54,11 @@ module Plushie
       RUST_BACKTRACE
       HOME
       USER
+      PLUSHIE_NO_CATCH_UNWIND
     ].freeze
 
     # Environment variable prefixes to pass through.
     # Any var starting with one of these prefixes is allowed.
-    #
-    # PLUSHIE_ is a catch-all for plushie-reserved debug/diagnostic
-    # toggles read by the renderer (e.g. PLUSHIE_NO_CATCH_UNWIND).
     ALLOWED_PREFIXES = %w[
       LC_
       MESA_
@@ -65,7 +68,6 @@ module Plushie
       GALLIUM_
       AT_SPI_
       FONTCONFIG_
-      PLUSHIE_
     ].freeze
 
     # Rust log level mapping from plushie log level symbols.
