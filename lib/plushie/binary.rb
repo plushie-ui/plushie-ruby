@@ -132,8 +132,9 @@ module Plushie
     #
     # @param version [String] plushie-rust version (default: PLUSHIE_RUST_VERSION)
     # @param dest [String, nil] override destination path (default: bin/{name})
+    # @param force [Boolean] re-download even if the binary already exists
     # @return [String] path to the downloaded binary
-    def download!(version: PLUSHIE_RUST_VERSION, dest: nil)
+    def download!(version: PLUSHIE_RUST_VERSION, dest: nil, force: false)
       require "net/http"
       require "uri"
       require "fileutils"
@@ -148,6 +149,8 @@ module Plushie
         FileUtils.mkdir_p(dir)
         dest = File.join(dir, binary_name)
       end
+
+      return dest if File.exist?(dest) && !force
 
       warn "Downloading plushie #{version} for #{os_name}-#{arch_name}..."
 
