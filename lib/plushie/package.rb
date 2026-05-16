@@ -63,7 +63,6 @@ module Plushie
       project_dir = File.expand_path(project_dir)
       output_dir = File.expand_path(output_dir, project_dir)
       payload_dir = File.join(output_dir, "payload")
-      app_dir = File.join(payload_dir, "app")
       ruby_dir = File.join(payload_dir, "ruby")
       archive_path = File.join(output_dir, "payload.tar.zst")
 
@@ -74,10 +73,9 @@ module Plushie
       start_config = resolve_start_config(project_dir, package_config, entrypoint)
 
       FileUtils.rm_rf(output_dir)
-      FileUtils.mkdir_p(File.join(app_dir, "bin"))
-      FileUtils.mkdir_p(File.join(app_dir, "lib"))
-      FileUtils.mkdir_p(File.join(app_dir, ".bundle"))
       FileUtils.mkdir_p(File.join(payload_dir, "bin"))
+      FileUtils.mkdir_p(File.join(payload_dir, "lib"))
+      FileUtils.mkdir_p(File.join(payload_dir, ".bundle"))
       FileUtils.mkdir_p(ruby_dir)
 
       copy_ruby_runtime!(
@@ -86,8 +84,8 @@ module Plushie
         root: ruby_root,
         version: ruby_version
       )
-      copy_app!(project_dir, payload_dir, app_dir, start_config, entrypoint, sdk_source_path)
-      install_runtime_gems!(app_dir, bundle_without)
+      copy_app!(project_dir, payload_dir, start_config, entrypoint, sdk_source_path)
+      install_runtime_gems!(payload_dir, bundle_without)
       install_renderer!(renderer.fetch(:source_path), File.join(payload_dir, renderer.fetch(:payload_path)))
       package_icon_path = install_package_icons!(payload_dir, project_dir, icon_path)
       dereference_payload_symlinks!(payload_dir)
@@ -241,7 +239,7 @@ module Plushie
     def default_source_config(entrypoint = "bin/connect")
       PackageSourceConfig.new(
         start: PackageStartConfig.new(
-          working_dir: "app",
+          working_dir: ".",
           command: start_command(entrypoint),
           forward_env: DEFAULT_FORWARD_ENV
         )
@@ -527,7 +525,7 @@ module Plushie
       return config.start if config
 
       start = PackageStartConfig.new(
-        working_dir: "app",
+        working_dir: ".",
         command: start_command(entrypoint),
         forward_env: DEFAULT_FORWARD_ENV
       )
@@ -574,23 +572,19 @@ module Plushie
       root
     end
 
-    def copy_app!(project_dir, payload_dir, app_dir, start_config, entrypoint, sdk_source_path)
-      copy_required_path(File.join(project_dir, "lib"), File.join(app_dir, "lib"))
-      if start_config.command == start_command(entrypoint)
-        copy_entrypoint!(project_dir, app_dir, entrypoint)
-      else
-        copy_entrypoint!(project_dir, payload_dir, start_config.command.fetch(0))
-      end
+    def copy_app!(project_dir, payload_dir, start_config, entrypoint, sdk_source_path)
+      copy_required_path(File.join(project_dir, "lib"), File.join(payload_dir, "lib"))
+      copy_entrypoint!(project_dir, payload_dir, start_config.command.fetch(0))
 
       if sdk_source_path && !sdk_source_path.empty? && File.directory?(File.join(sdk_source_path, "lib", "plushie"))
         puts "Using local plushie SDK from #{sdk_source_path}"
-        vendor_dir = File.join(app_dir, "vendor", "plushie-ruby")
+        vendor_dir = File.join(payload_dir, "vendor", "plushie-ruby")
         FileUtils.mkdir_p(vendor_dir)
         copy_dir_contents(sdk_source_path, vendor_dir)
         FileUtils.rm_rf(File.join(vendor_dir, ".git"))
-        File.write(File.join(app_dir, "Gemfile"), local_sdk_gemfile)
+        File.write(File.join(payload_dir, "Gemfile"), local_sdk_gemfile)
       else
-        copy_required_path(File.join(project_dir, "Gemfile"), File.join(app_dir, "Gemfile"))
+        copy_required_path(File.join(project_dir, "Gemfile"), File.join(payload_dir, "Gemfile"))
       end
     end
 

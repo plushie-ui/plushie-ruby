@@ -31,7 +31,7 @@ class TestPackage < Minitest::Test
         renderer_kind: "custom",
         renderer_path: "bin/plushie-renderer",
         start_command: ["ruby/bin/ruby", "bin/connect"],
-        working_dir: "app",
+        working_dir: ".",
         payload_archive: archive
       )
 
@@ -45,7 +45,7 @@ class TestPackage < Minitest::Test
       assert_includes toml, "host_sdk_version = \"#{Plushie::VERSION}\""
       assert_includes toml, "plushie_rust_version = \"#{Plushie::PLUSHIE_RUST_VERSION}\""
       assert_includes toml, "protocol_version = #{Plushie::Protocol::PROTOCOL_VERSION}"
-      assert_includes toml, "[start]\nworking_dir = \"app\""
+      assert_includes toml, "[start]\nworking_dir = \".\""
       assert_includes toml, 'command = ["ruby/bin/ruby", "bin/connect"]'
       assert_includes(
         toml,
@@ -102,7 +102,7 @@ class TestPackage < Minitest::Test
 
     assert_includes text, "config_version = 1"
     assert_includes text, "[start]"
-    assert_includes text, 'working_dir = "app"'
+    assert_includes text, 'working_dir = "."'
     assert_includes text, '"bin/connect"'
     assert_includes text, '"WAYLAND_DISPLAY"'
   end
@@ -197,7 +197,7 @@ class TestPackage < Minitest::Test
     Dir.mktmpdir do |tmpdir|
       config = P.resolve_start_config(tmpdir, nil, "bin/connect")
 
-      assert_equal "app", config.working_dir
+      assert_equal ".", config.working_dir
       assert_equal P.start_command("bin/connect"), config.command
       assert_equal P::DEFAULT_FORWARD_ENV, config.forward_env
     end
@@ -608,7 +608,6 @@ class TestPackage < Minitest::Test
     Dir.mktmpdir do |tmpdir|
       project = File.join(tmpdir, "project")
       payload = File.join(tmpdir, "payload")
-      app = File.join(payload, "app")
       FileUtils.mkdir_p(File.join(project, "lib"))
       FileUtils.mkdir_p(File.join(project, "bin"))
       File.write(File.join(project, "Gemfile"), "source \"https://rubygems.org\"\n")
@@ -619,10 +618,10 @@ class TestPackage < Minitest::Test
         forward_env: []
       )
 
-      P.copy_app!(project, payload, app, start, "bin/connect", nil)
+      P.copy_app!(project, payload, start, "bin/connect", nil)
 
       assert File.exist?(File.join(payload, "bin", "notes"))
-      refute File.exist?(File.join(app, "bin", "connect"))
+      refute File.exist?(File.join(payload, "bin", "connect"))
     end
   end
 
