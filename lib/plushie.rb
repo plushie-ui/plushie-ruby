@@ -271,12 +271,55 @@ module Plushie
   # Uses PLUSHIE_SOCKET when present. Otherwise starts the renderer as a
   # child process through normal binary resolution, including
   # PLUSHIE_BINARY_PATH.
+  #
+  # Token resolution precedence:
+  #   1. Explicit +token:+ keyword argument
+  #   2. +PLUSHIE_TOKEN+ environment variable
+  #   3. Single JSON line read from stdin with a 1-second timeout
+  #
+  # When a socket is present but no token can be resolved, raises with
+  # a clear error message rather than silently connecting without one.
   def self.connect(app_class, socket: ENV["PLUSHIE_SOCKET"], token: ENV["PLUSHIE_TOKEN"], format: :msgpack)
     if socket.nil? || socket.empty?
       return run(app_class, token: token, format: format)
     end
 
+    if token.nil? || token.empty?
+      token = read_token_from_stdin
+      if token.nil?
+        raise Error, "renderer-parent token not provided: pass token, set PLUSHIE_TOKEN, or write a JSON token line on stdin"
+      end
+    end
+
     adapter = Transport::SocketAdapter.connect(socket)
     run(app_class, transport: [:iostream, adapter], token: token, format: format)
+  end
+
+  # Try to read a JSON token line from stdin within +timeout+ seconds.
+  #
+  # Returns the token string on success, or +nil+ if stdin is closed or
+  # the timeout expires with no data.
+  #
+  # Raises +Error+ if data arrives but cannot be parsed as a JSON object
+  # with a "token" string key.
+  def self.read_token_from_stdin(timeout: 1.0)
+    require "json"
+    ready = IO.select([$stdin], nil, nil, timeout)
+    return nil if ready.nil?
+
+    line = $stdin.gets
+    return nil if line.nil? || line.strip.empty?
+
+    begin
+      obj = JSON.parse(line.strip)
+    rescue JSON::ParserError
+      raise Error, "renderer-parent token stdin must be JSON object with 'token' string"
+    end
+
+    unless obj.is_a?(Hash) && obj["token"].is_a?(String)
+      raise Error, "renderer-parent token stdin must be JSON object with 'token' string"
+    end
+
+    obj["token"]
   end
 end

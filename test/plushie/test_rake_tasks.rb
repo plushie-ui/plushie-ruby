@@ -7,6 +7,9 @@ require "plushie/package"
 require "plushie/rake"
 
 class TestRakeTasks < Minitest::Test
+  class FakeApp
+  end
+
   def setup
     @original_artifacts = Plushie.configuration.artifacts
     @original_bin_file = Plushie.configuration.bin_file
@@ -95,6 +98,26 @@ class TestRakeTasks < Minitest::Test
   def test_connect_task_has_description
     desc = Rake::Task["plushie:connect"].comment
     assert_includes desc, "Connect"
+  end
+
+  def test_connect_task_delegates_to_plushie_connect
+    calls = []
+    Plushie.stub(:connect, ->(app_class, **opts) { calls << [app_class, opts] }) do
+      Rake::Task["plushie:connect"].reenable
+      capture_io { Rake::Task["plushie:connect"].invoke("TestRakeTasks::FakeApp") }
+    end
+    assert_equal 1, calls.length
+    assert_equal FakeApp, calls.first.first
+  end
+
+  def test_connect_task_aborts_on_plushie_error
+    Plushie.stub(:connect, ->(*_) { raise Plushie::Error, "token missing" }) do
+      Rake::Task["plushie:connect"].reenable
+      err = assert_raises(SystemExit) do
+        capture_io { Rake::Task["plushie:connect"].invoke("TestRakeTasks::FakeApp") }
+      end
+      assert_equal 1, err.status
+    end
   end
 
   def test_package_task_has_description

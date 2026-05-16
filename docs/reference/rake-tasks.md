@@ -369,6 +369,22 @@ rake 'plushie:connect[Counter]'
 `app_class` is required; the task aborts with a usage message when
 omitted.
 
+### Token resolution
+
+When `PLUSHIE_SOCKET` is set, a negotiation token is required. The task
+resolves it in priority order:
+
+1. `PLUSHIE_TOKEN` environment variable
+2. A single JSON line read from stdin with a 1-second timeout, parsed
+   as `{"token": "..."}`. This fallback handles renderer-parent launches
+   where environment forwarding is unavailable (SSH exec, sandboxed
+   spawns).
+
+If no token can be resolved, the task exits with a clear error message.
+If stdin provides data that is not a valid JSON object with a `"token"`
+string, it also exits with an error rather than silently connecting with
+a bad token.
+
 The typical pattern is to run the renderer with structured exec args
 that launches this task:
 

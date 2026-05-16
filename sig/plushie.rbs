@@ -32,6 +32,11 @@ module Plushie
     ?format: Symbol
   ) -> void
 
+  # Read a JSON token line from stdin with an optional timeout (seconds).
+  # Returns the token string, or nil if stdin is closed or the timeout expires.
+  # Raises Error if data arrives but is not a JSON object with a "token" string.
+  def self.read_token_from_stdin: (?timeout: Float) -> String?
+
   # Start a Plushie app in the background. Returns a runtime handle.
   def self.start: (singleton(App) app_class, **untyped opts) -> Runtime
 end

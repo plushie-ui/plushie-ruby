@@ -111,10 +111,10 @@ namespace :plushie do
     require "plushie"
     app_class = Object.const_get(args[:app_class])
     format = (ENV["PLUSHIE_FORMAT"] == "json") ? :json : :msgpack
-    if ENV["PLUSHIE_SOCKET"] && !ENV["PLUSHIE_SOCKET"].empty?
+    begin
       Plushie.connect(app_class, format: format)
-    else
-      Plushie.run(app_class, format: format)
+    rescue Plushie::Error => e
+      abort e.message
     end
   end
 
