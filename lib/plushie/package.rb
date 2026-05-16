@@ -8,6 +8,7 @@ require "open3"
 require "optparse"
 require "pathname"
 require "rbconfig"
+require "securerandom"
 
 require_relative "../plushie"
 
@@ -776,7 +777,7 @@ module Plushie
       target = File.expand_path(target, File.dirname(link)) unless target.start_with?(File::SEPARATOR)
       raise Error, "payload symlink target is missing: #{link}" unless File.exist?(target)
 
-      tmp = "#{link}.deref.#{$$}"
+      tmp = "#{link}.deref.#{SecureRandom.hex(8)}"
       FileUtils.rm_rf(tmp)
       if File.directory?(target)
         FileUtils.mkdir_p(tmp)
