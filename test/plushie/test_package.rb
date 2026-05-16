@@ -3,6 +3,16 @@
 require "test_helper"
 require "tmpdir"
 require "plushie/package"
+require "plushie/widget/native_build"
+
+# Minimal native widget used only by package rejection tests.
+class FakeNativeWidgetForPackageTest
+  include Plushie::Widget
+
+  widget :fake_native_pkg, kind: :native_widget
+  rust_crate "native/fake"
+  rust_constructor "fake::Fake::new()"
+end
 
 class TestPackage < Minitest::Test
   P = Plushie::Package
@@ -133,6 +143,24 @@ class TestPackage < Minitest::Test
       refute_includes toml, "[payload]"
       refute_includes toml, "working_dir"
       refute_includes toml, "forward_env"
+    end
+  end
+
+  def test_resolve_renderer_rejects_stock_with_native_widgets
+    # A stock renderer cannot embed native (Rust-backed) widgets.
+    # The check must fire before any payload directory is created.
+    Dir.mktmpdir do |tmpdir|
+      output_dir = File.join(tmpdir, "dist")
+
+      with_env("PLUSHIE_WIDGETS" => "FakeNativeWidgetForPackageTest") do
+        error = assert_raises(Plushie::Error) do
+          P.resolve_renderer!(kind: "stock")
+        end
+
+        assert_match(/Native widget packaging requires a custom renderer/, error.message)
+        assert_match(/--renderer-kind custom/, error.message)
+        refute File.exist?(output_dir), "payload directory must not be created before the check fails"
+      end
     end
   end
 

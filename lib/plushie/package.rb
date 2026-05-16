@@ -8,6 +8,7 @@ require "pathname"
 require "rbconfig"
 
 require_relative "../plushie"
+require_relative "widget/native_build"
 
 module Plushie
   # Standalone package payload and manifest helpers.
@@ -179,7 +180,15 @@ module Plushie
       File.write(path, render_source_config(config))
     end
 
+    def app_has_native_widgets?
+      Plushie::Widget::NativeBuild.configured_widgets.any?
+    end
+
     def resolve_renderer!(path: nil, kind: "stock")
+      if kind == "stock" && app_has_native_widgets?
+        raise Error, "Native widget packaging requires a custom renderer. Use --renderer-kind custom."
+      end
+
       source_path = nil
 
       if path && !path.empty?
