@@ -17,7 +17,10 @@
 #   plushie:preflight: run all CI checks
 
 require "fileutils"
+require "pathname"
 require "rake"
+
+require_relative "git_ignore_check"
 
 namespace :plushie do
   desc "Download precompiled plushie binary and/or WASM (args: force; config: artifacts, bin_file, wasm_dir)"
@@ -45,6 +48,7 @@ namespace :plushie do
           Plushie::Binary.sync_renderer_with_tool!(force: force)
         end
         puts "Downloaded plushie binary to #{dest}"
+        Plushie::GitIgnoreCheck.warn_if_unignored(File.dirname(dest))
       end
     end
 
@@ -127,10 +131,16 @@ namespace :plushie do
     overrides[:app_name] = args[:app_name] if args[:app_name]
     overrides[:app_version] = args[:app_version] if args[:app_version]
 
-    begin
+    result = begin
       Plushie::Package.build_from_env(overrides)
     rescue Plushie::Error => e
       abort e.message
+    end
+
+    output_dir = result.is_a?(Hash) ? result[:output_dir] : nil
+    if output_dir
+      relative = Pathname.new(output_dir).relative_path_from(Pathname.new(Dir.pwd)).to_s
+      Plushie::GitIgnoreCheck.warn_if_unignored(relative)
     end
   end
 

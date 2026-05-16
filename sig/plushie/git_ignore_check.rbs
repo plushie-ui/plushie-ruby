@@ -1,0 +1,7 @@
+module Plushie
+  module GitIgnoreCheck
+    def self.warn_if_unignored: (String path) -> void
+    def self.inside_work_tree?: () -> bool
+    def self.ignored?: (String path) -> bool
+  end
+end

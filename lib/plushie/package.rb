@@ -170,6 +170,13 @@ module Plushie
         "# Structured argv. The first item is the POSIX entry point.",
         "# On windows-* targets the SDK automatically uses bin/connect.cmd.",
         "command = #{toml_array(config.command)}",
+        "",
+        "# [assets]",
+        "# # Project-relative directory copied verbatim into the payload root",
+        "# # during package assembly. When this section is absent, a directory",
+        "# # named `package_assets/` next to this config file is used by",
+        "# # convention if it exists.",
+        "# dir = \"package_assets\"",
         ""
       ]
       lines.join("\n")

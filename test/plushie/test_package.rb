@@ -125,6 +125,23 @@ class TestPackage < Minitest::Test
     end
   end
 
+  def test_render_source_config_includes_start_block
+    toml = P.render_source_config
+    assert_includes toml, "config_version = 1"
+    assert_includes toml, "[start]"
+    assert_includes toml, 'command = ["bin/connect"]'
+  end
+
+  def test_render_source_config_includes_commented_assets_block
+    toml = P.render_source_config
+    assert_includes toml, "# [assets]"
+    assert_includes toml, '# dir = "package_assets"'
+    # The block must be commented out by default so absence of the
+    # section triggers the package_assets/ convention.
+    refute_match(/^\[assets\]/, toml)
+    refute_match(/^dir = /, toml)
+  end
+
   def test_partial_manifest_has_no_payload_section
     Dir.mktmpdir do |tmpdir|
       path = File.join(tmpdir, "plushie-package.toml")
