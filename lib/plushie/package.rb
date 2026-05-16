@@ -669,24 +669,6 @@ module Plushie
         "#{MAX_DEREF_ITERATIONS} iterations; possible symlink cycle in payload"
     end
 
-    def renderer_from_source_path
-      source_path = ENV["PLUSHIE_RUST_SOURCE_PATH"]
-      return nil if source_path.nil? || source_path.empty?
-
-      manifest = File.join(source_path, "Cargo.toml")
-      unless File.file?(manifest)
-        raise Error, "PLUSHIE_RUST_SOURCE_PATH does not look like a Rust workspace: #{source_path}"
-      end
-
-      require_command("cargo")
-      puts "Building plushie-renderer from #{source_path}"
-      target_dir = File.expand_path(File.join("build", "plushie-package-target"), Dir.pwd)
-      Dir.chdir(source_path) do
-        run!(["cargo", "build", "--release", "-p", "plushie-renderer", "--target-dir", target_dir])
-      end
-      File.join(target_dir, "release", "plushie-renderer#{RbConfig::CONFIG.fetch("EXEEXT")}")
-    end
-
     def validate_renderer!(path)
       raise Error, "Renderer binary not found at #{path}" unless File.exist?(path)
 
