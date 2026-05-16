@@ -191,20 +191,18 @@ class TestRakeTasks < Minitest::Test
     end
   end
 
-  def test_package_task_prints_portable_handoff
-    result = {
-      archive_path: "dist/payload.tar.zst",
-      manifest_path: "dist/plushie-package.toml"
-    }
+  def test_package_task_invokes_build_from_env
+    result = {manifest_path: "dist/plushie-package.toml"}
+    called_with = nil
 
-    with_package_method(:build_from_env, result) do
-      stdout, = capture_io do
-        Rake::Task["plushie:package"].invoke("dev.plushie.notes")
-      end
-
-      assert_includes stdout, "Build launcher with:"
-      assert_includes stdout, "  bin/plushie package portable --manifest dist/plushie-package.toml"
+    with_package_method(:build_from_env, ->(overrides) {
+      called_with = overrides
+      result
+    }) do
+      Rake::Task["plushie:package"].invoke("dev.plushie.notes")
     end
+
+    assert_equal "dev.plushie.notes", called_with[:app_id]
   end
 
   private

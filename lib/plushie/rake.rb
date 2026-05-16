@@ -128,15 +128,10 @@ namespace :plushie do
     overrides[:app_version] = args[:app_version] if args[:app_version]
 
     begin
-      result = Plushie::Package.build_from_env(overrides)
+      Plushie::Package.build_from_env(overrides)
     rescue Plushie::Error => e
       abort e.message
     end
-
-    puts "Wrote #{result.fetch(:archive_path)}"
-    puts "Wrote #{result.fetch(:manifest_path)}"
-    puts "Build launcher with:"
-    puts "  #{Plushie::Package.portable_package_command(result.fetch(:manifest_path)).join(" ")}"
   end
 
   desc "Print the initial UI tree as JSON"

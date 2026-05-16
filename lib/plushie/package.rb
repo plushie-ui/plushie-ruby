@@ -1,46 +1,25 @@
 # frozen_string_literal: true
 
-require "digest"
 require "fileutils"
-require "find"
 require "json"
 require "open3"
 require "optparse"
 require "pathname"
 require "rbconfig"
-require "securerandom"
 
 require_relative "../plushie"
 
 module Plushie
   # Standalone package payload and manifest helpers.
   module Package
-    DEFAULT_ICON_PATH = "assets/default-app-icon-512.png"
-    DEFAULT_FORWARD_ENV = [
-      "PATH",
-      "HOME",
-      "LANG",
-      "LC_ALL",
-      "XDG_RUNTIME_DIR",
-      "WAYLAND_DISPLAY",
-      "DISPLAY"
-    ].freeze
     SOURCE_CONFIG = "plushie-package.config.toml"
-    SOURCE_CONFIG_VERSION = 1
     RESERVED_FORWARD_ENV = [
       "PLUSHIE_BINARY_PATH",
       "PLUSHIE_PACKAGE_DIR",
       "PLUSHIE_PACKAGE_READY_FILE"
     ].freeze
 
-    PackageStartConfig = Data.define(:working_dir, :command, :forward_env)
-    PackagePlatformMacosConfig = Data.define(:bundle_version)
-    PackagePlatformWindowsConfig = Data.define(:install_scope)
-    PackagePlatformConfig = Data.define(
-      :publisher, :copyright, :category, :description, :bundle_id,
-      :macos, :windows
-    )
-    PackageSourceConfig = Data.define(:start, :platform)
+    PackageStartConfig = Data.define(:command)
 
     module_function
 
@@ -64,22 +43,18 @@ module Plushie
     )
       require_command("bundle")
       require_command("ruby")
-      require_command("tar")
 
       project_dir = File.expand_path(project_dir)
       output_dir = File.expand_path(output_dir, project_dir)
       payload_dir = File.join(output_dir, "payload")
       ruby_dir = File.join(payload_dir, "ruby")
-      archive_path = File.join(output_dir, "payload.tar.zst")
 
       renderer = resolve_renderer!(
         path: renderer_path,
         kind: renderer_kind
       )
       resolved_target = target || package_target
-      source_config = load_effective_source_config(project_dir, package_config)
-      start_config = resolve_start_config_from(source_config, entrypoint, resolved_target)
-      source_platform = source_config&.platform
+      start_command = start_command(entrypoint, resolved_target)
 
       FileUtils.rm_rf(output_dir)
       FileUtils.mkdir_p(File.join(payload_dir, "bin"))
@@ -93,39 +68,35 @@ module Plushie
         root: ruby_root,
         version: ruby_version
       )
-      copy_app!(project_dir, payload_dir, start_config, entrypoint, sdk_source_path, resolved_target)
+      copy_app!(project_dir, payload_dir, entrypoint, sdk_source_path, resolved_target)
       install_runtime_gems!(payload_dir, bundle_without)
       install_renderer!(renderer.fetch(:source_path), File.join(payload_dir, renderer.fetch(:payload_path)))
-      package_icon_path = install_package_icons!(payload_dir, project_dir, icon_path)
-      dereference_payload_symlinks!(payload_dir)
 
-      archive_payload!(payload_dir, archive_path)
-
-      manifest = manifest_for_payload(
+      manifest_path = File.join(output_dir, "plushie-package.toml")
+      write_partial_manifest(
+        manifest_path,
         app_id: app_id,
         app_name: app_name,
         app_version: app_version,
         target: resolved_target,
         renderer_kind: renderer.fetch(:kind),
         renderer_path: renderer.fetch(:payload_path),
-        icon_path: package_icon_path,
-        start_command: start_config.command,
-        working_dir: start_config.working_dir,
-        forward_env: start_config.forward_env,
-        payload_archive: archive_path,
-        source_platform: source_platform
+        start_command: start_command
       )
 
-      manifest_path = File.join(output_dir, "plushie-package.toml")
-      write_manifest(manifest_path, manifest)
+      assemble_args = [
+        File.join("bin", Binary.tool_name),
+        "package", "assemble",
+        "--manifest", manifest_path,
+        "--payload-dir", payload_dir
+      ]
+      assemble_args.concat(["--package-config", File.expand_path(package_config, project_dir)]) if package_config && !package_config.empty?
+      run!(assemble_args)
 
       {
         output_dir: output_dir,
         payload_dir: payload_dir,
-        archive_path: archive_path,
-        manifest_path: manifest_path,
-        payload_hash: manifest.fetch(:payload_hash),
-        payload_size: manifest.fetch(:payload_size)
+        manifest_path: manifest_path
       }
     end
 
@@ -152,116 +123,30 @@ module Plushie
       normalize_package_target(RbConfig::CONFIG.fetch("host_os"), RbConfig::CONFIG.fetch("host_cpu"))
     end
 
-    def sha256_file(path)
-      digest = Digest::SHA256.new
-      File.open(path, "rb") do |file|
-        while (chunk = file.read(1024 * 1024))
-          digest.update(chunk)
-        end
-      end
-      digest.hexdigest
-    end
-
-    def file_size(path)
-      File.size(path)
-    end
-
-    def manifest_for_payload(
-      app_id:,
-      app_version:,
-      renderer_path:,
-      start_command:,
-      payload_archive:,
-      app_name: nil,
-      target: nil,
-      renderer_kind: "stock",
-      icon_path: nil,
-      working_dir: ".",
-      forward_env: DEFAULT_FORWARD_ENV,
-      source_platform: nil
-    )
-      archive_path = File.expand_path(payload_archive)
-      manifest = {
-        app_id: app_id,
-        app_name: app_name,
-        app_version: app_version,
-        target: target || package_target,
-        renderer: {
-          kind: renderer_kind,
-          path: renderer_path
-        },
-        start_command: start_command,
-        working_dir: working_dir,
-        forward_env: forward_env,
-        payload_archive: File.basename(archive_path),
-        payload_hash: sha256_file(archive_path),
-        payload_size: file_size(archive_path)
-      }
-      platform = build_manifest_platform(icon_path, source_platform)
-      manifest[:platform] = platform if platform
-      manifest
-    end
-
-    def render_manifest(manifest)
+    def write_partial_manifest(path, app_id:, app_version:, renderer_path:, start_command:, app_name: nil, target: nil, renderer_kind: "stock")
       lines = [
         "schema_version = 1",
-        "app_id = #{toml_string(manifest.fetch(:app_id))}"
+        "app_id = #{toml_string(app_id)}"
       ]
-      app_name = manifest[:app_name]
       lines << "app_name = #{toml_string(app_name)}" if app_name
       lines.concat([
-        "app_version = #{toml_string(manifest.fetch(:app_version))}",
-        "target = #{toml_string(manifest.fetch(:target))}",
+        "app_version = #{toml_string(app_version)}",
+        "target = #{toml_string(target || package_target)}",
         "host_sdk = \"ruby\"",
         "host_sdk_version = #{toml_string(Plushie::VERSION)}",
         "plushie_rust_version = #{toml_string(Plushie::PLUSHIE_RUST_VERSION)}",
         "protocol_version = #{Plushie::Protocol::PROTOCOL_VERSION}",
         "",
         "[start]",
-        "working_dir = #{toml_string(manifest.fetch(:working_dir))}",
-        "command = #{toml_array(manifest.fetch(:start_command))}",
-        "forward_env = #{toml_array(manifest.fetch(:forward_env))}"
-      ])
-      if (platform = manifest[:platform])
-        platform_lines = []
-        platform_lines << "icon = #{toml_string(platform[:icon])}" if platform[:icon] && !platform[:icon].empty?
-        platform_lines << "publisher = #{toml_string(platform[:publisher])}" if platform[:publisher]
-        platform_lines << "copyright = #{toml_string(platform[:copyright])}" if platform[:copyright]
-        platform_lines << "category = #{toml_string(platform[:category])}" if platform[:category]
-        platform_lines << "description = #{toml_string(platform[:description])}" if platform[:description]
-        platform_lines << "bundle_id = #{toml_string(platform[:bundle_id])}" if platform[:bundle_id]
-        unless platform_lines.empty? && !platform[:macos] && !platform[:windows]
-          lines.concat(["", "[platform]", *platform_lines])
-        end
-        if (macos = platform[:macos])
-          macos_lines = []
-          macos_lines << "bundle_version = #{toml_string(macos[:bundle_version])}" if macos[:bundle_version]
-          lines.concat(["", "[platform.macos]", *macos_lines]) unless macos_lines.empty?
-        end
-        if (windows = platform[:windows])
-          windows_lines = []
-          windows_lines << "install_scope = #{toml_string(windows[:install_scope])}" if windows[:install_scope]
-          lines.concat(["", "[platform.windows]", *windows_lines]) unless windows_lines.empty?
-        end
-      end
-      lines.concat([
+        "command = #{toml_array(start_command)}",
         "",
         "[renderer]",
-        "path = #{toml_string(manifest.fetch(:renderer).fetch(:path))}",
-        "kind = #{toml_string(manifest.fetch(:renderer).fetch(:kind))}",
-        "",
-        "[payload]",
-        "archive = #{toml_string(manifest.fetch(:payload_archive))}",
-        "hash = #{toml_string("sha256:#{manifest.fetch(:payload_hash)}")}",
-        "size = #{manifest.fetch(:payload_size)}",
+        "path = #{toml_string(renderer_path)}",
+        "kind = #{toml_string(renderer_kind)}",
         ""
       ])
-      lines.join("\n")
-    end
-
-    def write_manifest(path, manifest)
       FileUtils.mkdir_p(File.dirname(path))
-      File.write(path, render_manifest(manifest))
+      File.write(path, lines.join("\n"))
     end
 
     def default_source_config_path(project_dir)
@@ -269,184 +154,29 @@ module Plushie
     end
 
     def default_source_config(entrypoint = "bin/connect")
-      PackageSourceConfig.new(
-        start: PackageStartConfig.new(
-          working_dir: ".",
-          command: [entrypoint],
-          forward_env: DEFAULT_FORWARD_ENV
-        ),
-        platform: nil
-      )
+      PackageStartConfig.new(command: [entrypoint])
     end
 
     def render_source_config(config = default_source_config)
-      validate_source_config!(config)
       lines = [
         "# Plushie standalone package config.",
         "# Commit this file and edit it when the packaged app needs a",
-        "# different entry point, working directory, or forwarded environment.",
+        "# different entry point or working directory.",
         "",
         "config_version = 1",
         "",
         "[start]",
-        "# Relative to the extracted app package.",
-        "working_dir = #{toml_string(config.start.working_dir)}",
         "# Structured argv. The first item is the POSIX entry point.",
         "# On windows-* targets the SDK automatically uses bin/connect.cmd.",
-        "command = #{toml_array(config.start.command)}",
-        "# Environment variable names copied from the parent process.",
-        "forward_env = ["
-      ]
-      lines.concat(config.start.forward_env.map { |name| "  #{toml_string(name)}," })
-      lines.concat([
-        "]",
-        "",
-        "# Optional platform metadata. Remove the comment prefix to activate.",
-        "# [platform]",
-        "# publisher = \"Example Corp\"",
-        "# copyright = \"Copyright 2025 Example Corp\"",
-        "# category = \"Productivity\"",
-        "# description = \"A short description of the application.\"",
-        "# bundle_id = \"com.example.myapp\"",
-        "#",
-        "# [platform.macos]",
-        "# bundle_version = \"1\"  # CFBundleVersion, usually an integer string",
-        "#",
-        "# [platform.windows]",
-        "# install_scope = \"perUser\"  # \"perUser\" or \"perMachine\"",
+        "command = #{toml_array(config.command)}",
         ""
-      ])
+      ]
       lines.join("\n")
     end
 
     def write_source_config(path, config = default_source_config)
       FileUtils.mkdir_p(File.dirname(path))
       File.write(path, render_source_config(config))
-    end
-
-    def load_source_config(path)
-      parse_source_config(File.read(path))
-    rescue SystemCallError => e
-      raise Error, "failed to read package config #{path}: #{e.message}"
-    end
-
-    def load_default_source_config(project_dir)
-      path = default_source_config_path(project_dir)
-      return nil unless File.file?(path)
-
-      load_source_config(path)
-    end
-
-    def parse_source_config(text)
-      document = parse_source_config_document(text)
-      version = document.fetch(:config_version) do
-        raise Error, "package config missing config_version"
-      end
-      unless version == SOURCE_CONFIG_VERSION
-        raise Error, "unsupported package config config_version #{version}"
-      end
-
-      start = document.fetch(:start) do
-        raise Error, "package config missing [start]"
-      end
-      platform = build_platform_config(document[:platform], document[:platform_macos], document[:platform_windows])
-      config = PackageSourceConfig.new(
-        start: PackageStartConfig.new(
-          working_dir: start.fetch(:working_dir),
-          command: start.fetch(:command),
-          forward_env: start.fetch(:forward_env)
-        ),
-        platform: platform
-      )
-      validate_source_config!(config)
-      config
-    rescue KeyError => e
-      raise Error, "package config missing #{e.key}"
-    end
-
-    def validate_source_config!(config)
-      validate_start_config!(config.start)
-      validate_platform_config!(config.platform) if config.platform
-      config
-    end
-
-    def validate_start_config!(start)
-      validate_payload_relative_path!("start.working_dir", start.working_dir, allow_dot: true)
-      unless start.command.is_a?(Array) && !start.command.empty? && start.command.all? { |arg| arg.is_a?(String) && !arg.empty? }
-        raise Error, "start.command must contain a non-empty argv"
-      end
-      validate_payload_relative_path!("start.command[0]", start.command.fetch(0), allow_dot: false)
-      unless start.forward_env.is_a?(Array) && start.forward_env.all? { |name| valid_forward_env_name?(name) }
-        raise Error, "start.forward_env must contain only non-empty variable names without comma or equals"
-      end
-      if start.forward_env.any? { |name| RESERVED_FORWARD_ENV.include?(name) }
-        raise Error, "start.forward_env must not include launcher-owned package variables"
-      end
-      start
-    end
-
-    def validate_platform_config!(platform)
-      [
-        [:publisher, "platform.publisher"],
-        [:copyright, "platform.copyright"],
-        [:category, "platform.category"],
-        [:description, "platform.description"],
-        [:bundle_id, "platform.bundle_id"]
-      ].each do |field, name|
-        value = platform.public_send(field)
-        raise Error, "#{name} must not be empty" if value && value.strip.empty?
-      end
-      if platform.macos
-        value = platform.macos.bundle_version
-        raise Error, "platform.macos.bundle_version must not be empty" if value && value.strip.empty?
-      end
-      if platform.windows
-        scope = platform.windows.install_scope
-        raise Error, "platform.windows.install_scope must not be empty" if scope && scope.strip.empty?
-        unless scope.nil? || scope == "perUser" || scope == "perMachine"
-          raise Error, "platform.windows.install_scope must be \"perUser\" or \"perMachine\""
-        end
-      end
-      platform
-    end
-
-    def archive_payload!(payload_dir, archive_path)
-      validate_payload_archive_inputs!(payload_dir)
-      FileUtils.mkdir_p(File.dirname(archive_path))
-
-      tar = archive_tar!
-      args = [
-        "-C", payload_dir,
-        "--sort=name",
-        "--mtime=UTC 1970-01-01",
-        "--owner=0",
-        "--group=0",
-        "--numeric-owner"
-      ]
-
-      if tar_supports_zstd?(tar)
-        run!([tar, *args, "--zstd", "-cf", archive_path, "."])
-      elsif command_available?("zstd")
-        statuses = Open3.pipeline([tar, *args, "-cf", "-", "."], ["zstd", "-q", "-o", archive_path])
-        raise Error, "payload archive pipeline failed" unless statuses.all?(&:success?)
-      else
-        raise Error, "missing required command: zstd"
-      end
-    end
-
-    def validate_payload_archive_inputs!(payload_dir)
-      Find.find(payload_dir) do |path|
-        next if path == payload_dir
-
-        stat = File.lstat(path)
-        if stat.symlink?
-          raise Error, "payload contains unsupported symlink: #{relative_payload_path(payload_dir, path)}"
-        elsif stat.chardev? || stat.blockdev? || stat.socket? || stat.pipe?
-          raise Error, "payload contains unsupported special file: #{relative_payload_path(payload_dir, path)}"
-        elsif stat.file? && stat.nlink > 1
-          raise Error, "payload contains unsupported hard-linked file: #{relative_payload_path(payload_dir, path)}"
-        end
-      end
     end
 
     def resolve_renderer!(path: nil, kind: "stock")
@@ -539,14 +269,7 @@ module Plushie
       raise Error, "--app-id is required" unless options[:app_id]
 
       result = build(**options)
-      puts "Wrote #{result.fetch(:archive_path)}"
       puts "Wrote #{result.fetch(:manifest_path)}"
-      puts "Build launcher with:"
-      puts "  #{portable_package_command(result.fetch(:manifest_path)).join(" ")}"
-    end
-
-    def portable_package_command(manifest_path)
-      [File.join("bin", Binary.tool_name), "package", "portable", "--manifest", manifest_path]
     end
 
     def env_value(name, default = nil)
@@ -592,82 +315,6 @@ module Plushie
     def package_option(overrides, key, env_name, default = nil)
       value = overrides[key]
       (value.nil? || value.empty?) ? env_value(env_name, default) : value
-    end
-
-    def resolve_start_config(project_dir, package_config, entrypoint, target = package_target)
-      source_config = load_effective_source_config(project_dir, package_config)
-      resolve_start_config_from(source_config, entrypoint, target)
-    end
-
-    def load_effective_source_config(project_dir, package_config)
-      if package_config && !package_config.empty?
-        load_source_config(File.expand_path(package_config, project_dir))
-      else
-        load_default_source_config(project_dir)
-      end
-    end
-
-    def resolve_start_config_from(source_config, entrypoint, target = package_target)
-      if source_config
-        start = source_config.start
-        if windows_target?(target) && start.command.fetch(0) == entrypoint
-          start = PackageStartConfig.new(
-            working_dir: start.working_dir,
-            command: [connect_cmd_name(entrypoint), *start.command.drop(1)],
-            forward_env: start.forward_env
-          )
-        end
-        return start
-      end
-
-      start = PackageStartConfig.new(
-        working_dir: ".",
-        command: start_command(entrypoint, target),
-        forward_env: DEFAULT_FORWARD_ENV
-      )
-      validate_start_config!(start)
-    end
-
-    def build_manifest_platform(icon_path, source_platform)
-      has_icon = icon_path && !icon_path.empty?
-      has_platform = !source_platform.nil?
-      return nil unless has_icon || has_platform
-
-      platform = {}
-      platform[:icon] = icon_path if has_icon
-      if has_platform
-        platform[:publisher] = source_platform.publisher if source_platform.publisher
-        platform[:copyright] = source_platform.copyright if source_platform.copyright
-        platform[:category] = source_platform.category if source_platform.category
-        platform[:description] = source_platform.description if source_platform.description
-        platform[:bundle_id] = source_platform.bundle_id if source_platform.bundle_id
-        if source_platform.macos
-          platform[:macos] = {}
-          platform[:macos][:bundle_version] = source_platform.macos.bundle_version if source_platform.macos.bundle_version
-        end
-        if source_platform.windows
-          platform[:windows] = {}
-          platform[:windows][:install_scope] = source_platform.windows.install_scope if source_platform.windows.install_scope
-        end
-      end
-      platform.empty? ? nil : platform
-    end
-
-    def build_platform_config(platform_raw, macos_raw, windows_raw)
-      return nil if platform_raw.nil? && macos_raw.nil? && windows_raw.nil?
-
-      macos = macos_raw ? PackagePlatformMacosConfig.new(bundle_version: macos_raw[:bundle_version]) : nil
-      windows = windows_raw ? PackagePlatformWindowsConfig.new(install_scope: windows_raw[:install_scope]) : nil
-
-      PackagePlatformConfig.new(
-        publisher: platform_raw&.fetch(:publisher, nil),
-        copyright: platform_raw&.fetch(:copyright, nil),
-        category: platform_raw&.fetch(:category, nil),
-        description: platform_raw&.fetch(:description, nil),
-        bundle_id: platform_raw&.fetch(:bundle_id, nil),
-        macos: macos,
-        windows: windows
-      )
     end
 
     def start_command(entrypoint, target = package_target)
@@ -731,7 +378,7 @@ module Plushie
       root
     end
 
-    def copy_app!(project_dir, payload_dir, start_config, entrypoint, sdk_source_path, target = package_target)
+    def copy_app!(project_dir, payload_dir, entrypoint, sdk_source_path, target = package_target)
       copy_required_path(File.join(project_dir, "lib"), File.join(payload_dir, "lib"))
       copy_entrypoint!(project_dir, payload_dir, entrypoint, target)
 
@@ -803,63 +450,6 @@ module Plushie
       FileUtils.chmod(0o755, dest_path)
     end
 
-    def install_package_icons!(payload_dir, project_dir, icon_path)
-      assets_dir = File.join(payload_dir, "assets")
-      return DEFAULT_ICON_PATH.tap { materialize_default_icons!(assets_dir) } if icon_path.nil? || icon_path.empty?
-
-      install_app_icon!(project_dir, assets_dir, icon_path)
-    end
-
-    def materialize_default_icons!(assets_dir)
-      FileUtils.mkdir_p(assets_dir)
-      source_path = ENV["PLUSHIE_RUST_SOURCE_PATH"] || Plushie.configuration.source_path
-      if source_path && !source_path.empty?
-        run!([
-          "cargo",
-          "run",
-          "--manifest-path",
-          File.join(source_path, "Cargo.toml"),
-          "-p",
-          "cargo-plushie",
-          "--bin",
-          "plushie",
-          "--release",
-          "--quiet",
-          "--",
-          "default-icons",
-          "--out",
-          assets_dir
-        ])
-      else
-        run!([File.join("bin", Binary.tool_name), "default-icons", "--out", assets_dir])
-      end
-    end
-
-    def install_app_icon!(project_dir, assets_dir, icon_path)
-      source = File.expand_path(icon_path, project_dir)
-      raise Error, "App icon path is missing: #{source}" unless File.file?(source)
-
-      name = File.basename(source)
-      dest = File.join(assets_dir, name)
-      FileUtils.mkdir_p(assets_dir)
-      FileUtils.cp(source, dest)
-      "assets/#{name}"
-    end
-
-    MAX_DEREF_ITERATIONS = 32
-
-    def dereference_payload_symlinks!(payload_dir)
-      MAX_DEREF_ITERATIONS.times do
-        links = symlink_paths(payload_dir)
-        return if links.empty?
-
-        links.each { |link| dereference_symlink!(link) }
-      end
-
-      raise Error, "dereference_payload_symlinks!: still found symlinks after " \
-        "#{MAX_DEREF_ITERATIONS} iterations; possible symlink cycle in payload"
-    end
-
     def validate_renderer!(path)
       raise Error, "Renderer binary not found at #{path}" unless File.exist?(path)
 
@@ -882,55 +472,6 @@ module Plushie
       Dir.children(source).each do |entry|
         FileUtils.cp_r(File.join(source, entry), File.join(dest, entry), preserve: true)
       end
-    end
-
-    def symlink_paths(payload_dir)
-      links = []
-      Find.find(payload_dir) do |path|
-        links << path if File.lstat(path).symlink?
-      end
-      links
-    end
-
-    def dereference_symlink!(link)
-      target = File.readlink(link)
-      target = File.expand_path(target, File.dirname(link)) unless target.start_with?(File::SEPARATOR)
-      raise Error, "payload symlink target is missing: #{link}" unless File.exist?(target)
-
-      tmp = "#{link}.deref.#{SecureRandom.hex(8)}"
-      FileUtils.rm_rf(tmp)
-      if File.directory?(target)
-        FileUtils.mkdir_p(tmp)
-        copy_dir_contents(target, tmp)
-      else
-        FileUtils.cp(target, tmp, preserve: true)
-      end
-      FileUtils.rm(link)
-      FileUtils.mv(tmp, link)
-    end
-
-    def archive_tar!
-      if gnu_tar?("tar")
-        "tar"
-      elsif command_available?("gtar") && gnu_tar?("gtar")
-        "gtar"
-      else
-        raise Error, "GNU tar or gtar is required for deterministic payload archives"
-      end
-    end
-
-    def gnu_tar?(command)
-      output, status = Open3.capture2e(command, "--version")
-      status.success? && output.include?("GNU tar")
-    rescue Errno::ENOENT
-      false
-    end
-
-    def tar_supports_zstd?(command)
-      output, status = Open3.capture2e(command, "--help")
-      status.success? && output.include?("--zstd")
-    rescue Errno::ENOENT
-      false
     end
 
     def run!(command)
@@ -975,172 +516,6 @@ module Plushie
 
         gem "plushie", path: "vendor/plushie-ruby"
       GEMFILE
-    end
-
-    def relative_payload_path(payload_dir, path)
-      path.delete_prefix("#{payload_dir}#{File::SEPARATOR}")
-    end
-
-    PLATFORM_STRING_KEYS = %w[publisher copyright category description bundle_id].freeze
-    ALLOWED_SECTIONS = %w[start platform platform.macos platform.windows].freeze
-
-    def parse_source_config_document(text)
-      document = {start: {}}
-      each_toml_assignment(text) do |section, key, value|
-        full_key = section ? "#{section}.#{key}" : key
-        case section
-        when nil
-          case key
-          when "config_version"
-            document[:config_version] = parse_toml_integer("config_version", value)
-          else
-            raise Error, "unsupported package config key #{key}"
-          end
-        when "start"
-          case key
-          when "working_dir"
-            document.fetch(:start)[:working_dir] = parse_toml_string("start.working_dir", value)
-          when "command"
-            document.fetch(:start)[:command] = parse_toml_string_array("start.command", value)
-          when "forward_env"
-            document.fetch(:start)[:forward_env] = parse_toml_string_array("start.forward_env", value)
-          else
-            raise Error, "unsupported package config key #{full_key}"
-          end
-        when "platform"
-          document[:platform] ||= {}
-          if PLATFORM_STRING_KEYS.include?(key)
-            document[:platform][key.to_sym] = parse_toml_string(full_key, value)
-          else
-            raise Error, "unsupported package config key #{full_key}"
-          end
-        when "platform.macos"
-          document[:platform_macos] ||= {}
-          case key
-          when "bundle_version"
-            document[:platform_macos][:bundle_version] = parse_toml_string(full_key, value)
-          else
-            raise Error, "unsupported package config key #{full_key}"
-          end
-        when "platform.windows"
-          document[:platform_windows] ||= {}
-          case key
-          when "install_scope"
-            document[:platform_windows][:install_scope] = parse_toml_string(full_key, value)
-          else
-            raise Error, "unsupported package config key #{full_key}"
-          end
-        else
-          raise Error, "unsupported package config table #{section}"
-        end
-      end
-      document
-    end
-
-    def each_toml_assignment(text)
-      section = nil
-      pending = nil
-      text.each_line.with_index(1) do |line, line_no|
-        stripped = strip_toml_comment(line).strip
-        next if stripped.empty?
-
-        if pending
-          pending[:value] << "\n" << stripped
-          if stripped.end_with?("]")
-            yield pending.fetch(:section), pending.fetch(:key), pending.fetch(:value)
-            pending = nil
-          end
-          next
-        end
-
-        if (match = stripped.match(/\A\[([A-Za-z0-9_.]+)\]\z/))
-          section = match[1]
-          raise Error, "unsupported package config table #{section}" unless ALLOWED_SECTIONS.include?(section)
-          next
-        end
-
-        match = stripped.match(/\A([A-Za-z0-9_]+)\s*=\s*(.+)\z/)
-        raise Error, "invalid package config line #{line_no}" unless match
-
-        key = match[1]
-        value = match[2].strip
-        if value.start_with?("[") && !value.end_with?("]")
-          pending = {section: section, key: key, value: value}
-        else
-          yield section, key, value
-        end
-      end
-      raise Error, "unterminated package config array" if pending
-    end
-
-    def strip_toml_comment(line)
-      in_string = false
-      escaped = false
-      line.each_char.with_index do |char, index|
-        if in_string
-          escaped = char == "\\" && !escaped
-          if char == "\"" && !escaped
-            in_string = false
-          elsif char != "\\"
-            escaped = false
-          end
-        elsif char == "\""
-          in_string = true
-        elsif char == "#"
-          return line[0...index]
-        end
-      end
-      line
-    end
-
-    def parse_toml_integer(name, value)
-      raise Error, "#{name} must be an integer" unless value.match?(/\A\d+\z/)
-
-      value.to_i
-    end
-
-    def parse_toml_string(name, value)
-      parsed = JSON.parse(value)
-      raise Error, "#{name} must be a string" unless parsed.is_a?(String)
-
-      parsed
-    rescue JSON::ParserError
-      raise Error, "#{name} must be a string"
-    end
-
-    def parse_toml_string_array(name, value)
-      parsed = JSON.parse(value.gsub(/,\s*\]/, "]"))
-      unless parsed.is_a?(Array) && parsed.all? { |item| item.is_a?(String) }
-        raise Error, "#{name} must be an array of strings"
-      end
-
-      parsed
-    rescue JSON::ParserError
-      raise Error, "#{name} must be an array of strings"
-    end
-
-    def validate_payload_relative_path!(name, value, allow_dot:)
-      raise Error, "#{name} must not be empty" unless value.is_a?(String) && !value.strip.empty?
-      path = Pathname.new(value)
-      if path.absolute? || value.start_with?("\\") || value.match?(/\A[A-Za-z]:[\\\/]/)
-        raise Error, "#{name} must be payload-relative, got absolute path #{value}"
-      end
-
-      has_normal_component = false
-      value.split(/[\\\/]+/).each do |part|
-        next if part.empty?
-
-        if part == ".."
-          raise Error, "#{name} must not contain parent traversal: #{value}"
-        elsif part != "."
-          has_normal_component = true
-        end
-      end
-      raise Error, "#{name} must name a payload file path" unless has_normal_component || allow_dot
-    end
-
-    def valid_forward_env_name?(name)
-      name.is_a?(String) && !name.strip.empty? && !name.include?(",") && !name.include?("=")
     end
 
     def toml_string(value)

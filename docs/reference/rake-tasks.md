@@ -225,23 +225,16 @@ Prints "Nothing to clean" when both directories are already gone.
 
 ## plushie:package
 
-Builds a standalone payload archive and `plushie-package.toml`
-for the shared Rust package launcher. Ruby-specific work stays in
-the SDK: copying the app, copying a conservative Ruby runtime,
-installing runtime gems, adding the renderer to the payload, hashing
-the archive, and writing SDK/protocol metadata into the manifest.
-The helper also asks `cargo-plushie` to materialize the default
-launcher icons under `payload/assets` before archiving.
+Builds a standalone payload and hands it to
+`cargo plushie package assemble`. Ruby-specific work stays in the
+SDK: copying the app, copying a conservative Ruby runtime,
+installing runtime gems, placing the renderer, and writing a partial
+`plushie-package.toml`. The assembler handles icon materialization,
+archiving, checksums, platform metadata, and the final manifest,
+then prints the handoff instructions for building the outer launcher.
 
 ```bash
 rake 'plushie:package[dev.example.notes,Notes,0.1.0]'
-```
-
-The output defaults to `dist/payload.tar.zst` and
-`dist/plushie-package.toml`. Build the outer launcher with:
-
-```bash
-bin/plushie package portable --manifest dist/plushie-package.toml
 ```
 
 ### Configuration inputs
@@ -256,7 +249,8 @@ bin/plushie package portable --manifest dist/plushie-package.toml
 | `PLUSHIE_PACKAGE_TARGET` | current Ruby host | Package target override such as `linux-x86_64` |
 | `PLUSHIE_PACKAGE_RENDERER_PATH` | auto-resolve | Existing renderer binary to copy into the payload |
 | `PLUSHIE_PACKAGE_RENDERER_KIND` | `stock` | Renderer kind recorded in `[renderer]` |
-| `PLUSHIE_PACKAGE_ICON_PATH` | default Plushie icon | App icon copied into the payload and recorded in `[platform].icon`. Platform metadata fields (`publisher`, `copyright`, `category`, `description`, `bundle_id`, `[platform.macos].bundle_version`, `[platform.windows].install_scope`) are read from `plushie-package.config.toml` |
+| `PLUSHIE_PACKAGE_ICON_PATH` | default Plushie icon | Forwarded to the assembler, which copies the icon and records it in the manifest |
+| `PLUSHIE_PACKAGE_CONFIG` | unset | Path to `plushie-package.config.toml`. Forwarded to the assembler, which reads platform metadata from it |
 | `PLUSHIE_PACKAGE_ENTRYPOINT` | `bin/connect` | App entrypoint script (POSIX). The SDK generates `bin/connect` (shebang) on POSIX targets and `bin/connect.cmd` (batch) on `windows-*` targets; the script itself is copied to `bin/connect.rb` in the payload |
 | `PLUSHIE_PACKAGE_BUNDLE_WITHOUT` | `development test` | Bundler groups excluded from the packaged app |
 | `PLUSHIE_RUBY_DIR` | unset | Local SDK checkout to vendor into the packaged app |
@@ -272,14 +266,7 @@ Renderer resolution checks `PLUSHIE_PACKAGE_RENDERER_PATH`,
 `PLUSHIE_BINARY_PATH`, `PLUSHIE_RUST_SOURCE_PATH`, and the managed
 SDK download path. When `PLUSHIE_PACKAGE_RENDERER_KIND` is `custom`,
 set `PLUSHIE_PACKAGE_RENDERER_PATH` or `PLUSHIE_BINARY_PATH` to the
-custom renderer binary. When `PLUSHIE_RUST_SOURCE_PATH` is set for a
-stock renderer, the package helper runs the managed native-tool sync
-from that checkout so `bin/plushie`, `bin/plushie-renderer`, and
-`bin/plushie-launcher` are prepared together.
-Default icon generation uses `cargo run -p cargo-plushie --bin plushie
---release -- default-icons` from a local plushie-rust checkout when
-`PLUSHIE_RUST_SOURCE_PATH` is set. Otherwise it uses
-`bin/plushie default-icons`.
+custom renderer binary.
 
 ### Ruby runtime
 

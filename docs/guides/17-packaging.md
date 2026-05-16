@@ -246,13 +246,13 @@ a better first-install experience.
 
 ## Option D: standalone launcher package
 
-For a single-file app launcher, let the Ruby SDK prepare the
-host payload and manifest, then hand that manifest to the shared
-Rust package launcher. The language-specific work stays in Ruby:
-copying a conservative Ruby runtime, installing runtime gems,
-copying the app files, including a payload-local renderer,
-materializing default launcher icons, writing `plushie-package.toml`,
-and archiving the payload.
+For a single-file app launcher, the Ruby SDK prepares the host
+payload and a partial manifest, then hands both to
+`cargo plushie package assemble`. The language-specific work stays
+in Ruby: copying a conservative Ruby runtime, installing runtime
+gems, copying the app files, placing the renderer. The shared
+assembler handles icon materialization, archiving, checksums,
+platform metadata, and the final manifest.
 
 The default shape expects:
 
@@ -275,55 +275,20 @@ Add `require "plushie/rake"` to the app's `Rakefile`, then run:
 bundle exec rake 'plushie:package[dev.example.notes,Notes,0.1.0]'
 ```
 
-The task writes `dist/payload.tar.zst` and
-`dist/plushie-package.toml`. Build the outer launcher with:
-
-```bash
-bin/plushie package portable --manifest dist/plushie-package.toml
-```
+The task builds the payload under `dist/payload/`, writes a partial
+`dist/plushie-package.toml`, and shells to
+`bin/plushie package assemble` which produces the final archive and
+manifest. The assembler prints the handoff instructions for building
+the outer launcher.
 
 For custom renderers, set `PLUSHIE_PACKAGE_RENDERER_KIND=custom` and
 point `PLUSHIE_PACKAGE_RENDERER_PATH` or `PLUSHIE_BINARY_PATH` at the
 renderer binary to copy into the payload.
 
-You can run the same gate before building the launcher:
-
-```bash
-bin/plushie package check --manifest dist/plushie-package.toml --strict-tools
-```
-
-The manifest records `host_sdk = "ruby"`, the Ruby SDK version,
-`PLUSHIE_RUST_VERSION`, the protocol version, the package target,
-payload hash and size, renderer provenance (`kind` and `source`),
-and `[platform]` metadata when configured. By default the Ruby
-helper invokes `bin/plushie default-icons --out dist/payload/assets`
-before archiving and records `assets/default-app-icon-512.png`. Set
-`PLUSHIE_PACKAGE_ICON_PATH` to copy an app icon into `assets/` and
-record that payload-relative path instead. The `[platform]` section is
-omitted entirely when no platform fields are set.
-
-Optional platform metadata is declared in `plushie-package.config.toml`.
-Run `--write-package-config` to generate a template with commented-out
-examples. Supported fields:
-
-```toml
-[platform]
-publisher = "Example Corp"
-copyright = "Copyright 2025 Example Corp"
-category = "Productivity"
-description = "A short description of the application."
-bundle_id = "com.example.myapp"
-
-[platform.macos]
-bundle_version = "1"   # CFBundleVersion (usually an incrementing integer string)
-
-[platform.windows]
-install_scope = "perUser"  # "perUser" or "perMachine"
-```
-
-All fields are optional. `[platform]`, `[platform.macos]`, and
-`[platform.windows]` are each omitted from the emitted manifest when
-they carry no populated fields.
+Platform metadata (icon, publisher, bundle identifiers, etc.) is
+declared in `plushie-package.config.toml` and read by the assembler.
+Pass `--package-config` or `PLUSHIE_PACKAGE_CONFIG` to point at a
+non-default path.
 
 For scripts that need a direct helper instead of Rake, use
 `Plushie::Package.build` from `require "plushie/package"`.
@@ -515,8 +480,9 @@ gem install my_app --platform=x86_64-linux
 my_app
 
 # Option D: standalone launcher
+# The rake task calls cargo-plushie assemble internally; the assembler
+# prints the portable-launcher build command when it finishes.
 bundle exec rake 'plushie:package[dev.example.notes,Notes,0.1.0]'
-bin/plushie package portable --manifest dist/plushie-package.toml
 
 # Option E: native widget gem (consumer has a Rust toolchain)
 bundle add my_sparkline
