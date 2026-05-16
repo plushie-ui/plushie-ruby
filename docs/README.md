@@ -21,7 +21,6 @@ new to Plushie.
 14. [State Management](guides/14-state-management.md) - routing, undo/redo, selection, data pipelines
 15. [Testing](guides/15-testing.md) - test framework, backends, selectors, screenshots
 16. [Shared State](guides/16-shared-state.md) - multi-session apps over SSH
-17. [Packaging](guides/17-packaging.md) - publishing a gem and shipping a native renderer
 
 ## Reference
 
@@ -40,6 +39,7 @@ Lookup material organized by topic. Each page is self-contained.
 - [DSL](reference/dsl.md) - block DSL mechanics, context stack, auto-IDs, memo caching
 - [Events](reference/events.md) - every event class, widget event taxonomy, pattern-matching cookbook
 - [Native Extensions](reference/native-extension.md) - authoring a Rust widget crate and shipping it alongside a Ruby gem
+- [Packaging and Distribution](reference/packaging-and-distribution.md) - rake plushie:package, payload layout, portable and OS-native installers
 - [Rake Tasks](reference/rake-tasks.md) - plushie:download, plushie:build, plushie:run, preflight
 - [Scoped IDs](reference/scoped-ids.md) - ID scoping rules, scope matching, command paths
 - [Subscriptions](reference/subscriptions.md) - timer, keyboard, pointer, window, catch-all subscriptions
